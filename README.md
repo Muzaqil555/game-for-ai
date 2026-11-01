@@ -22,7 +22,7 @@
 
 **[⭐ Star this Repo](https://github.com/Muzaqil555/game-for-ai) to bookmark it for your next AI-generated game or software project!**
 
-[🎮 Play Live Demo](https://muzaqil555.github.io/game-for-ai/) • [Overview](#-overview) • [Prompt Cookbook](PROMPTS.md) • [Why It's Different](#-why-this-is-different) • [Architecture](#-5-phase-autonomous-swarm-pipeline) • [Agent Roster](#-the-36-agent-roster) • [Model Mapping](#-universal-cross-platform-model-mapping) • [Quick Start](#-quick-start-in-30-seconds) • [License](#-license)
+[🎮 Play Live Demo](https://muzaqil555.github.io/game-for-ai/) • [Master Prompts](#-1-click-master-prompt-gallery-featured-recipes) • [Overview](#-overview) • [Why It's Different](#-why-this-is-different) • [Architecture](#-5-phase-autonomous-swarm-pipeline) • [Agent Roster](#-the-36-agent-roster) • [Model Mapping](#-universal-cross-platform-model-mapping) • [Quick Start](#-quick-start-in-30-seconds) • [License](#-license)
 
 </div>
 
@@ -40,6 +40,70 @@ Want to see what this 36-agent swarm creates from a single prompt? You don't hav
 
 ---
 
+## 📖 1-Click Master Prompt Gallery (Featured Recipes)
+
+> **No complex prompt engineering required.** Click any genre below, hit the top-right **Copy** button on the codeblock, paste it into **Antigravity**, **Claude Code**, or **Cursor**, and receive a fully playable game in 2 minutes!
+
+<details open>
+<summary>🗡️ <b>1. Cyberpunk Katana Roguelite</b> <i>(Hades & Dead Cells style)</i></summary>
+<br/>
+
+```text
+Build a fast-paced Neon Cyberpunk Roguelite action game where I play as a cyber-samurai with a laser katana. Include 360-degree dash with perfect-dodge bullet-time slowdown, a 5-hit combo attack with procedural spark particles, roguelike boon selection cards upon clearing waves (chain lightning, fiery cleave, shadow clone), a DMC-style dynamic combo rank (D -> C -> B -> A -> S -> SSS) with hype voice announcements, and procedural synthwave combat music synthesized via Web Audio API.
+```
+</details>
+
+<details open>
+<summary>🦇 <b>2. Vampire Horde 60–120 FPS</b> <i>(Vampire Survivors style 5,000+ mobs)</i></summary>
+<br/>
+
+```text
+Build an ultra-performant Vampire Survivors-style survival horde game. Features: 5,000+ simultaneous swarming alien enemies rendered smoothly at 60–120 FPS using strict spatial grid object pooling, auto-firing orbiting plasma blades and ricocheting energy shurikens, experience gem magnetism, level-up card drafting with weapon evolution fusions (e.g., Plasma Blade + Magnet = Orbital Death Vortex), a 15-minute countdown clock, phased miniboss encounters with energy shields, and an energetic procedural chiptune synth track.
+```
+</details>
+
+<details open>
+<summary>🍓 <b>3. Gravity-Shift Neon Runner</b> <i>(Celeste & Geometry Dash mechanics)</i></summary>
+<br/>
+
+```text
+Create an ultra-responsive precision platformer and gravity-runner fusing Celeste kinematics with Geometry Dash rhythm. Controls: tight sub-pixel movement, 8-frame coyote time, 6-frame jump buffering, wall-sliding/wall-jumping, and an instant gravity-reversal flip button on Space. Features: 6 increasingly difficult obstacle zones with rotating neon buzzsaws, laser barriers, disappearing jump pads, death counter, instant 0-millisecond respawn, dynamic screen shake on impact, and ambient procedural lofi synthesizer music.
+```
+</details>
+
+<details open>
+<summary>⚔️ <b>4. Diablo-Style Procedural Dungeon Crawler</b> <i>(Loot beams & elite affixes)</i></summary>
+<br/>
+
+```text
+Build a dark-fantasy top-down dungeon crawler RPG. Features: procedural interconnected dungeon rooms with dynamic fog of war, WASD movement and mouse-aim casting with 4 hot-swappable spells (Fireball, Frost Nova, Teleport, Whirlwind), elite champion enemies equipped with randomized procedural affixes (Fiery Mortar, Frozen Aura, Teleporter, Shielded), Diablo-style radiant vertical loot beams for rare and legendary equipment drops, a 3-branch ancient talent tree with persistent save data, and atmospheric dark synthesizer audio.
+```
+</details>
+
+<details open>
+<summary>🏎️ <b>5. Synthwave 80s Retro Drift Racer</b> <i>(OutRun pseudo-3D highway)</i></summary>
+<br/>
+
+```text
+Create an 80s OutRun-style pseudo-3D retro arcade highway racer. Features: smooth pseudo-3D road curve mathematics with undulating hills, high-speed sports car with drift physics and tire smoke particles, procedural roadside neon palm trees and cyberpunk skyscrapers, oncoming traffic to overtake with near-miss bonus points, checkpoint countdown timer with overtime bonuses, nitrous speed-lines effect, and a high-energy 80s synthwave FM-bassline generated in real-time via Web Audio API.
+```
+</details>
+
+<details open>
+<summary>🛸 <b>6. Space Fleet Void Defender</b> <i>(Tower defense + ballistics)</i></summary>
+<br/>
+
+```text
+Build a sci-fi cosmic tower defense game on an interactive glowing grid. Features: creeping waves of alien swarm drones navigating dynamic paths via A* pathfinding, 4 specialized turret classes (Rapid Laser, Cryo Slowdown, Chain Lightning Tesla, Long-range Splash Mortar), branching Tier-3 upgrade specializations for every turret, interactive range circles and hover damage stats, fast-forward 1x/2x/4x controls, phased titan dreadnought boss waves with recharging deflector shields, and sci-fi synth pulses.
+```
+</details>
+
+<br/>
+
+👉 **[Explore all 10 recipes with Azerbaijani/Turkish translations in PROMPTS.md](PROMPTS.md)**
+
+---
+
 ## 🌍 Overview
 
 Most AI coding assistants struggle when asked to build complete games or multi-file applications: they hallucinate, rewrite each other's files, hit context limits, and produce broken code.
@@ -50,24 +114,6 @@ Give it a single prompt like:
 > *"Create a cyberpunk motorcycle racing game where you slice enemy drones with a laser katana."*
 
 And the 36-agent swarm will automatically draft the architectural spec, code 6 modules in parallel, synthesize procedural audio and visuals, test the game in a live browser, balance the dopamine pacing, and deliver a 1-click playable game.
-
----
-
-## 📖 Prompt Cookbook (1-Click Copy & Paste)
-
-Check out [**`PROMPTS.md`**](PROMPTS.md) for 10 tested, battle-hardened game prompts ready to paste into your AI assistant:
-* 🗡️ **Neon Cyberpunk Katana Roguelite** (Hades-style perfect-dodge, style combos)
-* 🦇 **Vampire Swarm Arena** (2,000+ mobs at 120 FPS, weapon synergies)
-* 🍓 **Celeste-Style Precision Platformer** (Coyote time, jump buffer, air dash)
-* ⚔️ **Diablo-Style Dungeon Crawler** (Loot beams, elite affixes, talent tree)
-* 🏎️ **OutRun Synthwave 80s Racer** (Pseudo-3D road curves, drift physics)
-* 🏰 **Cosmic Void Tower Defense** (A* pathfinding, branching turrets)
-* 🚀 **Geometry Wars Space Shooter** (360° twin-stick, bloom particles)
-* 🧩 **Gravitational Gem Puzzle** (Match-3 with cascade physics)
-* 🥊 **Streets of Neon Beat 'Em Up** (Juggle physics, 2.5D lanes)
-* 🌐 **3D WebGL Space Flight Simulator** (Three.js procedural starfield)
-
-👉 **[Read all 10 recipes in PROMPTS.md](PROMPTS.md)**
 
 ---
 
