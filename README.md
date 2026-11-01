@@ -2,41 +2,50 @@
 
 # ⚡ Autonomous 36-Agent Universal Game & Software Studio
 
-### Turn any 1-sentence prompt into a fully playable, zero-dependency browser game in minutes with an autonomous 36-agent parallel swarm.
+### Turn any 1-sentence prompt into fully playable, zero-dependency browser games in minutes with an autonomous 36-agent parallel swarm.
 
-[![Play Live Demo](https://img.shields.io/badge/🎮%20Play%20Live%20Demo-Browser%20Showcase-brightgreen?style=for-the-badge&logo=googlechrome)](https://muzaqil555.github.io/game-for-ai/)
-[![Prompt Cookbook](https://img.shields.io/badge/Prompt%20Cookbook-10%20Recipes-red?style=for-the-badge&logo=markdown)](PROMPTS.md)
 [![Multi-Agent](https://img.shields.io/badge/Agents-36%20Specialized%20Swarm-orange?style=for-the-badge&logo=probot)](AGENTS.md)
 [![Zero-Conflict](https://img.shields.io/badge/Architecture-Zero--Conflict%20Parallel-emerald?style=for-the-badge&logo=git)](.agents/skills/universal-game-engine/SKILL.md)
 [![FPS](https://img.shields.io/badge/Performance-60--120%20FPS%20Guaranteed-purple?style=for-the-badge&logo=speedtest)](.agents/skills/universal-game-engine/SKILL.md)
+[![Prompt Cookbook](https://img.shields.io/badge/Prompt%20Cookbook-10%20Recipes-red?style=for-the-badge&logo=markdown)](PROMPTS.md)
 [![Compatibility](https://img.shields.io/badge/Compatible%20With-Antigravity%20%7C%20Cursor%20%7C%20Claude%20Code-cyan?style=for-the-badge&logo=openai)](README.md)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
 <br/>
 
-<a href="https://muzaqil555.github.io/game-for-ai/" target="_blank">
-  <img src="https://img.shields.io/badge/▶%20CLICK%20HERE%20TO%20PLAY%20LIVE%20BROWSER%20DEMO-60--120%20FPS%20NO%20INSTALL-success?style=for-the-badge&logo=googleplay&logoColor=white" alt="Play Live Demo" height="42"/>
-</a>
+### 🕹️ 3 Live Playable Browser Demos (Click to Play Right Now):
 
-<br/><br/>
+<div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+  <a href="https://muzaqil555.github.io/game-for-ai/" target="_blank">
+    <img src="https://img.shields.io/badge/⚔️%20PLAY%20GAME%201-AETHERIA%20ROGUELITE%20ARPG-gold?style=for-the-badge&logo=googleplay&logoColor=black" alt="Play Game 1" height="40"/>
+  </a>
+  <a href="https://muzaqil555.github.io/game-for-ai/racer.html" target="_blank">
+    <img src="https://img.shields.io/badge/🏎️%20PLAY%20GAME%202-NEON%20DRIFT%20RACER-ff007f?style=for-the-badge&logo=googleplay&logoColor=white" alt="Play Game 2" height="40"/>
+  </a>
+  <a href="https://muzaqil555.github.io/game-for-ai/shooter.html" target="_blank">
+    <img src="https://img.shields.io/badge/🚀%20PLAY%20GAME%203-VOID%20NOVA%20SHOOTER-00f5ff?style=for-the-badge&logo=googleplay&logoColor=black" alt="Play Game 3" height="40"/>
+  </a>
+</div>
+
+<br/>
 
 **[⭐ Star this Repo](https://github.com/Muzaqil555/game-for-ai) to bookmark it for your next AI-generated game or software project!**
 
-[🎮 Play Live Demo](https://muzaqil555.github.io/game-for-ai/) • [Master Prompts](#-1-click-master-prompt-gallery-featured-recipes) • [Overview](#-overview) • [Why It's Different](#-why-this-is-different) • [Architecture](#-5-phase-autonomous-swarm-pipeline) • [Agent Roster](#-the-36-agent-roster) • [Model Mapping](#-universal-cross-platform-model-mapping) • [Quick Start](#-quick-start-in-30-seconds) • [License](#-license)
+[🕹️ 3 Live Games](#-live-browser-arcade-3-playable-games) • [Master Prompts](#-1-click-master-prompt-gallery-featured-recipes) • [Overview](#-overview) • [Why It's Different](#-why-this-is-different) • [Architecture](#-5-phase-autonomous-swarm-pipeline) • [Agent Roster](#-the-36-agent-roster) • [Model Mapping](#-universal-cross-platform-model-mapping) • [Quick Start](#-quick-start-in-30-seconds) • [License](#-license)
 
 </div>
 
 ---
 
-## 🎮 Play Live Browser Demo
+## 🕹️ Live Browser Arcade (3 Playable Games)
 
-Want to see what this 36-agent swarm creates from a single prompt? You don't have to take our word for it — play a complete game built 100% autonomously by the studio:
+Want to see what this 36-agent swarm creates from a single prompt? Play 3 completely different genres built 100% autonomously by the studio — **zero downloads, zero asset dependencies, runs at 60–120 FPS on desktop and mobile**:
 
-👉 **[▶ Launch Live Browser Demo (https://muzaqil555.github.io/game-for-ai/)](https://muzaqil555.github.io/game-for-ai/)**
-
-* **Zero Installs, Zero Asset Downloads:** 100% procedural Web Audio sound synthesis and procedural vector Canvas rendering.
-* **Desktop & Mobile:** Full responsive glassmorphism UI with on-screen virtual touch joysticks for mobile phones.
-* **Features Included in Demo:** 4 hot-swappable weapons, automated AI drone pet, DMC-style combo rankings (D ➔ SSS), Diablo-style colored loot beams, 3-branch talent tree, elite champions, and contextual onboarding.
+| Game & Genre | Key Systems Built by the Swarm | Direct Play Link |
+| :--- | :--- | :--- |
+| ⚔️ **Game 1: Aetheria**<br/>*Dark Fantasy Roguelite ARPG* | • Hades-style laser katana combos & bullet-time dodges<br/>• Automated AI drone pet companion with passive aura<br/>• Diablo-style vertical colored loot beams & legendary affixes<br/>• 3-branch ancient talent tree with persistent local save data<br/>• 100% procedural Web Audio combat music & glassmorphism HUD | 👉 [**[Play Aetheria]**](https://muzaqil555.github.io/game-for-ai/) |
+| 🏎️ **Game 2: Neon Velocity**<br/>*80s OutRun Pseudo-3D Drift Racer* | • Mathematical pseudo-3D road curve & elevation projection<br/>• High-speed drift kinematics, nitro boost, tire smoke particles<br/>• Oncoming traffic overtakes with near-miss score multipliers<br/>• 100% procedural 80s synthwave FM-bassline & dynamic engine rumble | 👉 [**[Play Neon Velocity]**](https://muzaqil555.github.io/game-for-ai/racer.html) |
+| 🚀 **Game 3: Void Nova**<br/>*360° Neon Geometry Bullet-Hell Shooter* | • Geometry Wars twin-stick ballistics & polygon rendering<br/>• Splitting vector asteroids and aggressive chasing swarmers<br/>• Screen-clearing EMP shockwave bombs & combo multipliers<br/>• Glowing bloom particles with additive lighter composite blending | 👉 [**[Play Void Nova]**](https://muzaqil555.github.io/game-for-ai/shooter.html) |
 
 ---
 
@@ -129,7 +138,7 @@ And the 36-agent swarm will automatically draft the architectural spec, code 6 m
 │ • Untested console runtime errors    │     │ • Autonomous QA Gate + Auto-healing Bug Fixer          │
 │ • Boring, uncalibrated difficulty    │     │ • 9-Persona User Council audits fun & skill-ceiling    │
 │ • Manual setup & complex prompting   │     │ • Auto-activated via CLAUDE.md & .cursorrules          │
-│ • Unverified claim / no demo         │     │ • 1-Click playable browser demo available right away   │
+│ • Unverified claims / no demo        │     │ • 3 Playable browser games (RPG, Racer, Space Shooter) │
 └──────────────────────────────────────┘     └────────────────────────────────────────────────────────┘
 ```
 
