@@ -6,8 +6,8 @@ Write-Host "==========================================================" -Foregro
 Write-Host "⚡ Installing Autonomous 36-Agent Studio into current directory..." -ForegroundColor Yellow
 Write-Host "==========================================================" -ForegroundColor Cyan
 
-# Run git clone with --quiet
-& git clone --quiet --depth 1 $repoUrl $tempPath
+# Run git clone with complete stderr suppression
+git clone --quiet --depth 1 $repoUrl $tempPath 2>$null
 
 if (Test-Path $tempPath) {
     Copy-Item -Path "$tempPath\.agents" -Destination ".\" -Recurse -Force
