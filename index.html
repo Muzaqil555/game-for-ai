@@ -1,0 +1,2508 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AETHERIA: KÖLGƏLƏRİN SƏLTƏNƏTİ</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚔️</text></svg>">
+  
+  <!-- Google Fonts: Cinzel (Epic Fantasy) & Plus Jakarta Sans (Clean Modern UI) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* ==========================================================================
+       DARK FANTASY GLASSMORPHISM DESIGN SYSTEM
+       ========================================================================== */
+    :root {
+      --bg-void: #06050b;
+      --bg-panel: rgba(14, 11, 24, 0.82);
+      --bg-panel-solid: #0e0b18;
+      --border-gold: rgba(245, 197, 66, 0.35);
+      --border-gold-bright: #ffd700;
+      
+      --gold-primary: #f5c542;
+      --gold-gradient: linear-gradient(135deg, #fff2a3 0%, #f5c542 50%, #b8860b 100%);
+      --emerald-neon: #00f5a0;
+      --emerald-gradient: linear-gradient(135deg, #00f5a0 0%, #059669 100%);
+      --astral-cyan: #00e5ff;
+      --astral-purple: #9d4edd;
+      --mana-gradient: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 50%, #7928ca 100%);
+      --crimson-red: #ff3366;
+      --crimson-gradient: linear-gradient(135deg, #ff4b4b 0%, #dc2626 50%, #991b1b 100%);
+      
+      --glow-gold: 0 0 20px rgba(245, 197, 66, 0.35);
+      --glow-emerald: 0 0 18px rgba(0, 245, 160, 0.4);
+      --glow-astral: 0 0 22px rgba(157, 78, 221, 0.45);
+      --shadow-epic: 0 12px 40px rgba(0, 0, 0, 0.85);
+
+      --font-title: 'Cinzel', serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-void);
+      color: #f1f5f9;
+      font-family: var(--font-body);
+    }
+
+    /* Tam Ekran Oyun Kanvası */
+    #game-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      z-index: 1;
+      background: #030206;
+    }
+
+    /* UI Qatı */
+    #ui-root {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 10;
+      overflow: hidden;
+    }
+
+    .interactive,
+    button,
+    input,
+    a,
+    .glass-panel,
+    .modal-card {
+      pointer-events: auto;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Glassmorphism Panel Standartı */
+    .glass-panel {
+      background: var(--bg-panel);
+      backdrop-filter: blur(14px) saturate(180%);
+      -webkit-backdrop-filter: blur(14px) saturate(180%);
+      border: 1px solid var(--border-gold);
+      box-shadow: var(--shadow-epic);
+      border-radius: 12px;
+      position: relative;
+    }
+
+    .glass-panel::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+      pointer-events: none;
+    }
+
+    /* ==========================================================================
+       ANA MENYU EKRANI
+       ========================================================================== */
+    #main-menu {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, rgba(22, 16, 38, 0.88) 0%, rgba(6, 5, 11, 0.98) 75%);
+      z-index: 100;
+      transition: opacity 0.5s ease;
+      pointer-events: auto;
+    }
+
+    .menu-fog-overlay {
+      position: absolute;
+      inset: 0;
+      background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noiseFilter)" opacity="0.04"/></svg>');
+      pointer-events: none;
+    }
+
+    .menu-content {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 620px;
+      width: 90%;
+      text-align: center;
+      z-index: 2;
+    }
+
+    .game-logo-badge {
+      font-size: 0.85rem;
+      letter-spacing: 4px;
+      color: var(--emerald-neon);
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 8px;
+      text-shadow: var(--glow-emerald);
+    }
+
+    .game-title {
+      font-family: var(--font-title);
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      font-weight: 900;
+      letter-spacing: 5px;
+      background: var(--gold-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 4px 18px rgba(245, 197, 66, 0.45));
+      margin-bottom: 4px;
+      line-height: 1.1;
+    }
+
+    .game-subtitle {
+      font-family: var(--font-title);
+      font-size: clamp(1rem, 2.5vw, 1.35rem);
+      letter-spacing: 6px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+      position: relative;
+      display: inline-block;
+    }
+
+    .game-subtitle::before, .game-subtitle::after {
+      content: '✦';
+      color: var(--gold-primary);
+      margin: 0 12px;
+      font-size: 0.85rem;
+    }
+
+    .menu-buttons-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .menu-btn {
+      position: relative;
+      background: rgba(22, 18, 36, 0.85);
+      border: 1px solid var(--border-gold);
+      color: #f8fafc;
+      font-family: var(--font-title);
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      padding: 15px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      overflow: hidden;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .menu-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.2), transparent);
+      transform: translateX(-100%);
+      transition: transform 0.6s ease;
+    }
+
+    .menu-btn:hover::before {
+      transform: translateX(100%);
+    }
+
+    .menu-btn:hover {
+      border-color: var(--border-gold-bright);
+      background: rgba(35, 28, 58, 0.95);
+      box-shadow: var(--glow-gold), 0 6px 22px rgba(0, 0, 0, 0.6);
+      transform: translateY(-2px);
+    }
+
+    .menu-btn:active {
+      transform: translateY(1px);
+    }
+
+    .menu-btn.primary {
+      background: linear-gradient(135deg, rgba(245, 197, 66, 0.25) 0%, rgba(184, 134, 11, 0.35) 100%), rgba(22, 18, 36, 0.9);
+      border-color: var(--border-gold-bright);
+      color: #fff;
+    }
+
+    .menu-btn.primary:hover {
+      background: linear-gradient(135deg, rgba(245, 197, 66, 0.4) 0%, rgba(184, 134, 11, 0.5) 100%), rgba(35, 28, 58, 0.95);
+    }
+
+    /* V2.0: Sonsuz Kolizey (Arena) Düyməsi */
+    .menu-btn.arena-btn {
+      background: linear-gradient(135deg, rgba(147, 51, 234, 0.45) 0%, rgba(245, 197, 66, 0.4) 100%), rgba(22, 18, 36, 0.95);
+      border: 1.5px solid #ffd700;
+      color: #fff;
+      box-shadow: 0 0 20px rgba(168, 85, 247, 0.5), inset 0 0 10px rgba(255, 215, 0, 0.3);
+      position: relative;
+    }
+
+    .menu-btn.arena-btn:hover {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.65) 0%, rgba(245, 197, 66, 0.6) 100%), rgba(35, 28, 58, 0.98);
+      box-shadow: 0 0 30px rgba(168, 85, 247, 0.8), 0 0 18px rgba(255, 215, 0, 0.7);
+      border-color: #ffffff;
+      transform: translateY(-2px) scale(1.02);
+    }
+
+    .menu-btn.claimed {
+      opacity: 0.65;
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .menu-footer {
+      margin-top: 36px;
+      font-size: 0.8rem;
+      letter-spacing: 1px;
+      color: #64748b;
+    }
+
+    /* ==========================================================================
+       CANLI OYUN HUD-U (HEADS-UP DISPLAY)
+       ========================================================================== */
+    #game-hud {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    /* 1. Yuxarı Sol: Oyunçu Profili və Status Barları */
+    .hud-top-left {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: auto;
+    }
+
+    .player-hero-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 16px;
+      min-width: 310px;
+    }
+
+    .player-level-badge {
+      position: relative;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #2a2046 0%, #0d0a1a 90%);
+      border: 2px solid var(--gold-primary);
+      box-shadow: var(--glow-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-title);
+      font-weight: 800;
+      font-size: 0.85rem;
+      color: var(--gold-primary);
+      flex-shrink: 0;
+    }
+
+    .player-stats-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .player-meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+
+    .region-title {
+      font-family: var(--font-title);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      letter-spacing: 1px;
+    }
+
+    /* Status Bar Şablonu */
+    .hud-bar {
+      position: relative;
+      height: 12px;
+      background: rgba(0, 0, 0, 0.65);
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .hud-bar.hp-bar {
+      height: 15px;
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 100%;
+      border-radius: 6px;
+      transition: width 0.25s ease-out;
+    }
+
+    .bar-fill.hp {
+      background: var(--crimson-gradient);
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+    }
+
+    .bar-fill.mp {
+      background: var(--mana-gradient);
+      box-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+    }
+
+    .bar-fill.xp {
+      background: var(--emerald-gradient);
+      box-shadow: 0 0 8px rgba(0, 245, 160, 0.4);
+    }
+
+    .bar-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+      letter-spacing: 0.5px;
+    }
+
+    .low-hp-pulsing .bar-fill.hp {
+      animation: hpWarning 0.8s infinite alternate ease-in-out;
+    }
+
+    @keyframes hpWarning {
+      0% { opacity: 0.6; filter: brightness(0.8); }
+      100% { opacity: 1; filter: brightness(1.4); box-shadow: 0 0 16px rgba(255, 0, 0, 0.8); }
+    }
+
+    /* Qızıl və Kristal Paneli */
+    .currency-pill-container {
+      display: flex;
+      gap: 10px;
+    }
+
+    .currency-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+    }
+
+    .currency-pill.gold {
+      color: var(--gold-primary);
+      border-color: rgba(245, 197, 66, 0.35);
+    }
+
+    .currency-pill.crystals {
+      color: var(--astral-purple);
+      border-color: rgba(157, 78, 221, 0.4);
+    }
+
+    /* 2. Yuxarı Mərkəz: Epik Boss Barı və Bildirişlər */
+    .hud-top-center {
+      position: absolute;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 90%;
+      max-width: 620px;
+      pointer-events: none;
+    }
+
+    #boss-hud {
+      width: 100%;
+      padding: 12px 20px;
+      background: radial-gradient(circle, rgba(35, 10, 18, 0.92) 0%, rgba(12, 6, 12, 0.96) 95%);
+      border: 1px solid rgba(239, 68, 68, 0.55);
+      box-shadow: 0 8px 30px rgba(220, 38, 38, 0.3), inset 0 0 15px rgba(239, 68, 68, 0.2);
+      border-radius: 12px;
+      pointer-events: auto;
+      transition: opacity 0.4s ease;
+    }
+
+    .boss-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .boss-name-group {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .boss-skull-icon {
+      color: var(--crimson-red);
+      font-size: 1.1rem;
+      filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.8));
+    }
+
+    .boss-name {
+      font-family: var(--font-title);
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-shadow: 0 0 10px rgba(255, 75, 75, 0.6);
+    }
+
+    .boss-title {
+      font-size: 0.75rem;
+      color: #fca5a5;
+      font-style: italic;
+    }
+
+    .boss-phase-badge {
+      background: rgba(220, 38, 38, 0.35);
+      border: 1px solid rgba(255, 75, 75, 0.5);
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 1px;
+    }
+
+    .boss-bar-track {
+      position: relative;
+      height: 18px;
+      background: rgba(15, 6, 8, 0.85);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .boss-hp-ghost {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.3);
+      transition: width 0.7s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .boss-hp-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      background: var(--crimson-gradient);
+      box-shadow: 0 0 14px rgba(239, 68, 68, 0.8);
+      transition: width 0.15s ease-out;
+    }
+
+    .boss-hp-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: #ffffff;
+      text-shadow: 0 1px 4px #000;
+      letter-spacing: 1px;
+    }
+
+    /* Bildiriş Banneri */
+    .notification-banner {
+      margin-top: 14px;
+      padding: 12px 28px;
+      border-radius: 8px;
+      background: rgba(14, 11, 24, 0.94);
+      border: 1px solid var(--border-gold-bright);
+      box-shadow: var(--glow-gold), var(--shadow-epic);
+      text-align: center;
+      transform: translateY(-20px);
+      opacity: 0;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      pointer-events: none;
+    }
+
+    .notification-banner.active {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .notif-title {
+      font-family: var(--font-title);
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--gold-primary);
+      margin-bottom: 2px;
+    }
+
+    .notif-subtitle {
+      font-size: 0.82rem;
+      color: #cbd5e1;
+    }
+
+    .notification-banner.type-bonus .notif-title { color: var(--emerald-neon); }
+    .notification-banner.type-warning .notif-title { color: var(--crimson-red); }
+
+    /* 3. Yuxarı Sağ: Minimap Radar və İdarəetmə Düymələri */
+    .hud-top-right {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+      pointer-events: auto;
+    }
+
+    .minimap-wrapper {
+      position: relative;
+      padding: 5px;
+      border-radius: 50%;
+      background: rgba(12, 10, 20, 0.85);
+      border: 2px solid var(--border-gold);
+      box-shadow: var(--shadow-epic), var(--glow-gold);
+    }
+
+    #minimap-canvas {
+      display: block;
+      border-radius: 50%;
+      width: 140px;
+      height: 140px;
+      background: #08070e;
+    }
+
+    .minimap-compass-n {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.65rem;
+      font-weight: 900;
+      color: var(--gold-primary);
+      text-shadow: 0 0 4px #000;
+      pointer-events: none;
+    }
+
+    .hud-quick-buttons {
+      display: flex;
+      gap: 8px;
+    }
+
+    .hud-icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-gold);
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 1rem;
+    }
+
+    .hud-icon-btn:hover {
+      border-color: var(--border-gold-bright);
+      color: #fff;
+      transform: scale(1.08);
+      box-shadow: var(--glow-gold);
+    }
+
+    .fps-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #94a3b8;
+      letter-spacing: 0.5px;
+      padding: 3px 8px;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* 4. Orta Sağ: Quest Tracker & Interact Prompt */
+    .hud-mid-right {
+      position: absolute;
+      top: 225px;
+      right: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 12px;
+      pointer-events: auto;
+      max-width: 280px;
+    }
+
+    .quest-tracker-panel {
+      padding: 12px 16px;
+      width: 100%;
+    }
+
+    .quest-tracker-title {
+      font-family: var(--font-title);
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: var(--gold-primary);
+      letter-spacing: 1.5px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-bottom: 1px solid rgba(245, 197, 66, 0.2);
+      padding-bottom: 4px;
+    }
+
+    .quest-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .quest-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 0.8rem;
+      line-height: 1.3;
+      color: #cbd5e1;
+    }
+
+    .quest-item.empty {
+      font-style: italic;
+      color: #64748b;
+    }
+
+    .quest-check {
+      color: var(--gold-primary);
+      font-weight: bold;
+    }
+
+    .quest-item.quest-done {
+      color: #6ee7b7;
+      text-decoration: line-through;
+      opacity: 0.7;
+    }
+
+    .quest-item.quest-done .quest-check {
+      color: var(--emerald-neon);
+    }
+
+    .quest-item-title {
+      font-weight: 700;
+      color: #f8fafc;
+      display: block;
+    }
+
+    .quest-item-desc {
+      font-size: 0.72rem;
+      color: #94a3b8;
+    }
+
+    /* Qarşılıqlı Əlaqə İpucu */
+    .interact-prompt {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 18px;
+      background: radial-gradient(circle, rgba(32, 24, 52, 0.95) 0%, rgba(14, 11, 24, 0.98) 100%);
+      border: 1px solid var(--border-gold-bright);
+      border-radius: 24px;
+      box-shadow: var(--glow-gold), var(--shadow-epic);
+      animation: promptPulse 1.4s infinite alternate ease-in-out;
+    }
+
+    @keyframes promptPulse {
+      0% { transform: scale(0.97); }
+      100% { transform: scale(1.03); box-shadow: 0 0 25px rgba(245, 197, 66, 0.6); }
+    }
+
+    .interact-key {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: var(--gold-gradient);
+      color: #0d0a1a;
+      font-weight: 900;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .interact-text {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.5px;
+    }
+
+    /* 5. Aşağı Mərkəz: Bacarıq Barı (Action Bar / Hotbar) */
+    .hud-bottom-center {
+      position: absolute;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 16px;
+      pointer-events: auto;
+    }
+
+    .skill-slot {
+      position: relative;
+      width: 62px;
+      height: 62px;
+      border-radius: 10px;
+      background: rgba(18, 14, 32, 0.9);
+      border: 1.5px solid rgba(245, 197, 66, 0.3);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+    }
+
+    .skill-slot:hover {
+      border-color: var(--border-gold-bright);
+      transform: translateY(-3px);
+      box-shadow: var(--glow-gold);
+    }
+
+    .skill-icon {
+      font-size: 1.4rem;
+      margin-bottom: 2px;
+    }
+
+    .skill-hotkey-badge {
+      position: absolute;
+      top: 3px;
+      right: 4px;
+      font-size: 0.6rem;
+      font-weight: 800;
+      color: var(--gold-primary);
+      background: rgba(0, 0, 0, 0.7);
+      padding: 1px 4px;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 215, 0, 0.25);
+    }
+
+    .skill-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: #cbd5e1;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .skill-cooldown-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 0%;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 800;
+      transition: height 0.08s linear;
+    }
+
+    /* Kombo Pilləri */
+    .combo-pips-container {
+      position: absolute;
+      bottom: 3px;
+      display: flex;
+      gap: 3px;
+    }
+
+    .combo-pip {
+      width: 6px;
+      height: 3px;
+      border-radius: 1px;
+      background: rgba(255, 255, 255, 0.2);
+      transition: background 0.15s ease;
+    }
+
+    .combo-pip.active {
+      background: var(--gold-primary);
+      box-shadow: 0 0 6px var(--gold-primary);
+    }
+
+    /* ==========================================================================
+       V2.0 HUD & ELEMENTLƏR: SİLAH SEÇİMİ, ULTIMATE, RELİKTLƏR & KOMBO
+       ========================================================================== */
+
+    /* 1. Silah Seçim Paneli */
+    .weapons-panel {
+      position: absolute;
+      bottom: 96px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      pointer-events: auto;
+      z-index: 12;
+      background: rgba(14, 11, 24, 0.9);
+      border-radius: 10px;
+      border: 1px solid var(--border-gold);
+      box-shadow: var(--shadow-epic);
+    }
+
+    .weapon-slot {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: rgba(22, 18, 36, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      font-family: var(--font-body);
+    }
+
+    .weapon-slot:hover {
+      border-color: var(--border-gold-bright);
+      background: rgba(42, 32, 68, 0.92);
+      transform: translateY(-2px);
+      box-shadow: var(--glow-gold);
+    }
+
+    .weapon-slot.active {
+      border-color: #ffd700;
+      background: linear-gradient(135deg, rgba(245, 197, 66, 0.3) 0%, rgba(168, 85, 247, 0.28) 100%), rgba(26, 20, 48, 0.96);
+      box-shadow: 0 0 16px rgba(255, 215, 0, 0.6), inset 0 0 8px rgba(255, 215, 0, 0.3);
+      transform: scale(1.04);
+    }
+
+    .weapon-key {
+      font-size: 0.68rem;
+      font-weight: 800;
+      color: #ffd700;
+      background: rgba(0, 0, 0, 0.68);
+      padding: 1px 5px;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 215, 0, 0.35);
+    }
+
+    .weapon-icon {
+      font-size: 1.15rem;
+    }
+
+    .weapon-name {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #f1f5f9;
+      letter-spacing: 0.3px;
+      white-space: nowrap;
+    }
+
+    /* 2. Bacarıq Barı: [R] Ultimate & [C] Yoldaş */
+    .skill-slot.ultimate-slot {
+      border-color: rgba(255, 75, 75, 0.5);
+      position: relative;
+    }
+
+    .ultimate-rage-gauge {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 0%;
+      background: linear-gradient(0deg, rgba(220, 38, 38, 0.85) 0%, rgba(245, 197, 66, 0.9) 100%);
+      transition: height 0.2s ease-out;
+      z-index: 1;
+      pointer-events: none;
+      border-radius: 0 0 8px 8px;
+    }
+
+    .ultimate-slot .skill-icon,
+    .ultimate-slot .skill-label,
+    .ultimate-slot .skill-hotkey-badge,
+    .ultimate-slot .rage-badge-text {
+      position: relative;
+      z-index: 2;
+    }
+
+    .rage-badge-text {
+      font-size: 0.58rem;
+      font-weight: 800;
+      color: #fef08a;
+      margin-top: 1px;
+      text-shadow: 0 1px 3px #000;
+    }
+
+    .skill-slot.ultimate-ready {
+      border-color: #ffd700 !important;
+      background: radial-gradient(circle, rgba(245, 197, 66, 0.35) 0%, rgba(220, 38, 38, 0.6) 100%) !important;
+      animation: ultimateFlamePulse 0.9s infinite alternate ease-in-out !important;
+      box-shadow: 0 0 25px rgba(255, 75, 75, 0.8), 0 0 15px rgba(255, 215, 0, 0.8) !important;
+    }
+
+    @keyframes ultimateFlamePulse {
+      0% {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 0 20px rgba(255, 75, 75, 0.7), 0 0 10px rgba(255, 215, 0, 0.6);
+        filter: brightness(1);
+      }
+      100% {
+        transform: translateY(-5px) scale(1.1);
+        box-shadow: 0 0 35px rgba(255, 50, 50, 0.95), 0 0 22px rgba(255, 215, 0, 0.9);
+        filter: brightness(1.3);
+      }
+    }
+
+    .skill-slot.companion-slot {
+      border-color: rgba(168, 85, 247, 0.5);
+    }
+
+    .companion-badge-text {
+      font-size: 0.58rem;
+      font-weight: 700;
+      color: #c084fc;
+      margin-top: 1px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 54px;
+    }
+
+    /* 3. Canlı Stil Kombo Sayğacı (DMC/Hades Tipli) */
+    .combo-hud-container {
+      position: absolute;
+      top: 220px;
+      left: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 18px;
+      border-radius: 12px;
+      background: rgba(14, 11, 24, 0.92);
+      border: 1.5px solid var(--border-gold);
+      box-shadow: var(--shadow-epic);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 25;
+      pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .combo-hud-container.combo-bump {
+      animation: comboPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes comboPop {
+      0% { transform: scale(0.92); }
+      50% { transform: scale(1.12); }
+      100% { transform: scale(1); }
+    }
+
+    .combo-rank-badge {
+      font-family: var(--font-title);
+      font-size: 2.8rem;
+      font-weight: 900;
+      line-height: 1;
+      color: #f5c542;
+      text-shadow: 0 0 16px currentColor;
+      min-width: 50px;
+      text-align: center;
+    }
+
+    .combo-info-col {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .combo-hits-title {
+      font-family: var(--font-title);
+      font-size: 1.35rem;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #ffffff;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+    }
+
+    .combo-multiplier {
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: var(--gold-primary);
+    }
+
+    .combo-timer-track {
+      width: 140px;
+      height: 5px;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 3px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      margin-top: 2px;
+    }
+
+    .combo-timer-fill {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, #f5c542 0%, #ef4444 100%);
+      transition: width 0.08s linear;
+    }
+
+    /* 4. Aktiv Reliktlər Siyahısı (Mini Nişanlar) */
+    .active-relics-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-width: 320px;
+      margin-top: 4px;
+      pointer-events: auto;
+    }
+
+    .relic-badge {
+      position: relative;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: rgba(18, 14, 32, 0.85);
+      border: 1.5px solid rgba(245, 197, 66, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+      cursor: help;
+      transition: all 0.2s ease;
+    }
+
+    .relic-badge:hover {
+      transform: scale(1.18);
+      box-shadow: var(--glow-gold);
+      border-color: #ffd700;
+      z-index: 5;
+    }
+
+    .relic-badge .relic-badge-lvl {
+      position: absolute;
+      bottom: -3px;
+      right: -3px;
+      font-size: 0.55rem;
+      font-weight: 800;
+      color: #ffd700;
+      background: rgba(0, 0, 0, 0.85);
+      border: 1px solid rgba(255, 215, 0, 0.5);
+      padding: 0 3px;
+      border-radius: 3px;
+      line-height: 1.1;
+    }
+
+    /* 5. 3-Kartlı "Hades" Tipli Relikt Seçim Modalı */
+    .modal-card.relic-draft-card {
+      max-width: 860px;
+      background: radial-gradient(circle at top center, rgba(35, 22, 60, 0.98) 0%, rgba(10, 8, 18, 0.98) 85%);
+      border: 2px solid #ffd700;
+      box-shadow: 0 0 50px rgba(245, 197, 66, 0.4), 0 16px 50px rgba(0, 0, 0, 0.95);
+    }
+
+    .relic-draft-header {
+      text-align: center;
+      padding: 24px 24px 12px 24px;
+      border-bottom: 1px solid rgba(245, 197, 66, 0.2);
+    }
+
+    .relic-draft-badge {
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 3px;
+      color: #00f5a0;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      text-shadow: 0 0 10px rgba(0, 245, 160, 0.5);
+    }
+
+    .relic-draft-title {
+      font-family: var(--font-title);
+      font-size: clamp(1.4rem, 3.5vw, 2.1rem);
+      font-weight: 900;
+      letter-spacing: 3px;
+      background: var(--gold-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+
+    .relic-draft-subtitle {
+      font-size: 0.88rem;
+      color: #cbd5e1;
+    }
+
+    .relic-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      padding: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .relic-cards-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+    }
+
+    .relic-choice-card {
+      position: relative;
+      background: rgba(22, 17, 36, 0.9);
+      border: 1.5px solid rgba(255, 255, 255, 0.15);
+      border-radius: 14px;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      overflow: hidden;
+    }
+
+    .relic-choice-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .relic-choice-card:hover {
+      transform: translateY(-8px) scale(1.03);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8);
+    }
+
+    .relic-choice-card.rarity-common {
+      border-color: #94a3b8;
+      box-shadow: 0 0 16px rgba(148, 163, 184, 0.25);
+    }
+
+    .relic-choice-card.rarity-rare {
+      border-color: #38bdf8;
+      box-shadow: 0 0 22px rgba(56, 189, 248, 0.35);
+    }
+
+    .relic-choice-card.rarity-epic {
+      border-color: #c084fc;
+      box-shadow: 0 0 26px rgba(192, 132, 252, 0.45);
+    }
+
+    .relic-choice-card.rarity-legendary {
+      border-color: #ffd700;
+      box-shadow: 0 0 35px rgba(255, 215, 0, 0.6), inset 0 0 18px rgba(255, 215, 0, 0.25);
+      animation: relicGoldPulse 1.8s infinite alternate ease-in-out;
+    }
+
+    @keyframes relicGoldPulse {
+      0% { box-shadow: 0 0 25px rgba(255, 215, 0, 0.5); }
+      100% { box-shadow: 0 0 45px rgba(255, 215, 0, 0.85), inset 0 0 25px rgba(255, 215, 0, 0.35); }
+    }
+
+    .relic-card-rarity-tag {
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+      background: rgba(0, 0, 0, 0.6);
+    }
+
+    .relic-choice-card.rarity-common .relic-card-rarity-tag { color: #94a3b8; border: 1px solid #94a3b8; }
+    .relic-choice-card.rarity-rare .relic-card-rarity-tag { color: #38bdf8; border: 1px solid #38bdf8; }
+    .relic-choice-card.rarity-epic .relic-card-rarity-tag { color: #c084fc; border: 1px solid #c084fc; }
+    .relic-choice-card.rarity-legendary .relic-card-rarity-tag { color: #ffd700; border: 1px solid #ffd700; }
+
+    .relic-card-icon {
+      font-size: 2.8rem;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
+    }
+
+    .relic-card-name {
+      font-family: var(--font-title);
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .relic-card-level {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--gold-primary);
+      margin-bottom: 10px;
+    }
+
+    .relic-card-desc {
+      font-size: 0.82rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+      flex: 1;
+      margin-bottom: 16px;
+    }
+
+    .relic-card-select-btn {
+      width: 100%;
+      padding: 10px 0;
+      font-family: var(--font-title);
+      font-size: 0.88rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      border-radius: 8px;
+      border: 1px solid var(--border-gold-bright);
+      background: var(--gold-gradient);
+      color: #0d0a1a;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(245, 197, 66, 0.35);
+    }
+
+    .relic-choice-card:hover .relic-card-select-btn {
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.7);
+      transform: scale(1.02);
+    }
+
+    /* ==========================================================================
+       MODAL PƏNCƏRƏLƏR
+       ========================================================================== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(4, 3, 8, 0.82);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 150;
+      padding: 20px;
+      pointer-events: auto;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 680px;
+      background: var(--bg-panel-solid);
+      border: 1.5px solid var(--border-gold);
+      border-radius: 16px;
+      box-shadow: var(--shadow-epic), var(--glow-gold);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      animation: modalPop 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes modalPop {
+      0% { transform: scale(0.92); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .modal-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid rgba(245, 197, 66, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(20, 16, 34, 0.8);
+    }
+
+    .modal-header h3 {
+      font-family: var(--font-title);
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--gold-primary);
+      letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .modal-close-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #cbd5e1;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .modal-close-btn:hover {
+      background: rgba(239, 68, 68, 0.3);
+      border-color: var(--crimson-red);
+      color: #fff;
+    }
+
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      max-height: 70vh;
+    }
+
+    .modal-footer {
+      padding: 14px 24px;
+      border-top: 1px solid rgba(245, 197, 66, 0.15);
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      background: rgba(14, 11, 24, 0.9);
+    }
+
+    /* Standart UI Düymələri */
+    .action-btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-family: var(--font-title);
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .action-btn.gold-btn {
+      background: var(--gold-gradient);
+      color: #0d0a1a;
+      box-shadow: 0 4px 12px rgba(245, 197, 66, 0.35);
+    }
+
+    .action-btn.gold-btn:hover:not(:disabled) {
+      box-shadow: var(--glow-gold);
+      transform: translateY(-2px);
+    }
+
+    .action-btn.crystal-btn {
+      background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+    }
+
+    .action-btn.crystal-btn:hover:not(:disabled) {
+      box-shadow: var(--glow-astral);
+      transform: translateY(-2px);
+    }
+
+    .action-btn.disabled, .action-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      filter: grayscale(0.8);
+      transform: none !important;
+    }
+
+    /* 1. DIALOQ MODALI */
+    #modal-dialogue .modal-card {
+      max-width: 580px;
+      background: radial-gradient(circle at top left, #1a142c 0%, #0d0a18 100%);
+      border-color: var(--border-gold-bright);
+    }
+
+    .dialogue-npc-meta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .dialogue-avatar {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #3b2a68 0%, #15102a 100%);
+      border: 2px solid var(--gold-primary);
+      box-shadow: var(--glow-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    .dialogue-names h4 {
+      font-family: var(--font-title);
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--gold-primary);
+    }
+
+    .dialogue-names span {
+      font-size: 0.78rem;
+      color: #94a3b8;
+    }
+
+    .dialogue-text-bubble {
+      background: rgba(10, 7, 18, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 16px 20px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #f1f5f9;
+      min-height: 85px;
+    }
+
+    /* 2. MAĞAZA MODALI VƏ TABLAR */
+    .shop-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 10px;
+    }
+
+    .shop-tab-btn {
+      padding: 8px 18px;
+      border-radius: 6px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: #94a3b8;
+      font-family: var(--font-title);
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .shop-tab-btn:hover {
+      color: #fff;
+    }
+
+    .shop-tab-btn.active {
+      background: rgba(245, 197, 66, 0.15);
+      border-color: var(--border-gold);
+      color: var(--gold-primary);
+    }
+
+    .shop-balance-bar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 16px;
+      margin-bottom: 16px;
+      font-weight: 800;
+    }
+
+    .shop-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .shop-card {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: rgba(18, 14, 30, 0.7);
+    }
+
+    .shop-card.active-skin-card {
+      border-color: var(--border-gold-bright);
+      box-shadow: var(--glow-gold);
+    }
+
+    .skin-preview-swatch {
+      width: 100%;
+      height: 80px;
+      border-radius: 8px;
+      border: 2px solid #555;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .skin-swatch-glow {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+    }
+
+    .shop-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-icon {
+      font-size: 1.4rem;
+    }
+
+    .card-titles h4 {
+      font-family: var(--font-title);
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .card-level {
+      font-size: 0.75rem;
+      color: var(--gold-primary);
+      font-weight: 600;
+    }
+
+    .card-desc {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      line-height: 1.4;
+      flex: 1;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 6px;
+    }
+
+    .card-cost {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--gold-primary);
+    }
+
+    /* Nailiyyətlər */
+    .achievements-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .achievement-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 18px;
+    }
+
+    .achievement-item.completed {
+      border-color: rgba(0, 245, 160, 0.4);
+    }
+
+    .achievement-item.locked {
+      opacity: 0.6;
+    }
+
+    .ach-icon {
+      font-size: 1.5rem;
+    }
+
+    .ach-details {
+      flex: 1;
+    }
+
+    .ach-title {
+      font-family: var(--font-title);
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ach-check {
+      font-size: 0.75rem;
+      color: var(--emerald-neon);
+    }
+
+    .ach-desc {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+
+    .ach-reward {
+      font-size: 0.8rem;
+      color: var(--gold-primary);
+      text-align: right;
+    }
+
+    /* 3. PAUZA VƏ GAME OVER MODALI */
+    .pause-menu-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 320px;
+      margin: 0 auto;
+    }
+
+    .gameover-title {
+      font-family: var(--font-title);
+      font-size: 1.8rem;
+      font-weight: 900;
+      letter-spacing: 3px;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .gameover-title.victory-text {
+      background: var(--gold-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 12px rgba(245, 197, 66, 0.6));
+    }
+
+    .gameover-title.defeat-text {
+      color: var(--crimson-red);
+      text-shadow: 0 0 16px rgba(239, 68, 68, 0.7);
+    }
+
+    .gameover-subtitle {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #94a3b8;
+      margin-bottom: 24px;
+    }
+
+    .gameover-stats-box {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      color: #cbd5e1;
+    }
+
+    .stat-row strong {
+      color: #fff;
+    }
+
+    /* 4. İDARƏETMƏ VƏ BÖLGƏ MODALLARI */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .control-row {
+      background: rgba(255, 255, 255, 0.04);
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .key-badge {
+      background: var(--gold-gradient);
+      color: #0b0816;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+
+    .regions-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+    }
+
+    .region-card {
+      padding: 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .region-card:hover {
+      border-color: var(--border-gold-bright);
+      transform: translateY(-4px);
+      box-shadow: var(--glow-gold);
+    }
+
+    .region-card h4 {
+      font-family: var(--font-title);
+      font-size: 1rem;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    /* ==========================================================================
+       MOBİL / SENSOR İDARƏETMƏ
+       ========================================================================== */
+    #mobile-controls {
+      display: none;
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    @media (hover: none) and (pointer: coarse), (max-width: 900px) {
+      #mobile-controls {
+        display: block;
+      }
+      .weapons-panel {
+        bottom: 84px;
+        transform: translateX(-50%) scale(0.85);
+      }
+      .hud-bottom-center {
+        bottom: 10px;
+        transform: translateX(-50%) scale(0.8);
+      }
+      .hud-mid-right {
+        top: 180px;
+        max-width: 220px;
+      }
+      .combo-hud-container {
+        top: 175px;
+        left: 10px;
+        transform: scale(0.85);
+        transform-origin: top left;
+      }
+    }
+
+    .touch-joystick-base {
+      position: absolute;
+      bottom: 30px;
+      left: 30px;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: rgba(20, 16, 34, 0.65);
+      border: 2px solid var(--border-gold);
+      backdrop-filter: blur(8px);
+      pointer-events: auto;
+      touch-action: none;
+    }
+
+    .touch-joystick-stick {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--gold-gradient);
+      transform: translate(-50%, -50%);
+      box-shadow: var(--glow-gold);
+      pointer-events: none;
+    }
+
+    .touch-action-cluster {
+      position: absolute;
+      bottom: 25px;
+      right: 25px;
+      width: 160px;
+      height: 160px;
+      pointer-events: none;
+    }
+
+    .touch-btn {
+      position: absolute;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: rgba(22, 18, 38, 0.85);
+      border: 1.5px solid var(--border-gold);
+      color: #fff;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+      touch-action: none;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+      transition: transform 0.1s ease;
+    }
+
+    .touch-btn.active {
+      transform: scale(0.9);
+      background: rgba(245, 197, 66, 0.3);
+      border-color: var(--border-gold-bright);
+    }
+
+    .touch-btn.main-attack {
+      width: 68px;
+      height: 68px;
+      bottom: 10px;
+      right: 10px;
+      background: radial-gradient(circle, #f5c542 0%, #b8860b 100%);
+      color: #0b0816;
+      border-color: #ffd700;
+      box-shadow: var(--glow-gold);
+    }
+
+    .touch-btn.dash {
+      bottom: 85px;
+      right: 20px;
+    }
+
+    .touch-btn.spell {
+      bottom: 20px;
+      right: 85px;
+    }
+
+    .touch-btn.nova {
+      bottom: 85px;
+      right: 85px;
+    }
+
+    .touch-btn.interact {
+      bottom: 145px;
+      right: 50px;
+      border-color: var(--emerald-neon);
+      color: var(--emerald-neon);
+    }
+
+    .touch-btn.ult {
+      bottom: 145px;
+      right: 110px;
+      border-color: #ff3366;
+      color: #ff3366;
+      font-size: 1.15rem;
+    }
+
+    .touch-btn.comp {
+      bottom: 20px;
+      right: 145px;
+      border-color: var(--astral-purple);
+      color: #c084fc;
+      font-size: 1.15rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ƏSAS OYUN KANVASI -->
+  <canvas id="game-canvas"></canvas>
+
+  <!-- İSTİFADƏÇİ İNTERFEYSİ (UI ROOT) -->
+  <div id="ui-root">
+
+    <!-- ========================================================================
+         1. ANA MENYU EKRANI
+         ======================================================================== -->
+    <div id="main-menu">
+      <div class="menu-fog-overlay"></div>
+      <div class="menu-content">
+        <span class="game-logo-badge">⚔ 36 Agent Mega-Edition V4.0 • Loot, İstedad Ağacı, Elitlər & Gündəlik Sınaq</span>
+        <h1 class="game-title">AETHERIA</h1>
+        <h2 class="game-subtitle">KÖLGƏLƏRİN SƏLTƏNƏTİ</h2>
+
+        <div class="menu-buttons-list">
+          <button id="btn-new-game" class="menu-btn primary">
+            <span>⚔</span> <span class="btn-label">Yeni Macəraya Başla</span>
+          </button>
+          <button id="btn-start-arena" class="menu-btn arena-btn">
+            <span>🔥</span> <span class="btn-label">Sonsuz Kolizey (Arena)</span>
+          </button>
+          <button id="btn-continue" class="menu-btn">
+            <span>📜</span> <span class="btn-label">Davam Et (Yaddaşdan)</span>
+          </button>
+          <button id="btn-menu-talents" class="menu-btn" onclick="if(window.GameTalents&&window.GameTalents.openModal)window.GameTalents.openModal();">
+            <span>💠</span> <span class="btn-label">Qədim İstedad Ağacı [T]</span>
+          </button>
+          <button id="btn-daily-bonus" class="menu-btn">
+            <span>🎁</span> <span class="btn-label">Gündəlik Mükafat & Seriya</span>
+          </button>
+          <button id="btn-menu-shop" class="menu-btn">
+            <span>🛡</span> <span class="btn-label">Mağaza & Zirehlər</span>
+          </button>
+          <button id="btn-menu-controls" class="menu-btn">
+            <span>🎮</span> <span class="btn-label">İdarəetmə Bələdçisi</span>
+          </button>
+        </div>
+
+        <div class="menu-footer">
+          <span>Aetheria Engine V4.0 • 36-Agent Autonomous Studio Architecture</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================================================
+         2. CANLI OYUN HUD-U
+         ======================================================================== -->
+    <div id="game-hud" class="hidden">
+
+      <!-- Yuxarı Sol: Qəhrəman Kartı və Barlar -->
+      <div class="hud-top-left">
+        <div class="player-hero-card glass-panel">
+          <div id="hud-player-level" class="player-level-badge">LVL 1</div>
+          <div class="player-stats-col">
+            <div class="player-meta-row">
+              <span id="hud-region-name" class="region-title">Zümrüd Qədim Meşəsi</span>
+            </div>
+            
+            <!-- Can (HP) Barı -->
+            <div id="hp-bar-container" class="hud-bar hp-bar">
+              <div id="hp-fill" class="bar-fill hp" style="width: 100%;"></div>
+              <span id="hp-text" class="bar-label">100 / 100</span>
+            </div>
+
+            <!-- Mana (MP) Barı -->
+            <div class="hud-bar">
+              <div id="mp-fill" class="bar-fill mp" style="width: 100%;"></div>
+              <span id="mp-text" class="bar-label">50 / 50</span>
+            </div>
+
+            <!-- Təcrübə (XP) Barı -->
+            <div class="hud-bar" style="height: 6px;">
+              <div id="xp-fill" class="bar-fill xp" style="width: 0%;"></div>
+              <span id="xp-text" class="bar-label" style="display: none;">XP: 0 / 100</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resurs Sayğacları -->
+        <div class="currency-pill-container">
+          <div class="currency-pill gold glass-panel">
+            <span>🪙</span> <span id="hud-gold">0</span>
+          </div>
+          <div class="currency-pill crystals glass-panel">
+            <span>💎</span> <span id="hud-crystals">0</span>
+          </div>
+        </div>
+
+        <!-- Aktiv Reliktlər Siyahısı (Mini Nişanlar) -->
+        <div id="hud-active-relics" class="active-relics-container"></div>
+      </div>
+
+      <!-- Stil Kombo Sayğacı (DMC/Hades Tipli Canlı Göstərici) -->
+      <div id="combo-hud" class="combo-hud-container hidden">
+        <div id="combo-rank" class="combo-rank-badge">S</div>
+        <div class="combo-info-col">
+          <div id="combo-hits" class="combo-hits-title">18x HIT</div>
+          <div id="combo-multiplier" class="combo-multiplier">[S] DƏRƏCƏ (1.8x Zərər)</div>
+          <div class="combo-timer-track">
+            <div id="combo-timer-bar" class="combo-timer-fill"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Yuxarı Mərkəz: Boss Barı və Epik Banner -->
+      <div class="hud-top-center">
+        <!-- Epik Boss Barı -->
+        <div id="boss-hud" class="hidden">
+          <div class="boss-header-row">
+            <div class="boss-name-group">
+              <span class="boss-skull-icon">💀</span>
+              <span id="boss-name" class="boss-name">SYLVANOS</span>
+              <span id="boss-title" class="boss-title">Meşənin Qədim Hakimi</span>
+            </div>
+            <span id="boss-phase" class="boss-phase-badge">FAZA 1 / 3</span>
+          </div>
+          <div class="boss-bar-track">
+            <div id="boss-hp-ghost" class="boss-hp-ghost"></div>
+            <div id="boss-hp-fill" class="boss-hp-fill"></div>
+            <span id="boss-hp-text" class="boss-hp-label">1000 / 1000</span>
+          </div>
+        </div>
+
+        <!-- Bildiriş Sahəsi -->
+        <div id="notification-banner" class="notification-banner hidden">
+          <h4 id="notif-title" class="notif-title">BİLDİRİŞ</h4>
+          <span id="notif-subtitle" class="notif-subtitle">Ətraflı məlumat</span>
+        </div>
+      </div>
+
+      <!-- Yuxarı Sağ: Radar və Menyu Düymələri -->
+      <div class="hud-top-right">
+        <div class="minimap-wrapper">
+          <span class="minimap-compass-n">N</span>
+          <canvas id="minimap-canvas" width="140" height="140"></canvas>
+        </div>
+
+        <div class="hud-quick-buttons">
+          <button id="btn-audio-toggle" class="hud-icon-btn" title="Səsi Aç/Bağla">🔊</button>
+          <button id="btn-hud-shop" class="hud-icon-btn" title="Mağaza (B)">🛒</button>
+          <button id="btn-hud-region" class="hud-icon-btn" title="Bölgə Xəritəsi">🗺</button>
+          <button id="btn-hud-pause" class="hud-icon-btn" title="Pauza (Esc)">⏸</button>
+        </div>
+
+        <div id="hud-fps" class="fps-badge">60 FPS</div>
+      </div>
+
+      <!-- Orta Sağ: Aktiv Tapşırıqlar (Quest Tracker) və Interact Prompt -->
+      <div class="hud-mid-right">
+        <div id="quest-tracker" class="quest-tracker-panel glass-panel">
+          <div class="quest-tracker-title">
+            <span>⚔</span> AKTİV TAPŞIRIQLAR
+          </div>
+          <ul id="quest-list" class="quest-list">
+            <li class="quest-item empty">Ətrafı kəşf et və qədim rünləri axtar...</li>
+          </ul>
+        </div>
+
+        <div id="interact-prompt" class="interact-prompt hidden">
+          <div id="interact-key" class="interact-key">F</div>
+          <span id="interact-text" class="interact-text">Qarşılıqlı Əlaqə</span>
+        </div>
+      </div>
+
+      <!-- Silah Seçim Paneli (1-4 Dəyişdirilən Əfsanəvi Silahlar) -->
+      <div id="weapons-hud-panel" class="weapons-panel glass-panel">
+        <div class="weapon-slot active" data-weapon-slot="1" data-weapon-id="sword" title="[1] ⚔ Aether Qılıncı - Balanslı 3-lü kombo, burulğan zərbəsi">
+          <span class="weapon-key">1</span>
+          <span class="weapon-icon">⚔</span>
+          <span class="weapon-name">Aether Qılıncı</span>
+        </div>
+        <div class="weapon-slot" data-weapon-slot="2" data-weapon-id="daggers" title="[2] 🗡 Əkiz Kölgə Xəncərləri - Sürətli zərbə, +25% Krit & Qanaxma">
+          <span class="weapon-key">2</span>
+          <span class="weapon-icon">🗡</span>
+          <span class="weapon-name">Əkiz Xəncər</span>
+        </div>
+        <div class="weapon-slot" data-weapon-slot="3" data-weapon-id="hammer" title="[3] 🔨 Astral Çəkic - 1.8x Zərər, geniş AOE & Düşmənləri dondurma">
+          <span class="weapon-key">3</span>
+          <span class="weapon-icon">🔨</span>
+          <span class="weapon-name">Astral Çəkic</span>
+        </div>
+        <div class="weapon-slot" data-weapon-slot="4" data-weapon-id="bow" title="[4] 🏹 Simurq Alov Yayı - Uzaq məsafəli 3-lü alov oxu">
+          <span class="weapon-key">4</span>
+          <span class="weapon-icon">🏹</span>
+          <span class="weapon-name">Alov Yayı</span>
+        </div>
+      </div>
+
+      <!-- Aşağı Mərkəz: Bacarıq Barı (Action Bar / Hotbar) -->
+      <div class="hud-bottom-center glass-panel">
+        <!-- 1. Silah Kombo Hücumu -->
+        <div id="skill-slot-lmb" class="skill-slot" title="Sol Klik və ya J: Silah Kombo Zərbəsi">
+          <span class="skill-hotkey-badge">LMB</span>
+          <span class="skill-icon" id="skill-slot-weapon-icon">⚔</span>
+          <span class="skill-label" id="skill-slot-weapon-label">Hücum</span>
+          <div class="combo-pips-container">
+            <div class="combo-pip"></div>
+            <div class="combo-pip"></div>
+            <div class="combo-pip"></div>
+          </div>
+        </div>
+
+        <!-- 2. Arcane Sehrli Mərmi -->
+        <div id="skill-slot-q" class="skill-slot" title="Q və ya Sağ Klik: Arcane Mərmi (15 MP)">
+          <span class="skill-hotkey-badge">Q</span>
+          <span class="skill-icon">✨</span>
+          <span class="skill-label">Arcane</span>
+          <div id="skill-cd-q" class="skill-cooldown-overlay hidden"></div>
+        </div>
+
+        <!-- 3. İldırım Novası -->
+        <div id="skill-slot-e" class="skill-slot" title="E: İldırım Novası (30 MP)">
+          <span class="skill-hotkey-badge">E</span>
+          <span class="skill-icon">⚡</span>
+          <span class="skill-label">Nova</span>
+          <div id="skill-cd-e" class="skill-cooldown-overlay hidden"></div>
+        </div>
+
+        <!-- 4. Kölgə Sıçrayışı (Dash) -->
+        <div id="skill-slot-space" class="skill-slot" title="Space / Shift: Kölgə Sıçrayışı">
+          <span class="skill-hotkey-badge">Space</span>
+          <span class="skill-icon">💨</span>
+          <span class="skill-label">Dash</span>
+          <div id="skill-cd-space" class="skill-cooldown-overlay hidden"></div>
+        </div>
+
+        <!-- 5. Ultimate: Aether Qiyaməti [R] -->
+        <div id="skill-slot-r" class="skill-slot ultimate-slot" title="R: Ultimate - Aether Qiyaməti (100% Qəzəb ilə 12 nəhəng meteor)">
+          <span class="skill-hotkey-badge">R</span>
+          <span class="skill-icon">☄️</span>
+          <span class="skill-label">Ultimate</span>
+          <span id="skill-rage-text" class="rage-badge-text">0%</span>
+          <div id="skill-rage-fill" class="ultimate-rage-gauge"></div>
+        </div>
+
+        <!-- 6. Yoldaş Ruhu [C] -->
+        <div id="skill-slot-c" class="skill-slot companion-slot" title="C: Yoldaş Ruhu (Simurq / Əjdaha / Qurd)">
+          <span class="skill-hotkey-badge">C</span>
+          <span class="skill-icon" id="companion-icon">🦅</span>
+          <span class="skill-label">Yoldaş</span>
+          <span id="companion-name-badge" class="companion-badge-text">Simurq</span>
+        </div>
+
+        <!-- 7. Ovçu Müqaviləsi (Bounty) [M] -->
+        <div id="skill-slot-m" class="skill-slot" title="M: Vaxtlı Ovçu Müqaviləsi (Bounty) Başlat / Dəyiş">
+          <span class="skill-hotkey-badge">M</span>
+          <span class="skill-icon">📜</span>
+          <span class="skill-label">Müqavilə</span>
+        </div>
+
+        <!-- 8. Qədim İstedad Ağacı [T] -->
+        <div id="skill-slot-t" class="skill-slot" title="T: Qədim İstedad Ağacı (Ruh Daşları 💠)" onclick="if(window.GameTalents&&window.GameTalents.toggleModal)window.GameTalents.toggleModal();">
+          <span class="skill-hotkey-badge">T</span>
+          <span class="skill-icon">💠</span>
+          <span class="skill-label">İstedad</span>
+        </div>
+
+        <!-- 9. Gündəlik Sınaqlar & Seriya [J] -->
+        <div id="skill-slot-j" class="skill-slot" title="J: Gündəlik Sınaqlar və 7 Günlük Seriya" onclick="if(window.GameDaily&&window.GameDaily.togglePanel)window.GameDaily.togglePanel();">
+          <span class="skill-hotkey-badge">J</span>
+          <span class="skill-icon">🌅</span>
+          <span class="skill-label">Gündəlik</span>
+        </div>
+
+        <!-- 10. Qarşılıqlı Əlaqə -->
+        <div id="skill-slot-f" class="skill-slot" title="F: Obyektlə / Qurbangahla Əlaqə">
+          <span class="skill-hotkey-badge">F</span>
+          <span class="skill-icon">🖐</span>
+          <span class="skill-label">Əlaqə</span>
+        </div>
+
+        <!-- 11. Mağaza & Təkmilləşdirmə -->
+        <div id="skill-slot-b" class="skill-slot" title="B: Mağaza və Gücləndirmə">
+          <span class="skill-hotkey-badge">B</span>
+          <span class="skill-icon">🛡</span>
+          <span class="skill-label">Mağaza</span>
+        </div>
+      </div>
+
+      <!-- MOBİL SENSOR İDARƏETMƏSİ -->
+      <div id="mobile-controls">
+        <div id="touch-joystick-base" class="touch-joystick-base">
+          <div id="touch-joystick-stick" class="touch-joystick-stick"></div>
+        </div>
+
+        <div class="touch-action-cluster">
+          <div id="btn-touch-attack" class="touch-btn main-attack" title="Hücum">⚔</div>
+          <div id="btn-touch-dash" class="touch-btn dash" title="Dash">💨</div>
+          <div id="btn-touch-spell" class="touch-btn spell" title="Sehr">✨</div>
+          <div id="btn-touch-nova" class="touch-btn nova" title="Nova">⚡</div>
+          <div id="btn-touch-ult" class="touch-btn ult" title="Ultimate [R]">☄️</div>
+          <div id="btn-touch-comp" class="touch-btn comp" title="Yoldaş [C]">🦅</div>
+          <div id="btn-touch-interact" class="touch-btn interact" title="Əlaqə">🖐</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================================================
+         3. MODALLAR (Dialoq, Mağaza, Pauza, Game Over, Bələdçi)
+         ======================================================================== -->
+
+    <!-- A. NPC Dialoq Modalı -->
+    <div id="modal-dialogue" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <div class="modal-body">
+          <div class="dialogue-npc-meta">
+            <div class="dialogue-avatar">🧙‍♂️</div>
+            <div class="dialogue-names">
+              <h4 id="dialogue-npc-name">Qədim Müdrik</h4>
+              <span id="dialogue-npc-title">Aetherianın Qoruyucusu</span>
+            </div>
+          </div>
+          <div id="dialogue-text" class="dialogue-text-bubble">
+            Salam, cəsur qəhrəman. Qaranlıq səltənətə xoş gəldin...
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="btn-dialogue-close" class="action-btn" style="background: rgba(255,255,255,0.08); color: #cbd5e1;">Bağla</button>
+          <button id="btn-dialogue-next" class="action-btn gold-btn">Növbəti [F] ➔</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- B. Mağaza, Təkmilləşdirmə və Skinlər Modalı -->
+    <div id="modal-shop" class="modal-backdrop hidden">
+      <div class="modal-card" style="max-width: 780px;">
+        <div class="modal-header">
+          <h3><span>🛡</span> AETHERIA MAĞAZASI & ZİREHLƏR</h3>
+          <button id="btn-close-shop" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="shop-balance-bar">
+            <span style="color: var(--gold-primary);">🪙 Qızıl: <strong id="shop-gold-count">0</strong></span>
+            <span style="color: var(--astral-purple);">💎 Astral Kristal: <strong id="shop-crystal-count">0</strong></span>
+          </div>
+
+          <div class="shop-tabs">
+            <button id="tab-btn-upgrades" class="shop-tab-btn active">Təkmilləşdirmələr</button>
+            <button id="tab-btn-skins" class="shop-tab-btn">Qəhrəman Zirehləri</button>
+            <button id="tab-btn-achievements" class="shop-tab-btn">Nailiyyətlər</button>
+          </div>
+
+          <!-- Tab 1: Upgrades -->
+          <div id="shop-pane-upgrades" class="shop-tab-content">
+            <!-- Dinamik doldurulur -->
+          </div>
+
+          <!-- Tab 2: Skins -->
+          <div id="shop-pane-skins" class="shop-tab-content hidden">
+            <!-- Dinamik doldurulur -->
+          </div>
+
+          <!-- Tab 3: Achievements -->
+          <div id="shop-pane-achievements" class="shop-tab-content hidden">
+            <!-- Dinamik doldurulur -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C. Pauza Modalı -->
+    <div id="modal-pause" class="modal-backdrop hidden">
+      <div class="modal-card" style="max-width: 420px; text-align: center;">
+        <div class="modal-header" style="justify-content: center;">
+          <h3>⏸ OYUN DAYANDIRILDI</h3>
+        </div>
+        <div class="modal-body">
+          <div class="pause-menu-list">
+            <button id="btn-resume-game" class="menu-btn primary">Davam Et</button>
+            <button id="btn-pause-audio" class="menu-btn">🔊 Səs Parametrləri</button>
+            <button id="btn-pause-region" class="menu-btn">🗺 Bölgə Seçimi</button>
+            <button id="btn-pause-shop" class="menu-btn">🛡 Mağaza & Upgrades</button>
+            <button id="btn-pause-main-menu" class="menu-btn">🚪 Ana Menyuya Qayıt</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- D. Qələbə / Məğlubiyyət Modalı -->
+    <div id="modal-gameover" class="modal-backdrop hidden">
+      <div class="modal-card" style="max-width: 480px; text-align: center;">
+        <div class="modal-body" style="padding-top: 32px;">
+          <h2 id="gameover-title" class="gameover-title defeat-text">KÖLGƏLƏR SƏNİ UDDU...</h2>
+          <p id="gameover-subtitle" class="gameover-subtitle">Ruhun qədim obelisklərin yanında yenidən oyanmaq üçün güc toplayır.</p>
+          
+          <div id="gameover-stats" class="gameover-stats-box">
+            <!-- Dinamik statistika -->
+          </div>
+
+          <div style="display: flex; gap: 12px; justify-content: center;">
+            <button id="btn-gameover-restart" class="action-btn gold-btn" style="padding: 12px 24px;">Yenidən Diril / Başla</button>
+            <button id="btn-gameover-menu" class="action-btn" style="background: rgba(255,255,255,0.08); color: #cbd5e1; padding: 12px 20px;">Ana Menyu</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- E. İdarəetmə Bələdçisi Modalı -->
+    <div id="modal-controls" class="modal-backdrop hidden">
+      <div class="modal-card" style="max-width: 540px;">
+        <div class="modal-header">
+          <h3>🎮 İDARƏETMƏ BƏLƏDÇİSİ</h3>
+          <button id="btn-close-controls" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="controls-grid">
+            <div class="control-row">
+              <span>Hərəkət</span>
+              <span class="key-badge">W, A, S, D</span>
+            </div>
+            <div class="control-row">
+              <span>Qılınc Kombo Zərbəsi</span>
+              <span class="key-badge">Sol Klik / J</span>
+            </div>
+            <div class="control-row">
+              <span>Arcane Sehrli Mərmi</span>
+              <span class="key-badge">Sağ Klik / Q</span>
+            </div>
+            <div class="control-row">
+              <span>İldırım Novası (AOE)</span>
+              <span class="key-badge">E Düyməsi</span>
+            </div>
+            <div class="control-row">
+              <span>Kölgə Sıçrayışı (Dash)</span>
+              <span class="key-badge">Space / Shift</span>
+            </div>
+            <div class="control-row">
+              <span>Silah Arsenalı Seçimi</span>
+              <span class="key-badge">1, 2, 3, 4</span>
+            </div>
+            <div class="control-row">
+              <span>Ultimate: Aether Qiyaməti</span>
+              <span class="key-badge">R Düyməsi</span>
+            </div>
+            <div class="control-row">
+              <span>Yoldaş Ruhu Dəyişdirmə</span>
+              <span class="key-badge">C Düyməsi</span>
+            </div>
+            <div class="control-row">
+              <span>Vaxtlı Ovçu Müqaviləsi (Bounty)</span>
+              <span class="key-badge">M Düyməsi</span>
+            </div>
+            <div class="control-row">
+              <span>Qədim İstedad Ağacı (💠)</span>
+              <span class="key-badge">T Düyməsi</span>
+            </div>
+            <div class="control-row">
+              <span>Gündəlik Sınaqlar & Seriya</span>
+              <span class="key-badge">J Düyməsi</span>
+            </div>
+            <div class="control-row">
+              <span>Qarşılıqlı Əlaqə (NPC/Qurbangah)</span>
+              <span class="key-badge">F Düyməsi</span>
+            </div>
+            <div class="control-row">
+              <span>Mağaza & Təkmilləşdirmə</span>
+              <span class="key-badge">B Düyməsi</span>
+            </div>
+            <div class="control-row">
+              <span>Oyunu Dayandır (Pauza)</span>
+              <span class="key-badge">ESC Düyməsi</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- F. Bölgə Seçimi Modalı -->
+    <div id="modal-region-select" class="modal-backdrop hidden">
+      <div class="modal-card" style="max-width: 650px;">
+        <div class="modal-header">
+          <h3>🗺 AETHERIA BÖLGƏLƏRİ</h3>
+          <button id="btn-close-region" class="modal-close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="regions-grid">
+            <div class="region-card glass-panel" data-region-index="0">
+              <div style="font-size: 2.2rem; margin-bottom: 8px;">🌲</div>
+              <h4>Zümrüd Meşəsi</h4>
+              <p style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 12px;">Qədim rün daşları və qoblin dəstələri. Boss: Sylvanos.</p>
+              <button class="action-btn gold-btn" style="width: 100%;">Bölgəyə Get</button>
+            </div>
+            <div class="region-card glass-panel" data-region-index="1">
+              <div style="font-size: 2.2rem; margin-bottom: 8px;">🔮</div>
+              <h4>Kristal Mağaraları</h4>
+              <p style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 12px;">Astral parıltılı dərinliklər və qolemlər. Boss: Kryos.</p>
+              <button class="action-btn gold-btn" style="width: 100%;">Bölgəyə Get</button>
+            </div>
+            <div class="region-card glass-panel" data-region-index="2">
+              <div style="font-size: 2.2rem; margin-bottom: 8px;">🏰</div>
+              <h4>Obsidian Qalası</h4>
+              <p style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 12px;">Qara kölgə cəngavərləri və ali təhlükə. Boss: Malakor.</p>
+              <button class="action-btn gold-btn" style="width: 100%;">Bölgəyə Get</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- G. 3-Kartlı "Hades" Tipli Roguelike Relikt Seçim Modalı -->
+    <div id="modal-relic-draft" class="modal-backdrop hidden">
+      <div class="modal-card relic-draft-card">
+        <div class="relic-draft-header">
+          <div class="relic-draft-badge">⚡ SƏVİYYƏ YÜKSƏLİŞİ • QƏDİM AETHER RELİKTİ ⚡</div>
+          <h2 class="relic-draft-title">ƏFSANƏVİ NEMƏT SEÇİN</h2>
+          <p class="relic-draft-subtitle">Qədim səltənətin güclərindən birini seçərək döyüş stilinizi əbədi gücləndirin.</p>
+        </div>
+        <div id="relic-cards-container" class="relic-cards-grid">
+          <!-- 3 Kart dinamik doldurulur -->
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ========================================================================
+       MODUL SKRİPTLƏRİ (DƏQİQ ARDICILLIQLA)
+       ======================================================================== -->
+  <script src="src/audio.js"></script>
+  <script src="src/vfx.js"></script>
+  <script src="src/physics_juice.js"></script>
+  <script src="src/levels_bosses.js"></script>
+  <script src="src/ai_director.js"></script>
+  <script src="src/progression.js"></script>
+  <script src="src/weapons_relics.js"></script>
+  <script src="src/companions_ultimates.js"></script>
+  <script src="src/events_arena.js"></script>
+  <script src="src/missions_campaign.js"></script>
+  <script src="src/loot_synergy.js"></script>
+  <script src="src/talent_tree.js"></script>
+  <script src="src/elite_affixes.js"></script>
+  <script src="src/daily_trials.js"></script>
+  <script src="src/ui.js"></script>
+  <script src="src/engine.js"></script>
+
+  <!-- Mühərrikin Başladılması -->
+  <script>
+    window.addEventListener('DOMContentLoaded', function () {
+      console.log('🌟 [Main] Bütün skriptlər yükləndi, oyun mühərriki başladılır...');
+      if (window.GameEngine && typeof window.GameEngine.init === 'function') {
+        window.GameEngine.init();
+      } else {
+        console.warn('⚠️ [Main] window.GameEngine.init hələ hazır deyil.');
+      }
+    });
+  </script>
+</body>
+</html>
