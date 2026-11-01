@@ -105,6 +105,38 @@ Whenever a feature or build is complete, the testing council reviews it from 9 d
 
 ---
 
+## ⚡ Autonomous 5-Phase Parallel Swarm Protocol
+
+When ANY user requests ANY game or application, the studio executes this ironclad pipeline:
+
+```
+                            USER PROMPT: "Create [Any Game / Feature]"
+                                                │
+                 ┌──────────────────────────────┴──────────────────────────────┐
+                 ▼                                                             ▼
+     [PHASE 1: IMMUTABLE CONTRACT]                                 [PHASE 2: ZERO-CONFLICT SWARM]
+   Agent 26 & CEO generate GAME_SPEC.md:                        6–8 Subagents build in parallel:
+   • Genre Matrix & Core Rules                                  • Agent 6  ➔ src/engine.js (Loop & State)
+   • Global State: window.GameCore                              • Agent 20 ➔ src/physics.js (Kinematics)
+   • Strict File Ownership Table                                • Agent 13 ➔ src/render.js (Graphics)
+   (No agent touches another's file!)                           • Agent 12 ➔ src/audio.js (Web Audio)
+                                                                • Agent 3  ➔ src/ui.js & index.html (HUD)
+                                                                • Agent 1  ➔ src/ai.js (Enemy FSM)
+                                                │
+                 ┌──────────────────────────────┴──────────────────────────────┐
+                 ▼                                                             ▼
+     [PHASE 3: QA & SELF-HEALING]                                  [PHASE 4: 9-TESTER COUNCIL]
+   • Agent 22 verifies 0 console errors.                        9 distinct user personas audit:
+   • Agent 15 profiles 60–120 FPS.                              • Hardcore: Skill ceiling & latency
+   • Agent 17 auto-patches any issues.                          • Casual: Instant clarity & onboarding
+                                                                • UI Critic: Aesthetic balance
+                                                │
+                                                ▼
+                                    🏆 PLAYABLE GAME DELIVERED!
+```
+
+---
+
 ## 🚀 How to Use in Your Projects
 
 1. **Clone or Copy:** Copy `AGENTS.md` and the `.agents/` folder into the root of your project:
