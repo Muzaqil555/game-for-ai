@@ -297,8 +297,9 @@
         </div>
       </div>
 
-      <!-- Top Right: Audio Mute & Stats -->
+      <!-- Top Right: Audio Mute, Camera & Stats -->
       <div class="hud-stats-panel">
+        <button id="btn-cam-toggle" class="btn-audio-toggle" title="Toggle 3D Camera (Press C)" style="background: rgba(255,0,127,0.15); border: 1px solid #ff007f; color: #ff007f; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 11px; font-weight: bold; letter-spacing: 1px; transition: all 0.2s;">🎥 CHASE</button>
         <button id="btn-audio-toggle" class="btn-audio-toggle" title="Mute/Unmute Audio" style="background: rgba(0,245,255,0.12); border: 1px solid #00f5ff; color: #00f5ff; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 11px; font-weight: bold; letter-spacing: 1px; transition: all 0.2s;">🔊 AUDIO</button>
         <div class="stat-credits-box">
           <span class="stat-credits-label">CREDITS:</span>
@@ -983,6 +984,21 @@
         });
       });
 
+      // Camera Switcher
+      const camToggle = document.getElementById('btn-cam-toggle');
+      const CAM_MODES = ['CHASE', 'HOOD', 'DRONE'];
+      let cameraModeIndex = 0;
+      function switchCamera() {
+        cameraModeIndex = (cameraModeIndex + 1) % CAM_MODES.length;
+        if (camToggle) camToggle.textContent = '🎥 ' + CAM_MODES[cameraModeIndex];
+      }
+      if (camToggle) {
+        camToggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          switchCamera();
+        });
+      }
+
       // Audio Toggle Button
       const audioToggle = document.getElementById('btn-audio-toggle');
       if (audioToggle) {
@@ -1019,6 +1035,7 @@
         if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.steerRight = true;
         if (e.code === 'Space') keys.handbrake = true;
         if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') keys.nitro = true;
+        if (e.code === 'KeyC') switchCamera();
       });
       window.addEventListener('keyup', e => {
         if (e.code === 'KeyW' || e.code === 'ArrowUp') keys.throttle = false;
@@ -1322,13 +1339,36 @@
       function updateCamera3D(dt) {
         if (!playerGroup) return;
 
-        // Smooth 3rd-Person Chase Cam
-        const targetCamX = playerGroup.position.x * 0.75;
-        const targetCamY = 3.8;
-        const targetCamZ = -9.8;
+        let targetCamX = 0, targetCamY = 3.8, targetCamZ = -9.8;
+        let lookY = 1.4, lookZ = 18;
 
-        camera.position.x += (targetCamX - camera.position.x) * 0.14;
-        camera.position.y += (targetCamY - camera.position.y) * 0.14;
+        if (cameraModeIndex === 0) {
+          // 3rd-Person Dynamic Chase Cam
+          targetCamX = playerGroup.position.x * 0.75;
+          targetCamY = 3.8;
+          targetCamZ = -9.8;
+          lookY = 1.4;
+          lookZ = 18;
+          if (playerChassis) playerChassis.visible = true;
+        } else if (cameraModeIndex === 1) {
+          // 1st-Person Bumper / Hood Cam (Extreme velocity rush)
+          targetCamX = playerGroup.position.x;
+          targetCamY = 1.35;
+          targetCamZ = 1.6;
+          lookY = 1.1;
+          lookZ = 50;
+        } else if (cameraModeIndex === 2) {
+          // Overhead Tactical Pursuit Drone Cam
+          targetCamX = playerGroup.position.x * 0.5;
+          targetCamY = 16.0;
+          targetCamZ = -22.0;
+          lookY = 0;
+          lookZ = 12;
+          if (playerChassis) playerChassis.visible = true;
+        }
+
+        camera.position.x += (targetCamX - camera.position.x) * 0.16;
+        camera.position.y += (targetCamY - camera.position.y) * 0.16;
         camera.position.z = targetCamZ;
 
         // Camera Shake
@@ -1339,11 +1379,11 @@
 
         // Dynamic FOV Punch on Nitro / Top Speed
         const isNitro = keys.nitro && nitroAmount > 0;
-        const targetFOV = isNitro ? 82 : (physics && physics.speedKmh > 260 ? 76 : 65);
+        const targetFOV = isNitro ? 84 : (physics && physics.speedKmh > 260 ? 76 : (cameraModeIndex === 1 ? 75 : 65));
         camera.fov += (targetFOV - camera.fov) * 0.08;
         camera.updateProjectionMatrix();
 
-        camera.lookAt(playerGroup.position.x * 0.6, 1.4, 18);
+        camera.lookAt(playerGroup.position.x * 0.6, lookY, lookZ);
       }
 
       // Start 60-120 FPS Loop
