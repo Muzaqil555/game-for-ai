@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 # ⚡ Autonomous 36-Agent Universal Game & Software Studio
 
@@ -44,8 +44,8 @@ Want to see what this 36-agent swarm creates from a single prompt? Play 3 comple
 | Game & Genre | Key Systems Built by the Swarm | Direct Play Link |
 | :--- | :--- | :--- |
 | ⚔️ **Game 1: Aetheria**<br/>*Dark Fantasy Roguelite ARPG* | • Hades-style laser katana combos & bullet-time dodges<br/>• Automated AI drone pet companion with passive aura<br/>• Diablo-style vertical colored loot beams & legendary affixes<br/>• 3-branch ancient talent tree with persistent local save data<br/>• 100% procedural Web Audio combat music & glassmorphism HUD | 👉 [**[Play Aetheria]**](https://muzaqil555.github.io/game-for-ai/) |
-| 🏎️ **Game 2: Neon Velocity**<br/>*80s OutRun Pseudo-3D Drift Racer* | • Mathematical pseudo-3D road curve & elevation projection<br/>• High-speed drift kinematics, nitro boost, tire smoke particles<br/>• Oncoming traffic overtakes with near-miss score multipliers<br/>• 100% procedural 80s synthwave FM-bassline & dynamic engine rumble | 👉 [**[Play Neon Velocity]**](https://muzaqil555.github.io/game-for-ai/racer.html) |
-| 🚀 **Game 3: Void Nova**<br/>*360° Neon Geometry Bullet-Hell Shooter* | • Geometry Wars twin-stick ballistics & polygon rendering<br/>• Splitting vector asteroids and aggressive chasing swarmers<br/>• Screen-clearing EMP shockwave bombs & combo multipliers<br/>• Glowing bloom particles with additive lighter composite blending | 👉 [**[Play Void Nova]**](https://muzaqil555.github.io/game-for-ai/shooter.html) |
+| 🏎️ **Game 2: Neon Velocity**<br/>*Synthwave Drift & Police Pursuit* | • 3 Selectable Tuners (V-800 Interceptor, Shinobi GT, Phantom Hyper-XR)<br/>• True slip-angle drift state machine & mini-turbo exit boost<br/>• Heat 1–5 Police Pursuit with siren cruisers, spike strips & Burnout takedowns<br/>• Procedural FM-synth 80s bassline, dynamic engine RPM pitch & Doppler sirens | 👉 [**[Play Neon Velocity]**](https://muzaqil555.github.io/game-for-ai/racer.html) |
+| 🚀 **Game 3: Void Nova**<br/>*360° Neon Twin-Stick Roguelite Bullet-Hell* | • 4 Hot-Swappable Weapons (Twin Laser, Heavy Plasma AOE, Swarm Missiles with Proportional Navigation, Tesla Arc)<br/>• 5 Enemy archetypes + 3-phase Omega Void-Titan boss (Shield matrix, Fibonacci Danmaku spirals, Overdrive)<br/>• Wave-clear Roguelite Boon drafting deck (8 synergistic augmentations)<br/>• Adaptive techno synth with BPM scaling dynamically from 128 to 160 BPM | 👉 [**[Play Void Nova]**](https://muzaqil555.github.io/game-for-ai/shooter.html) |
 
 ---
 
