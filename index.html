@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="az">
 <head>
   <meta charset="UTF-8">
@@ -1951,9 +1951,43 @@
       color: #c084fc;
       font-size: 1.15rem;
     }
+    /* Top Arcade Hub Bar */
+    #arcade-bar {
+      position: fixed; top: 0; left: 0; right: 0; height: 42px;
+      background: rgba(8, 6, 18, 0.94); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(245, 197, 66, 0.35);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px; z-index: 99999; font-family: 'Plus Jakarta Sans', sans-serif;
+      pointer-events: auto;
+    }
+    .arcade-title { font-family: 'Cinzel', serif; font-size: 13px; font-weight: 800; color: #f5c542; display: flex; align-items: center; gap: 8px; }
+    .arcade-links { display: flex; gap: 8px; }
+    .arcade-btn {
+      padding: 4px 11px; border-radius: 6px; font-size: 11px; font-weight: 700;
+      text-decoration: none; transition: 0.2s; display: flex; align-items: center; gap: 5px;
+      border: 1px solid rgba(255, 255, 255, 0.2); color: #e2e8f0; background: rgba(255, 255, 255, 0.05);
+    }
+    .arcade-btn:hover, .arcade-btn.active {
+      background: #f5c542; color: #000; border-color: #f5c542; box-shadow: 0 0 10px rgba(245, 197, 66, 0.5);
+    }
+    .arcade-github { background: rgba(255, 215, 0, 0.15); border-color: #ffd700; color: #ffd700; }
+    .arcade-github:hover { background: #ffd700; color: #000; }
   </style>
 </head>
 <body>
+  <!-- Top Arcade Hub Bar -->
+  <div id="arcade-bar">
+    <div class="arcade-title">
+      <span>🕹️ AI STUDIO ARCADE</span>
+      <span style="font-size: 10px; color: #ffd700; font-family: sans-serif; font-weight: 600;">(Game 1 of 3)</span>
+    </div>
+    <div class="arcade-links">
+      <a href="index.html" class="arcade-btn active">⚔️ 1. Aetheria RPG</a>
+      <a href="racer.html" class="arcade-btn">🏎️ 2. Neon Velocity</a>
+      <a href="shooter.html" class="arcade-btn">🚀 3. Void Nova</a>
+      <a href="https://github.com/Muzaqil555/game-for-ai" target="_blank" class="arcade-btn arcade-github">⭐ Star Repo</a>
+    </div>
+  </div>
 
   <!-- ƏSAS OYUN KANVASI -->
   <canvas id="game-canvas"></canvas>

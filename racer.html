@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NEON VELOCITY: 80s Synthwave Drift Racer | 36-Agent Studio</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏎️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Plus+Jakarta+Sans:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: #070313; font-family: 'Orbitron', monospace; color: #fff; }
+    
+    /* Top Arcade Hub Navigation Bar */
+    #arcade-bar {
+      position: fixed; top: 0; left: 0; right: 0; height: 46px;
+      background: rgba(10, 5, 25, 0.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 0, 128, 0.4);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px; z-index: 1000; font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .arcade-title { font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 900; color: #ff007f; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; }
+    .arcade-links { display: flex; gap: 8px; }
+    .arcade-btn {
+      padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 700;
+      text-decoration: none; transition: 0.2s; display: flex; align-items: center; gap: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.2); color: #e0e0ff; background: rgba(255, 255, 255, 0.05);
+    }
+    .arcade-btn:hover, .arcade-btn.active {
+      background: #ff007f; color: #fff; border-color: #ff007f; box-shadow: 0 0 12px rgba(255, 0, 127, 0.6);
+    }
+    .arcade-github {
+      background: rgba(255, 215, 0, 0.15); border-color: #ffd700; color: #ffd700;
+    }
+    .arcade-github:hover { background: #ffd700; color: #000; }
+
+    #canvas-container { position: absolute; top: 46px; left: 0; width: 100%; height: calc(100% - 46px); }
+    canvas { width: 100%; height: 100%; display: block; }
+
+    /* In-game HUD */
+    #hud {
+      position: absolute; top: 56px; left: 20px; right: 20px;
+      display: flex; justify-content: space-between; pointer-events: none; z-index: 100;
+    }
+    .hud-card {
+      background: rgba(13, 8, 30, 0.85); border: 1px solid #00f5ff; border-radius: 10px;
+      padding: 8px 18px; box-shadow: 0 0 15px rgba(0, 245, 255, 0.3); text-align: center;
+    }
+    .hud-title { font-size: 10px; color: #00f5ff; letter-spacing: 1.5px; margin-bottom: 2px; }
+    .hud-val { font-size: 26px; font-weight: 900; color: #fff; text-shadow: 0 0 8px #00f5ff; }
+
+    /* Nitro Bar */
+    #nitro-container {
+      position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+      width: min(400px, 80%); background: rgba(15, 8, 30, 0.85); border: 2px solid #ff007f;
+      border-radius: 20px; height: 24px; padding: 3px; box-shadow: 0 0 20px rgba(255, 0, 127, 0.4);
+      z-index: 100; pointer-events: none;
+    }
+    #nitro-fill {
+      width: 100%; height: 100%; border-radius: 15px;
+      background: linear-gradient(90deg, #ff007f, #00f5ff);
+      transition: width 0.1s linear; box-shadow: 0 0 10px #ff007f;
+    }
+    #nitro-text {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 11px; font-weight: 900; letter-spacing: 2px; text-shadow: 0 0 5px #000;
+    }
+
+    /* Start / Game Over Modal */
+    #game-modal {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(5, 2, 15, 0.88); backdrop-filter: blur(10px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 500; font-family: 'Orbitron', sans-serif; text-align: center; padding: 20px;
+    }
+    .modal-title {
+      font-size: clamp(32px, 6vw, 64px); font-weight: 900;
+      background: linear-gradient(135deg, #ff007f, #00f5ff, #ffd700);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 12px; letter-spacing: 3px; filter: drop-shadow(0 0 25px rgba(255, 0, 127, 0.6));
+    }
+    .modal-sub {
+      font-size: clamp(14px, 2vw, 18px); color: #00f5ff; margin-bottom: 24px;
+      font-family: 'Plus Jakarta Sans', sans-serif; max-width: 550px; line-height: 1.6;
+    }
+    .start-btn {
+      padding: 16px 48px; font-size: 20px; font-weight: 900; font-family: 'Orbitron', monospace;
+      color: #fff; background: linear-gradient(135deg, #ff007f, #9d4edd);
+      border: 2px solid #00f5ff; border-radius: 12px; cursor: pointer; transition: 0.25s;
+      box-shadow: 0 0 30px rgba(255, 0, 127, 0.5); text-transform: uppercase; letter-spacing: 2px;
+    }
+    .start-btn:hover { transform: scale(1.06); box-shadow: 0 0 45px rgba(0, 245, 255, 0.8); }
+
+    /* Touch Controls for Mobile */
+    #touch-controls {
+      position: absolute; bottom: 20px; left: 0; right: 0;
+      display: none; justify-content: space-between; padding: 0 24px; pointer-events: none; z-index: 200;
+    }
+    .touch-btn {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: rgba(255, 0, 128, 0.25); border: 2px solid #ff007f;
+      display: flex; align-items: center; justify-content: center; font-size: 28px;
+      pointer-events: auto; backdrop-filter: blur(8px); active-background: #ff007f;
+    }
+    @media (pointer: coarse) { #touch-controls { display: flex; } }
+  </style>
+</head>
+<body>
+
+  <!-- Top Arcade Hub Bar -->
+  <div id="arcade-bar">
+    <div class="arcade-title">
+      <span>🕹️ AI STUDIO ARCADE</span>
+      <span style="font-size: 11px; color: #00f5ff; font-weight: 600;">(Game 2 of 3)</span>
+    </div>
+    <div class="arcade-links">
+      <a href="index.html" class="arcade-btn">⚔️ 1. Aetheria RPG</a>
+      <a href="racer.html" class="arcade-btn active">🏎️ 2. Neon Velocity</a>
+      <a href="shooter.html" class="arcade-btn">🚀 3. Void Nova</a>
+      <a href="https://github.com/Muzaqil555/game-for-ai" target="_blank" class="arcade-btn arcade-github">⭐ Star Repo</a>
+    </div>
+  </div>
+
+  <div id="canvas-container">
+    <canvas id="gameCanvas"></canvas>
+  </div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div class="hud-card">
+      <div class="hud-title">SPEED</div>
+      <div class="hud-val" id="speed-val">0 <span style="font-size:12px;color:#00f5ff;">KM/H</span></div>
+    </div>
+    <div class="hud-card" style="border-color:#ffd700; box-shadow: 0 0 15px rgba(255,215,0,0.3);">
+      <div class="hud-title" style="color:#ffd700;">TIME REMAINING</div>
+      <div class="hud-val" id="time-val" style="color:#ffd700;">60.0</div>
+    </div>
+    <div class="hud-card" style="border-color:#ff007f; box-shadow: 0 0 15px rgba(255,0,127,0.3);">
+      <div class="hud-title" style="color:#ff007f;">SCORE</div>
+      <div class="hud-val" id="score-val" style="color:#ff007f;">00000</div>
+    </div>
+  </div>
+
+  <!-- Nitro Bar -->
+  <div id="nitro-container">
+    <div id="nitro-fill"></div>
+    <div id="nitro-text">NITRO (HOLD SPACE)</div>
+  </div>
+
+  <!-- Touch Controls -->
+  <div id="touch-controls">
+    <div style="display: flex; gap: 16px;">
+      <div class="touch-btn" id="btn-left">◀</div>
+      <div class="touch-btn" id="btn-right">▶</div>
+    </div>
+    <div style="display: flex; gap: 16px;">
+      <div class="touch-btn" id="btn-nitro" style="border-color:#00f5ff; background: rgba(0,245,255,0.25);">⚡</div>
+      <div class="touch-btn" id="btn-gas" style="border-color:#ffd700; background: rgba(255,215,0,0.25);">▲</div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="game-modal">
+    <div class="modal-title">NEON VELOCITY</div>
+    <div class="modal-sub">
+      80s OutRun Pseudo-3D Retro Drift Racer.<br/>
+      Built 100% autonomously with procedural Web Audio API & Canvas math.<br/>
+      <strong>Controls:</strong> A / D or Arrow Keys to Steer • W / Up to Accelerate • SPACE for Nitro.
+    </div>
+    <button class="start-btn" id="start-btn">IGNITE ENGINE</button>
+  </div>
+
+  <script>
+    // =========================================================================
+    // PROCEDURAL WEB AUDIO API SYNTHESIZER (80s Synthwave & Engine FX)
+    // =========================================================================
+    class SynthwaveAudio {
+      constructor() {
+        this.ctx = null;
+        this.engineOsc = null;
+        this.engineGain = null;
+        this.musicPlaying = false;
+        this.bassNotes = [55, 55, 65.41, 73.42, 82.41, 73.42, 65.41, 55]; // A1, C2, D2, E2
+        this.noteIndex = 0;
+      }
+      init() {
+        if (this.ctx) return;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioCtx();
+        
+        // Engine rumble oscillator
+        this.engineOsc = this.ctx.createOscillator();
+        this.engineOsc.type = 'sawtooth';
+        this.engineGain = this.ctx.createGain();
+        this.engineGain.gain.setValueAtTime(0.04, this.ctx.currentTime);
+        
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(140, this.ctx.currentTime);
+        
+        this.engineOsc.connect(filter);
+        filter.connect(this.engineGain);
+        this.engineGain.connect(this.ctx.destination);
+        this.engineOsc.start();
+
+        this.startMusicLoop();
+      }
+      updateEngine(speedRatio) {
+        if (!this.ctx || !this.engineOsc) return;
+        const freq = 45 + speedRatio * 85;
+        this.engineOsc.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.05);
+      }
+      startMusicLoop() {
+        if (this.musicPlaying) return;
+        this.musicPlaying = true;
+        const playBeat = () => {
+          if (!this.musicPlaying) return;
+          const time = this.ctx.currentTime;
+          
+          // Synth Bass Pulse
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          const freq = this.bassNotes[this.noteIndex % this.bassNotes.length];
+          this.noteIndex++;
+          osc.frequency.setValueAtTime(freq, time);
+
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(450, time);
+          filter.frequency.exponentialRampToValueAtTime(120, time + 0.18);
+
+          gain.gain.setValueAtTime(0.07, time);
+          gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(time);
+          osc.stop(time + 0.22);
+
+          // Hi-hat noise
+          if (this.noteIndex % 2 === 0) {
+            this.playHiHat(time);
+          }
+
+          setTimeout(playBeat, 130);
+        };
+        playBeat();
+      }
+      playHiHat(time) {
+        const bufferSize = this.ctx.sampleRate * 0.04;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'highpass';
+        filter.frequency.setValueAtTime(7000, time);
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.03, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        noise.start(time);
+      }
+      playNearMiss() {
+        if (!this.ctx) return;
+        const time = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, time); // D5
+        osc.frequency.exponentialRampToValueAtTime(880, time + 0.15); // A5
+        gain.gain.setValueAtTime(0.12, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(time);
+        osc.stop(time + 0.22);
+      }
+      playCheckpoint() {
+        if (!this.ctx) return;
+        const time = this.ctx.currentTime;
+        [523.25, 659.25, 783.99, 1046.50].forEach((f, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(f, time + idx * 0.06);
+          gain.gain.setValueAtTime(0.15, time + idx * 0.06);
+          gain.gain.exponentialRampToValueAtTime(0.001, time + idx * 0.06 + 0.25);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(time + idx * 0.06);
+          osc.stop(time + idx * 0.06 + 0.26);
+        });
+      }
+    }
+
+    // =========================================================================
+    // PSEUDO-3D ROAD & VEHICLE SIMULATOR
+    // =========================================================================
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const audio = new SynthwaveAudio();
+
+    let width, height;
+    function resize() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight - 46;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Road Parameters
+    const ROAD_WIDTH = 2000;
+    const SEGMENT_LENGTH = 200;
+    const CAMERA_DEPTH = 0.84;
+    const CAMERA_HEIGHT = 1000;
+    const TOTAL_SEGMENTS = 1600;
+
+    let segments = [];
+    let cars = [];
+    let playerX = 0; // -1 to 1 normalized road pos
+    let position = 0; // z position along track
+    let speed = 0;
+    let maxSpeed = 12000;
+    let accel = 4800;
+    let nitro = 100;
+    let score = 0;
+    let timeLeft = 60.0;
+    let gameState = 'ready'; // ready, playing, gameover
+    let nearMissNotifs = [];
+
+    // Keys
+    const keys = { left: false, right: false, up: false, down: false, nitro: false };
+
+    window.addEventListener('keydown', e => {
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.up = true;
+      if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = true;
+      if (e.code === 'Space') keys.nitro = true;
+    });
+
+    window.addEventListener('keyup', e => {
+      if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
+      if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
+      if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.up = false;
+      if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = false;
+      if (e.code === 'Space') keys.nitro = false;
+    });
+
+    // Touch
+    const bindTouch = (id, keyName) => {
+      const el = document.getElementById(id);
+      el.addEventListener('touchstart', e => { e.preventDefault(); keys[keyName] = true; });
+      el.addEventListener('touchend', e => { e.preventDefault(); keys[keyName] = false; });
+    };
+    bindTouch('btn-left', 'left');
+    bindTouch('btn-right', 'right');
+    bindTouch('btn-gas', 'up');
+    bindTouch('btn-nitro', 'nitro');
+
+    // Build Road Track
+    function buildRoad() {
+      segments = [];
+      for (let i = 0; i < TOTAL_SEGMENTS; i++) {
+        const curve = Math.sin(i / 30) * (i > 100 && i < 400 ? 2.5 : i > 600 && i < 1100 ? -3.0 : 0.5);
+        const y = Math.sin(i / 20) * (i > 250 && i < 800 ? 900 : 200);
+        segments.push({
+          index: i,
+          p1: { world: { x: 0, y: y, z: i * SEGMENT_LENGTH }, camera: {}, screen: {} },
+          p2: { world: { x: 0, y: y, z: (i + 1) * SEGMENT_LENGTH }, camera: {}, screen: {} },
+          curve: curve,
+          color: Math.floor(i / 3) % 2 ? 
+            { grass: '#060314', rumble: '#ff007f', road: '#150a2a', lane: '#00f5ff' } : 
+            { grass: '#08041a', rumble: '#00f5ff', road: '#1d0f38', lane: '#1d0f38' }
+        });
+      }
+
+      // Populate traffic cars
+      cars = [];
+      for (let i = 0; i < 45; i++) {
+        const z = (i * 35 + 80) * SEGMENT_LENGTH;
+        cars.push({
+          z: z,
+          offset: (Math.random() * 1.6 - 0.8),
+          speed: 4000 + Math.random() * 3500,
+          color: ['#00f5ff', '#ff007f', '#ffd700', '#00f5a0'][i % 4],
+          nearMissed: false
+        });
+      }
+    }
+
+    function project(p, cameraX, cameraY, cameraZ) {
+      p.camera.x = p.world.x - cameraX;
+      p.camera.y = p.world.y - cameraY;
+      p.camera.z = p.world.z - cameraZ;
+      const scale = CAMERA_DEPTH / Math.max(0.001, p.camera.z);
+      p.screen.scale = scale;
+      p.screen.x = Math.round((width / 2) + (scale * p.camera.x * width / 2));
+      p.screen.y = Math.round((height / 2) - (scale * p.camera.y * height / 2));
+      p.screen.w = Math.round(scale * ROAD_WIDTH * width / 2);
+    }
+
+    // Main Game Loop
+    let lastTime = performance.now();
+    function gameLoop(now) {
+      const dt = Math.min(0.05, (now - lastTime) / 1000);
+      lastTime = now;
+
+      update(dt);
+      render();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function update(dt) {
+      if (gameState !== 'playing') return;
+
+      timeLeft -= dt;
+      if (timeLeft <= 0) {
+        timeLeft = 0;
+        gameOver();
+      }
+
+      // Nitro & Acceleration
+      let currentMax = maxSpeed;
+      if (keys.nitro && nitro > 0) {
+        currentMax = maxSpeed * 1.45;
+        speed += accel * 1.8 * dt;
+        nitro = Math.max(0, nitro - 30 * dt);
+      } else {
+        nitro = Math.min(100, nitro + 8 * dt);
+      }
+
+      if (keys.up) {
+        speed = Math.min(currentMax, speed + accel * dt);
+      } else if (keys.down) {
+        speed = Math.max(0, speed - accel * 2 * dt);
+      } else {
+        speed = Math.max(0, speed - accel * 0.4 * dt);
+      }
+
+      // Steering with inertia
+      const speedRatio = speed / maxSpeed;
+      if (keys.left) playerX -= 1.35 * speedRatio * dt;
+      if (keys.right) playerX += 1.35 * speedRatio * dt;
+
+      // Centrifugal drift on curves
+      const baseSegment = segments[Math.floor(position / SEGMENT_LENGTH) % TOTAL_SEGMENTS];
+      playerX -= (baseSegment.curve * 0.02) * (speedRatio ** 2);
+
+      // Off-road penalty
+      if (Math.abs(playerX) > 1.05) {
+        speed = Math.max(0, speed - accel * 1.5 * dt);
+      }
+
+      position += speed * dt;
+      score += Math.floor(speed * dt * 0.1);
+
+      audio.updateEngine(speedRatio);
+
+      // Update traffic
+      cars.forEach(car => {
+        car.z += car.speed * dt;
+        if (car.z > TOTAL_SEGMENTS * SEGMENT_LENGTH) car.z -= TOTAL_SEGMENTS * SEGMENT_LENGTH;
+
+        // Collision check
+        const distZ = Math.abs(position - car.z);
+        if (distZ < 220) {
+          const distX = Math.abs(playerX - car.offset);
+          if (distX < 0.28) {
+            // Hit car!
+            speed = speed * 0.4;
+          } else if (distX < 0.65 && !car.nearMissed) {
+            // Near Miss Bonus!
+            car.nearMissed = true;
+            score += 500;
+            nitro = Math.min(100, nitro + 25);
+            nearMissNotifs.push({ text: '+500 NEAR MISS!', x: width / 2, y: height / 2 - 50, life: 1.0 });
+            audio.playNearMiss();
+          }
+        }
+        if (distZ > 500) car.nearMissed = false;
+      });
+
+      // Checkpoint every 300 segments
+      if (Math.floor(position / (SEGMENT_LENGTH * 350)) !== Math.floor((position - speed * dt) / (SEGMENT_LENGTH * 350))) {
+        timeLeft += 25.0;
+        audio.playCheckpoint();
+        nearMissNotifs.push({ text: '+25s CHECKPOINT!', x: width / 2, y: height / 3, life: 1.5, color: '#ffd700' });
+      }
+
+      // UI
+      document.getElementById('speed-val').innerHTML = `${Math.floor(speedRatio * 260)} <span style="font-size:12px;color:#00f5ff;">KM/H</span>`;
+      document.getElementById('time-val').innerText = timeLeft.toFixed(1);
+      document.getElementById('score-val').innerText = String(score).padStart(5, '0');
+      document.getElementById('nitro-fill').style.width = `${nitro}%`;
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, width, height);
+
+      // 1. Synthwave Horizon & Sun
+      const grad = ctx.createLinearGradient(0, 0, 0, height / 2);
+      grad.addColorStop(0, '#0a031a');
+      grad.addColorStop(0.7, '#240638');
+      grad.addColorStop(1, '#ff007f');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, width, height / 2);
+
+      // Neon Sun
+      const sunY = height / 2 - 20;
+      const sunRadius = Math.min(width, height) * 0.18;
+      const sunGrad = ctx.createLinearGradient(width / 2, sunY - sunRadius, width / 2, sunY + sunRadius);
+      sunGrad.addColorStop(0, '#ffd700');
+      sunGrad.addColorStop(0.6, '#ff007f');
+      sunGrad.addColorStop(1, '#7928ca');
+      ctx.fillStyle = sunGrad;
+      ctx.beginPath();
+      ctx.arc(width / 2, sunY, sunRadius, 0, Math.PI, true);
+      ctx.fill();
+
+      // Sun horizontal blinds
+      ctx.fillStyle = '#0a031a';
+      for (let b = 0; b < 7; b++) {
+        const by = sunY - sunRadius * 0.45 + b * (sunRadius * 0.12);
+        ctx.fillRect(width / 2 - sunRadius, by, sunRadius * 2, 3 + b * 1.5);
+      }
+
+      // 2. Render Road Segments
+      const baseIndex = Math.floor(position / SEGMENT_LENGTH);
+      const startPos = position % SEGMENT_LENGTH;
+      let maxY = height;
+      let curveSum = 0;
+
+      for (let n = 0; n < 280; n++) {
+        const seg = segments[(baseIndex + n) % TOTAL_SEGMENTS];
+        const loop = Math.floor((baseIndex + n) / TOTAL_SEGMENTS);
+
+        const camX = playerX * ROAD_WIDTH;
+        const camY = CAMERA_HEIGHT;
+        const camZ = position - (loop * TOTAL_SEGMENTS * SEGMENT_LENGTH);
+
+        project(seg.p1, camX - curveSum, camY, camZ);
+        project(seg.p2, camX - curveSum - seg.curve, camY, camZ);
+
+        curveSum += seg.curve;
+
+        if (seg.p1.camera.z <= CAMERA_DEPTH || seg.p2.screen.y >= maxY) continue;
+
+        // Draw Grass
+        ctx.fillStyle = seg.color.grass;
+        ctx.fillRect(0, seg.p2.screen.y, width, seg.p1.screen.y - seg.p2.screen.y);
+
+        // Draw Rumble & Road
+        drawPolygon(
+          seg.p1.screen.x, seg.p1.screen.y, seg.p1.screen.w * 1.25,
+          seg.p2.screen.x, seg.p2.screen.y, seg.p2.screen.w * 1.25,
+          seg.color.rumble
+        );
+        drawPolygon(
+          seg.p1.screen.x, seg.p1.screen.y, seg.p1.screen.w,
+          seg.p2.screen.x, seg.p2.screen.y, seg.p2.screen.w,
+          seg.color.road
+        );
+        drawPolygon(
+          seg.p1.screen.x, seg.p1.screen.y, seg.p1.screen.w * 0.04,
+          seg.p2.screen.x, seg.p2.screen.y, seg.p2.screen.w * 0.04,
+          seg.color.lane
+        );
+
+        maxY = seg.p2.screen.y;
+      }
+
+      // 3. Render Traffic Cars
+      cars.forEach(car => {
+        const distZ = car.z - position;
+        if (distZ > 0 && distZ < 280 * SEGMENT_LENGTH) {
+          const segIndex = Math.floor(car.z / SEGMENT_LENGTH) % TOTAL_SEGMENTS;
+          const seg = segments[segIndex];
+          const scale = CAMERA_DEPTH / distZ;
+          const screenX = (width / 2) + (scale * (car.offset * ROAD_WIDTH - playerX * ROAD_WIDTH) * width / 2);
+          const screenY = (height / 2) - (scale * (seg.p1.world.y - CAMERA_HEIGHT) * height / 2);
+          const carW = scale * 480 * (width / 2);
+          const carH = carW * 0.55;
+
+          if (screenY > 0 && screenY < height) {
+            drawCyberCar(screenX, screenY, carW, carH, car.color, false);
+          }
+        }
+      });
+
+      // 4. Render Player Car
+      const playerCarW = width * 0.16;
+      const playerCarH = playerCarW * 0.52;
+      const playerScreenX = width / 2;
+      const playerScreenY = height - playerCarH - 15;
+      drawCyberCar(playerScreenX, playerScreenY, playerCarW, playerCarH, '#ff007f', true);
+
+      // 5. Near Miss Floating Text
+      nearMissNotifs = nearMissNotifs.filter(n => {
+        n.life -= 0.02;
+        n.y -= 1;
+        ctx.save();
+        ctx.fillStyle = n.color || '#00f5ff';
+        ctx.font = '900 24px Orbitron';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = n.color || '#00f5ff';
+        ctx.shadowBlur = 15;
+        ctx.fillText(n.text, n.x, n.y);
+        ctx.restore();
+        return n.life > 0;
+      });
+    }
+
+    function drawPolygon(x1, y1, w1, x2, y2, w2, color) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(x1 - w1, y1);
+      ctx.lineTo(x2 - w2, y2);
+      ctx.lineTo(x2 + w2, y2);
+      ctx.lineTo(x1 + w1, y1);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Procedural Cyber Sports Car Vector
+    function drawCyberCar(x, y, w, h, color, isPlayer) {
+      ctx.save();
+      ctx.translate(x, y);
+
+      // Shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.beginPath();
+      ctx.ellipse(0, h * 0.35, w * 0.55, h * 0.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Main Chassis
+      ctx.fillStyle = '#0f081d';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = Math.max(2, w * 0.03);
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 14;
+
+      ctx.beginPath();
+      ctx.moveTo(-w * 0.45, h * 0.3);
+      ctx.lineTo(-w * 0.4, -h * 0.1);
+      ctx.lineTo(-w * 0.28, -h * 0.4);
+      ctx.lineTo(w * 0.28, -h * 0.4);
+      ctx.lineTo(w * 0.4, -h * 0.1);
+      ctx.lineTo(w * 0.45, h * 0.3);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Rear Spoiler & Neon Lights
+      ctx.fillStyle = color;
+      ctx.fillRect(-w * 0.38, h * 0.1, w * 0.76, h * 0.08);
+
+      // Taillights
+      ctx.fillStyle = isPlayer ? '#ff0044' : '#ffd700';
+      ctx.shadowColor = ctx.fillStyle;
+      ctx.shadowBlur = 18;
+      ctx.fillRect(-w * 0.36, h * 0.18, w * 0.22, h * 0.09);
+      ctx.fillRect(w * 0.14, h * 0.18, w * 0.22, h * 0.09);
+
+      // Exhaust Thrusters (Nitro Flame)
+      if (isPlayer && keys.nitro && nitro > 0) {
+        ctx.fillStyle = '#00f5ff';
+        ctx.shadowColor = '#00f5ff';
+        ctx.shadowBlur = 25;
+        ctx.beginPath();
+        ctx.moveTo(-w * 0.12, h * 0.3);
+        ctx.lineTo(0, h * 0.8 + Math.random() * 20);
+        ctx.lineTo(w * 0.12, h * 0.3);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    // Modal Control
+    const modal = document.getElementById('game-modal');
+    const startBtn = document.getElementById('start-btn');
+
+    startBtn.addEventListener('click', () => {
+      audio.init();
+      modal.style.display = 'none';
+      buildRoad();
+      position = 0;
+      speed = 0;
+      score = 0;
+      timeLeft = 60.0;
+      nitro = 100;
+      playerX = 0;
+      gameState = 'playing';
+    });
+
+    function gameOver() {
+      gameState = 'gameover';
+      modal.style.display = 'flex';
+      modal.querySelector('.modal-title').innerText = 'TIME OUT!';
+      modal.querySelector('.modal-sub').innerHTML = `Final Score: <strong>${score} PTS</strong><br/>Great driving, pilot!`;
+      startBtn.innerText = 'RACE AGAIN';
+    }
+
+    buildRoad();
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
