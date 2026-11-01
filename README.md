@@ -7,6 +7,7 @@
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
 [![Multi-Agent](https://img.shields.io/badge/Agents-36%20Specialized%20Swarm-orange?style=for-the-badge&logo=probot)](AGENTS.md)
 [![Zero-Conflict](https://img.shields.io/badge/Architecture-Zero--Conflict%20Parallel-emerald?style=for-the-badge&logo=git)](.agents/skills/universal-game-engine/SKILL.md)
+[![Prompt Cookbook](https://img.shields.io/badge/Prompt%20Cookbook-10%20Recipes-red?style=for-the-badge&logo=markdown)](PROMPTS.md)
 [![FPS](https://img.shields.io/badge/Performance-60--120%20FPS%20Guaranteed-purple?style=for-the-badge&logo=speedtest)](.agents/skills/universal-game-engine/SKILL.md)
 [![Compatibility](https://img.shields.io/badge/Compatible%20With-Antigravity%20%7C%20Cursor%20%7C%20Claude%20Code-cyan?style=for-the-badge&logo=openai)](README.md)
 
@@ -14,7 +15,7 @@
 
 **[⭐ Star this Repo](https://github.com/Muzaqil555/game-for-ai) to bookmark it for your next AI-generated game or software project!**
 
-[Overview](#-overview) • [Why It's Different](#-why-this-is-different) • [Architecture](#-5-phase-autonomous-swarm-pipeline) • [Agent Roster](#-the-36-agent-roster) • [Model Mapping](#-universal-cross-platform-model-mapping) • [Genres](#-universal-genre-support) • [Quick Start](#-quick-start-in-30-seconds) • [License](#-license)
+[Overview](#-overview) • [Prompt Cookbook](PROMPTS.md) • [Why It's Different](#-why-this-is-different) • [Architecture](#-5-phase-autonomous-swarm-pipeline) • [Agent Roster](#-the-36-agent-roster) • [Model Mapping](#-universal-cross-platform-model-mapping) • [Quick Start](#-quick-start-in-30-seconds) • [License](#-license)
 
 </div>
 
@@ -33,6 +34,24 @@ And the 36-agent swarm will automatically draft the architectural spec, code 6 m
 
 ---
 
+## 🎮 Prompt Cookbook (1-Click Copy & Paste)
+
+Check out [**`PROMPTS.md`**](PROMPTS.md) for 10 tested, battle-hardened game prompts ready to paste into your AI assistant:
+* 🗡️ **Neon Cyberpunk Katana Roguelite** (Hades-style perfect-dodge, style combos)
+* 🦇 **Vampire Swarm Arena** (2,000+ mobs at 120 FPS, weapon synergies)
+* 🍓 **Celeste-Style Precision Platformer** (Coyote time, jump buffer, air dash)
+* ⚔️ **Diablo-Style Dungeon Crawler** (Loot beams, elite affixes, talent tree)
+* 🏎️ **OutRun Synthwave 80s Racer** (Pseudo-3D road curves, drift physics)
+* 🏰 **Cosmic Void Tower Defense** (A* pathfinding, branching turrets)
+* 🚀 **Geometry Wars Space Shooter** (360° twin-stick, bloom particles)
+* 🧩 **Gravitational Gem Puzzle** (Match-3 with cascade physics)
+* 🥊 **Streets of Neon Beat 'Em Up** (Juggle physics, 2.5D lanes)
+* 🌐 **3D WebGL Space Flight Simulator** (Three.js procedural starfield)
+
+👉 **[Read all 10 recipes in PROMPTS.md](PROMPTS.md)**
+
+---
+
 ## 💎 Why This is Different
 
 ```
@@ -44,6 +63,7 @@ And the 36-agent swarm will automatically draft the architectural spec, code 6 m
 │ • No audio or broken sound files     │     │ • 100% Procedural Web Audio API sound & music          │
 │ • Untested console runtime errors    │     │ • Autonomous QA Gate + Auto-healing Bug Fixer          │
 │ • Boring, uncalibrated difficulty    │     │ • 9-Persona User Council audits fun & skill-ceiling    │
+│ • Manual setup & complex prompt engineering│ • Auto-activated via CLAUDE.md & .cursorrules       │
 └──────────────────────────────────────┘     └────────────────────────────────────────────────────────┘
 ```
 
@@ -198,8 +218,19 @@ The studio includes pre-configured mathematical equations, physics models, and i
 
 ## 🚀 Quick Start in 30 Seconds
 
-### Step 1: Clone or Copy
-Copy `AGENTS.md` and the `.agents/` folder into your project root:
+### Option A: 1-Line Fast Install into Any Existing Project
+
+Run this single command inside your desired project directory:
+
+```bash
+# macOS / Linux / WSL
+curl -sSL https://raw.githubusercontent.com/Muzaqil555/game-for-ai/main/setup.sh | bash
+
+# Windows PowerShell
+irm https://raw.githubusercontent.com/Muzaqil555/game-for-ai/main/setup.ps1 | iex
+```
+
+### Option B: Clone the Repository Directly
 
 ```bash
 git clone https://github.com/Muzaqil555/game-for-ai.git
@@ -208,13 +239,13 @@ cd game-for-ai
 
 ### Step 2: Open in Your Favorite AI Environment
 Open the repository in any AI-powered agent IDE or CLI:
-* **[Google Antigravity](https://deepmind.google)**
-* **[Cursor](https://cursor.com)**
-* **[Claude Code](https://anthropic.com)**
-* **[Codex CLI](https://openai.com)**
+* **[Google Antigravity](https://deepmind.google)** — Native multi-agent subagent execution.
+* **[Claude Code](https://anthropic.com)** — Zero-config activation via [`CLAUDE.md`](CLAUDE.md).
+* **[Cursor](https://cursor.com)** — Zero-config activation via [`.cursorrules`](.cursorrules).
+* **[Codex CLI](https://openai.com)** — Automated project-level rule execution.
 
 ### Step 3: Issue Any Game Prompt
-Type your game idea in plain text:
+Pick any recipe from [**`PROMPTS.md`**](PROMPTS.md) or type your own concept:
 
 ```text
 "Build me a 2D neon cyberpunk platformer with wall-slides, laser katanas, and procedural chiptune music."
@@ -228,6 +259,11 @@ The AI will instantly adopt the **Agent 4: CEO** persona, draft `GAME_SPEC.md`, 
 
 ```
 ├── AGENTS.md                            # Universal Master Orchestration Rules
+├── CLAUDE.md                            # Zero-Config Native Directive for Claude Code
+├── .cursorrules                         # Zero-Config Native Directive for Cursor
+├── PROMPTS.md                           # 10 Battle-Tested Copy-Paste Game Recipes
+├── setup.sh                             # 1-Line Installer for Linux/macOS
+├── setup.ps1                            # 1-Line Installer for Windows PowerShell
 ├── README.md                            # Complete Documentation & Architecture
 ├── LICENSE                              # MIT Open Source License
 └── .agents/
