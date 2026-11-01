@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="az">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -8,6 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Kokpit HUD və Vizual Stillər -->
+  <link rel="stylesheet" href="src/racer_hud.css">
+
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
     body, html { width: 100%; height: 100%; overflow: hidden; background: #060212; font-family: 'Orbitron', monospace; color: #fff; }
@@ -18,7 +22,7 @@
       background: rgba(10, 4, 25, 0.94); backdrop-filter: blur(12px);
       border-bottom: 1px solid rgba(255, 0, 128, 0.45);
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 16px; z-index: 1000; font-family: 'Plus Jakarta Sans', sans-serif;
+      padding: 0 16px; z-index: 2000; font-family: 'Plus Jakarta Sans', sans-serif;
     }
     .arcade-title { font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 900; color: #ff007f; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; }
     .arcade-links { display: flex; gap: 8px; }
@@ -33,971 +37,1221 @@
     .arcade-github { background: rgba(255, 215, 0, 0.15); border-color: #ffd700; color: #ffd700; }
     .arcade-github:hover { background: #ffd700; color: #000; }
 
-    #canvas-container { position: absolute; top: 44px; left: 0; width: 100%; height: calc(100% - 44px); }
-    canvas { width: 100%; height: 100%; display: block; }
-
-    /* HUD */
-    #hud {
-      position: absolute; top: 54px; left: 20px; right: 20px;
-      display: flex; justify-content: space-between; pointer-events: none; z-index: 100;
+    /* Master Game Canvas */
+    #canvas-container {
+      position: absolute;
+      top: 44px;
+      left: 0;
+      width: 100%;
+      height: calc(100% - 44px);
+      overflow: hidden;
+      background: #050014;
     }
-    .hud-card {
-      background: rgba(14, 7, 32, 0.88); border: 1.5px solid #00f5ff; border-radius: 10px;
-      padding: 8px 18px; box-shadow: 0 0 18px rgba(0, 245, 255, 0.35); text-align: center;
-    }
-    .hud-title { font-size: 10px; color: #00f5ff; letter-spacing: 1.5px; margin-bottom: 2px; }
-    .hud-val { font-size: 26px; font-weight: 900; color: #fff; text-shadow: 0 0 10px #00f5ff; }
-
-    /* Heat Gauge */
-    #heat-container {
-      position: absolute; top: 54px; left: 50%; transform: translateX(-50%);
-      background: rgba(14, 7, 32, 0.88); border: 1.5px solid #ff0044; border-radius: 10px;
-      padding: 6px 20px; text-align: center; box-shadow: 0 0 20px rgba(255, 0, 68, 0.4);
-      pointer-events: none; z-index: 100;
-    }
-    #heat-title { font-size: 10px; color: #ff0044; letter-spacing: 2px; font-weight: 800; }
-    #heat-stars { font-size: 18px; color: #ffd700; letter-spacing: 3px; }
-
-    /* Nitro & Drift Bar */
-    #bottom-meters {
-      position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%);
-      width: min(520px, 86%); display: flex; flex-direction: column; gap: 8px;
-      z-index: 100; pointer-events: none;
-    }
-    .meter-wrap {
-      background: rgba(15, 7, 34, 0.88); border: 1.5px solid #ff007f;
-      border-radius: 14px; height: 20px; padding: 2px; position: relative;
-      box-shadow: 0 0 15px rgba(255, 0, 127, 0.4);
-    }
-    .meter-fill { height: 100%; border-radius: 10px; transition: width 0.08s linear; }
-    .meter-label {
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      font-size: 10px; font-weight: 900; letter-spacing: 1.5px; text-shadow: 0 0 4px #000;
+    #gameCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
     }
 
-    /* Modals & Screens */
-    .game-modal-layer {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(6, 2, 16, 0.92); backdrop-filter: blur(14px);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      z-index: 500; font-family: 'Orbitron', sans-serif; text-align: center; padding: 20px;
-    }
-    .modal-title {
-      font-size: clamp(32px, 6vw, 64px); font-weight: 900;
-      background: linear-gradient(135deg, #ff007f 0%, #00f5ff 50%, #ffd700 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      margin-bottom: 8px; letter-spacing: 3px; filter: drop-shadow(0 0 30px rgba(255, 0, 127, 0.7));
-    }
-    .modal-subtitle {
-      font-size: 15px; color: #00f5ff; margin-bottom: 24px; font-family: 'Plus Jakarta Sans', sans-serif;
+    /* Cockpit Windshield Frame Vignette */
+    .cockpit-windshield-rim {
+      position: absolute;
+      top: 44px;
+      left: 0;
+      width: 100%;
+      height: calc(100% - 44px);
+      pointer-events: none;
+      z-index: 30;
+      box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.88), inset 0 20px 40px rgba(0, 245, 255, 0.15);
+      border-bottom: 22px solid #0d061f;
     }
 
-    /* Car Selection Grid */
-    .car-cards-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 16px; width: min(880px, 92%); margin-bottom: 24px;
+    /* CRT Scanlines and Glow Effect */
+    .cockpit-crt-overlay {
+      position: absolute;
+      top: 44px;
+      left: 0;
+      width: 100%;
+      height: calc(100% - 44px);
+      pointer-events: none;
+      z-index: 35;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      background-size: 100% 3px, 6px 100%;
+      opacity: 0.75;
+    }
+
+    /* Garage & Vehicle Selection Modal */
+    #garage-modal {
+      position: fixed;
+      top: 44px;
+      left: 0;
+      width: 100%;
+      height: calc(100% - 44px);
+      background: rgba(6, 2, 18, 0.94);
+      backdrop-filter: blur(14px);
+      z-index: 3000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+    #garage-modal.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.97);
+    }
+    .garage-title {
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 900;
+      letter-spacing: 5px;
+      color: #fff;
+      text-shadow: 0 0 20px #00f5ff, 0 0 40px #ff007f;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .garage-subtitle {
+      font-size: 13px;
+      letter-spacing: 3px;
+      color: #ffe600;
+      margin-bottom: 24px;
+      text-transform: uppercase;
+      font-weight: bold;
+      text-align: center;
+    }
+    .car-cards-row {
+      display: flex;
+      gap: 16px;
+      max-width: 960px;
+      width: 100%;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
     }
     .car-card {
-      background: rgba(20, 10, 45, 0.85); border: 2px solid rgba(255, 255, 255, 0.15);
-      border-radius: 14px; padding: 18px; cursor: pointer; transition: 0.25s; text-align: left;
+      flex: 1 1 260px;
+      max-width: 300px;
+      background: rgba(14, 7, 32, 0.85);
+      border: 2px solid rgba(0, 245, 255, 0.3);
+      border-radius: 12px;
+      padding: 18px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
     }
     .car-card:hover, .car-card.selected {
-      border-color: #ff007f; transform: translateY(-4px); box-shadow: 0 0 25px rgba(255, 0, 127, 0.5);
-      background: rgba(35, 15, 70, 0.9);
+      border-color: #00f5ff;
+      box-shadow: 0 0 25px rgba(0, 245, 255, 0.5), inset 0 0 15px rgba(0, 245, 255, 0.2);
+      transform: translateY(-4px);
     }
-    .car-name { font-size: 17px; font-weight: 900; color: #fff; margin-bottom: 4px; }
-    .car-tagline { font-size: 12px; color: #00f5ff; font-family: 'Plus Jakarta Sans', sans-serif; margin-bottom: 12px; }
-    .stat-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px; font-family: 'Plus Jakarta Sans', sans-serif; }
-    .stat-bar { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
-    .stat-fill { height: 100%; background: #00f5ff; }
-
-    .action-btn-row { display: flex; gap: 16px; }
-    .primary-btn {
-      padding: 16px 48px; font-size: 20px; font-weight: 900; font-family: 'Orbitron', monospace;
-      color: #fff; background: linear-gradient(135deg, #ff007f, #9d4edd);
-      border: 2px solid #00f5ff; border-radius: 12px; cursor: pointer; transition: 0.25s;
-      box-shadow: 0 0 30px rgba(255, 0, 127, 0.5); text-transform: uppercase; letter-spacing: 2px;
+    .car-card.selected::before {
+      content: 'EQUIPPED';
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: #ff007f;
+      color: #fff;
+      font-size: 9px;
+      font-weight: 900;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 1px;
     }
-    .primary-btn:hover { transform: scale(1.06); box-shadow: 0 0 45px rgba(0, 245, 255, 0.8); }
-
-    .secondary-btn {
-      padding: 16px 32px; font-size: 17px; font-weight: 800; font-family: 'Orbitron', monospace;
-      color: #ffd700; background: rgba(255, 215, 0, 0.12); border: 2px solid #ffd700;
-      border-radius: 12px; cursor: pointer; transition: 0.25s;
+    .car-name {
+      font-size: 16px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 4px;
+      letter-spacing: 1.5px;
     }
-    .secondary-btn:hover { background: #ffd700; color: #000; box-shadow: 0 0 30px rgba(255, 215, 0, 0.6); }
-
-    /* Touch Controls */
-    #touch-controls {
-      position: absolute; bottom: 20px; left: 0; right: 0;
-      display: none; justify-content: space-between; padding: 0 20px; pointer-events: none; z-index: 200;
+    .car-archetype {
+      font-size: 11px;
+      color: #00f5ff;
+      margin-bottom: 14px;
+      letter-spacing: 1px;
     }
-    .touch-btn {
-      width: 68px; height: 68px; border-radius: 50%;
-      background: rgba(255, 0, 128, 0.28); border: 2px solid #ff007f;
-      display: flex; align-items: center; justify-content: center; font-size: 26px;
-      pointer-events: auto; backdrop-filter: blur(8px);
+    .car-stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #ccc;
+      margin-bottom: 6px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
     }
-    @media (pointer: coarse) { #touch-controls { display: flex; } }
+    .car-stat-bar {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .car-stat-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00f5ff, #ff007f);
+      border-radius: 3px;
+    }
+    .start-race-btn {
+      background: linear-gradient(135deg, #ff007f, #9d00ff);
+      color: #fff;
+      border: 2px solid #00f5ff;
+      padding: 16px 48px;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 0 35px rgba(255, 0, 127, 0.6);
+      transition: all 0.2s ease;
+      font-family: 'Orbitron', monospace;
+    }
+    .start-race-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 50px rgba(0, 245, 255, 0.85);
+    }
+    .garage-records {
+      margin-top: 18px;
+      display: flex;
+      gap: 24px;
+      font-size: 12px;
+      color: #88eeff;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
   </style>
 </head>
 <body>
 
-  <!-- Top Arcade Hub Bar -->
-  <div id="arcade-bar">
+  <!-- Top Arcade Navigation Hub -->
+  <header id="arcade-bar">
     <div class="arcade-title">
-      <span>🕹️ AI STUDIO ARCADE</span>
-      <span style="font-size: 11px; color: #00f5ff; font-weight: 600;">(Game 2 of 3)</span>
+      <span>⚡ UNIVERSAL 36-AGENT GAME STUDIO</span>
+      <span style="color:#00f5ff;font-size:11px;font-weight:700;">| AAA ARCADE SUITE</span>
     </div>
     <div class="arcade-links">
-      <a href="index.html" class="arcade-btn">⚔️ 1. Aetheria RPG</a>
-      <a href="racer.html" class="arcade-btn active">🏎️ 2. Neon Velocity</a>
-      <a href="shooter.html" class="arcade-btn">🚀 3. Void Nova</a>
-      <a href="https://github.com/Muzaqil555/game-for-ai" target="_blank" class="arcade-btn arcade-github">⭐ Star Repo</a>
+      <a href="index.html" class="arcade-btn">⚔️ GAME 1: CYBER KATANA</a>
+      <a href="racer.html" class="arcade-btn active">🏎️ GAME 2: NEON VELOCITY</a>
+      <a href="shooter.html" class="arcade-btn">🚀 GAME 3: VOID FLEET</a>
+      <a href="https://github.com/Muzaqil555/game-for-ai" target="_blank" class="arcade-btn arcade-github">★ GITHUB</a>
     </div>
-  </div>
+  </header>
 
+  <!-- Master Canvas Container -->
   <div id="canvas-container">
     <canvas id="gameCanvas"></canvas>
   </div>
 
-  <!-- In-Game HUD -->
-  <div id="hud">
-    <div class="hud-card">
-      <div class="hud-title">SPEED</div>
-      <div class="hud-val" id="speed-val">0 <span style="font-size:12px;color:#00f5ff;">KM/H</span></div>
+  <!-- Cockpit Windshield Vignette -->
+  <div class="cockpit-windshield-rim"></div>
+
+  <!-- CRT Scanlines and Glow Effect -->
+  <div class="cockpit-crt-overlay"></div>
+
+  <!-- ========================================================================
+       MASTER HUD CONTAINER (Managed by window.NeonHUD)
+       ======================================================================== -->
+  <div id="neon-velocity-hud">
+
+    <!-- 1. TOP BAR: HEAT LEVEL, REARVIEW MIRROR & STATS -->
+    <div class="hud-top-bar">
+
+      <!-- Heat Level & Wanted Stars -->
+      <div id="hud-heat-panel" class="hud-heat-panel">
+        <div class="heat-header">
+          <span class="heat-label">HEAT PURSUIT</span>
+          <span id="heat-val-tag" class="heat-val-tag">LEVEL 1</span>
+        </div>
+
+        <!-- 5 Animated Neon Wanted Stars -->
+        <div class="heat-stars-row">
+          <svg class="heat-star" viewBox="0 0 24 24"><polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9"/></svg>
+          <svg class="heat-star" viewBox="0 0 24 24"><polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9"/></svg>
+          <svg class="heat-star" viewBox="0 0 24 24"><polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9"/></svg>
+          <svg class="heat-star" viewBox="0 0 24 24"><polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9"/></svg>
+          <svg class="heat-star" viewBox="0 0 24 24"><polygon points="12,2 15,9 22,9 17,14 19,21 12,17 5,21 7,14 2,9 9,9"/></svg>
+        </div>
+
+        <div class="heat-meter-track">
+          <div id="heat-meter-fill" class="heat-meter-fill"></div>
+        </div>
+
+        <div id="police-dispatch-feed" class="police-dispatch-feed">SECTOR 04: RADAR PURSUIT ACTIVE</div>
+      </div>
+
+      <!-- Center: Rearview Mirror (Dikbaxış Güzgüsü) -->
+      <div id="rearview-mirror-rig" class="rearview-mirror-rig">
+        <div class="mirror-mount-stem"></div>
+        <div id="rearview-frame" class="rearview-frame">
+          <canvas id="rearview-canvas" class="rearview-canvas"></canvas>
+          <div class="mirror-tint-reflection"></div>
+          <div class="siren-strobe-left"></div>
+          <div class="siren-strobe-right"></div>
+          <div id="mirror-hud-status" class="mirror-hud-status">REAR TRAFFIC CLEAR</div>
+        </div>
+      </div>
+
+      <!-- Top Right: Audio Mute & Stats -->
+      <div class="hud-stats-panel">
+        <button id="btn-audio-toggle" class="btn-audio-toggle" title="Mute/Unmute Audio" style="background: rgba(0,245,255,0.12); border: 1px solid #00f5ff; color: #00f5ff; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 11px; font-weight: bold; letter-spacing: 1px; transition: all 0.2s;">🔊 AUDIO</button>
+        <div class="stat-credits-box">
+          <span class="stat-credits-label">CREDITS:</span>
+          <span id="stat-credits-val" class="stat-credits-val">$0</span>
+        </div>
+        <div id="stat-multiplier-badge" class="stat-multiplier-badge">CRUISE 1.0x</div>
+      </div>
+
     </div>
-    <div class="hud-card" style="border-color:#ffd700; box-shadow: 0 0 15px rgba(255,215,0,0.3);">
-      <div class="hud-title" style="color:#ffd700;">CHECKPOINT TIMER</div>
-      <div class="hud-val" id="time-val" style="color:#ffd700;">60.0</div>
+
+    <!-- 2. CENTER NOTIFICATIONS & DRIFT HUD -->
+    <div class="hud-center-events">
+
+      <!-- Dynamic Drift Score & Angle Panel -->
+      <div id="drift-gauge-cluster" class="drift-gauge-cluster">
+        <div class="drift-title">DRIFT OVERDRIVE</div>
+        <div id="drift-score-counter" class="drift-score-counter">+0 PTS</div>
+        <div id="drift-multiplier-tag" class="drift-multiplier-tag">x1.0 DRIFT</div>
+        <div class="drift-angle-bar-track">
+          <div id="drift-angle-bar-fill" class="drift-angle-bar-fill"></div>
+        </div>
+        <div id="drift-angle-text" class="drift-angle-text">0° SLIP ANGLE</div>
+      </div>
+
+      <!-- Takedown Cinematic Banner -->
+      <div id="hud-takedown-banner" class="hud-takedown-banner">
+        <div id="takedown-text" class="takedown-text">CRUISER DESTROYED!</div>
+        <div id="takedown-subtext" class="takedown-subtext">+$1,500 BOUNTY & NITRO FULL RECHARGE</div>
+      </div>
+
     </div>
-    <div class="hud-card" style="border-color:#ff007f; box-shadow: 0 0 15px rgba(255,0,127,0.3);">
-      <div class="hud-title" style="color:#ff007f;">CREDITS & SCORE</div>
-      <div class="hud-val" id="score-val" style="color:#ff007f;">00000</div>
+
+    <!-- 3. BOTTOM COCKPIT DASHBOARD -->
+    <div class="hud-dashboard-cluster">
+
+      <!-- Left: Mini-Map Holographic Radar -->
+      <div class="dashboard-radar-pod">
+        <canvas id="radar-canvas" class="radar-canvas"></canvas>
+        <div id="radar-warning-ticker" class="radar-warning-ticker">SCANNING ROAD HAZARDS...</div>
+      </div>
+
+      <!-- Center-Right: Gear Display & Nitro Tank -->
+      <div class="dashboard-telemetry-pod">
+        <div class="gear-and-nos-column">
+          <div id="gear-display-pod" class="gear-display-pod">
+            <span class="gear-label">GEAR</span>
+            <span id="gear-number" class="gear-number">1</span>
+          </div>
+          <div class="nitro-pill-tank">
+            <div class="nitro-pill-label">
+              <span>NOS</span>
+              <span id="nitro-percent-val">100%</span>
+            </div>
+            <div class="nitro-pill-track">
+              <div id="nitro-pill-fill" class="nitro-pill-fill"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Master Dual Dial Gauges (Tachometer & Speedometer) -->
+        <div class="master-dial-housing">
+          <canvas id="gauge-canvas" class="gauge-canvas"></canvas>
+          
+          <div class="dial-center-digital">
+            <span id="digital-speed-val" class="digital-speed-val">0</span>
+            <span id="digital-speed-unit" class="digital-speed-unit">KM/H</span>
+            <span id="digital-rpm-val" class="digital-rpm-val">900 RPM</span>
+          </div>
+
+          <div id="redline-flasher" class="redline-flasher">SHIFT UP</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ========================================================================
+       4. MOBILE VIRTUAL ON-SCREEN CONTROLS
+       ======================================================================== -->
+  <div id="mobile-touch-layer" class="mobile-touch-layer">
+    <div class="mobile-steering-zone">
+      <button id="btn-steer-left" class="mobile-steer-btn" aria-label="Steer Left">◀</button>
+      <button id="btn-steer-right" class="mobile-steer-btn" aria-label="Steer Right">▶</button>
+    </div>
+    <div class="mobile-pedals-zone">
+      <button id="btn-nitro" class="mobile-nitro-btn" aria-label="Nitro Boost">NOS</button>
+      <button id="btn-handbrake" class="mobile-ebrake-btn" aria-label="Handbrake Drift">
+        <span>E-BRAKE</span>
+      </button>
+      <div id="pedal-brake" class="mobile-pedal-brake" aria-label="Foot Brake">
+        <span>BRAKE</span>
+      </div>
+      <div id="pedal-gas" class="mobile-pedal-gas" aria-label="Gas Accelerator">
+        <div class="pedal-ribs"></div>
+        <span>GAS</span>
+      </div>
     </div>
   </div>
 
-  <!-- Heat Gauge -->
-  <div id="heat-container">
-    <div id="heat-title">POLICE HEAT LEVEL</div>
-    <div id="heat-stars">★☆☆☆☆</div>
-  </div>
+  <!-- ========================================================================
+       5. GARAGE & VEHICLE SELECTION MODAL
+       ======================================================================== -->
+  <div id="garage-modal">
+    <div class="garage-title">NEON VELOCITY</div>
+    <div class="garage-subtitle">SYNTHWAVE OUTRUN DRIFT & POLICE PURSUIT</div>
 
-  <!-- Nitro & Drift Meters -->
-  <div id="bottom-meters">
-    <div class="meter-wrap">
-      <div class="meter-fill" id="nitro-fill" style="width: 100%; background: linear-gradient(90deg, #ff007f, #00f5ff);"></div>
-      <div class="meter-label">NITRO (HOLD SPACE / TAP NITRO)</div>
-    </div>
-    <div class="meter-wrap" style="border-color:#ffd700; height: 16px;">
-      <div class="meter-fill" id="drift-fill" style="width: 0%; background: linear-gradient(90deg, #ffe600, #ff0044);"></div>
-      <div class="meter-label" style="font-size: 9px; color: #ffd700;" id="drift-label">DRIFT MULTIPLIER: x1.0</div>
-    </div>
-  </div>
-
-  <!-- Touch Controls -->
-  <div id="touch-controls">
-    <div style="display: flex; gap: 14px;">
-      <div class="touch-btn" id="btn-left">◀</div>
-      <div class="touch-btn" id="btn-right">▶</div>
-    </div>
-    <div style="display: flex; gap: 14px;">
-      <div class="touch-btn" id="btn-drift" style="border-color:#ffd700; background:rgba(255,215,0,0.25);">🛑</div>
-      <div class="touch-btn" id="btn-nitro" style="border-color:#00f5ff; background:rgba(0,245,255,0.25);">⚡</div>
-      <div class="touch-btn" id="btn-gas" style="border-color:#ff007f; background:rgba(255,0,128,0.25);">▲</div>
-    </div>
-  </div>
-
-  <!-- Main Start / Garage Selection Modal -->
-  <div id="menu-modal" class="game-modal-layer">
-    <div class="modal-title">NEON VELOCITY</div>
-    <div class="modal-subtitle">OutRun Pseudo-3D Highway Drift & Police Pursuit Engine</div>
-
-    <div class="car-cards-grid">
-      <!-- Car 1: Interceptor -->
+    <div class="car-cards-row">
+      <!-- Car 1: V-800 Interceptor -->
       <div class="car-card selected" data-car="interceptor">
-        <div class="car-name">🛡️ V-800 INTERCEPTOR</div>
-        <div class="car-tagline">Balanced Cyber-Enforcer • Ramming Master</div>
-        <div class="stat-row"><span>TOP SPEED</span><span>300 KM/H</span></div>
-        <div class="stat-bar"><div class="stat-fill" style="width: 78%; background:#00f5ff;"></div></div>
-        <div class="stat-row"><span>RAMMING MASS</span><span>1.4x (HIGH)</span></div>
-        <div class="stat-bar"><div class="stat-fill" style="width: 90%; background:#ffd700;"></div></div>
-        <div class="stat-row" style="color:#00f5ff;"><span>PERK: EMP Shockwave on Nitro</span></div>
+        <div class="car-name">V-800 INTERCEPTOR</div>
+        <div class="car-archetype">BALANCED PURSUIT ENFORCER</div>
+        <div class="car-stat-row"><span>TOP SPEED</span><span>310 KM/H</span></div>
+        <div class="car-stat-bar"><div class="car-stat-fill" style="width:78%;"></div></div>
+        <div class="car-stat-row"><span>RAMMING MASS</span><span>HEAVY (1380 KG)</span></div>
+        <div class="car-stat-bar"><div class="car-stat-fill" style="width:85%;"></div></div>
+        <div class="car-stat-row"><span>DRIFT MULTIPLIER</span><span>x2.0</span></div>
+        <div class="car-stat-bar"><div class="car-stat-fill" style="width:70%;"></div></div>
       </div>
 
-      <!-- Car 2: Shinobi GT -->
+      <!-- Car 2: Shinobi GT Drifter -->
       <div class="car-card" data-car="cyber_drifter">
-        <div class="car-name">🔥 SHINOBI GT DRIFTER</div>
-        <div class="car-tagline">High-Angle Slide Specialist • 3x Multiplier</div>
-        <div class="stat-row"><span>TOP SPEED</span><span>325 KM/H</span></div>
-        <div class="stat-bar"><div class="stat-fill" style="width: 86%; background:#ff007f;"></div></div>
-        <div class="stat-row"><span>DRIFT SCORE MULTIPLIER</span><span>3.0x</span></div>
-        <div class="stat-bar"><div class="stat-fill" style="width: 100%; background:#ff007f;"></div></div>
-        <div class="stat-row" style="color:#ff007f;"><span>PERK: Magenta Fire Exhaust Trails</span></div>
+        <div class="car-name">SHINOBI GT DRIFTER</div>
+        <div class="car-archetype">APEX SLIP-ANGLE DRIFT KING</div>
+        <div class="car-stat-row"><span>TOP SPEED</span><span>325 KM/H</span></div>
+        <div class="car-stat-bar"><div class="car-stat-fill" style="width:84%;"></div></div>
+        <div class="car-stat-row"><span>RAMMING MASS</span><span>LIGHT (980 KG)</span></div>
+        <div class="car-stat-bar"><div class="car-stat-fill" style="width:55%;"></div></div>
+        <div class="car-stat-row"><span>DRIFT MULTIPLIER</span><span>x3.5 BOOST</span></div>
+        <div class="car-stat-bar"><div class="car-stat-fill" style="width:96%;"></div></div>
       </div>
 
-      <!-- Car 3: Phantom -->
+      <!-- Car 3: Phantom Hyper-XR -->
       <div class="car-card" data-car="phantom">
-        <div class="car-name">⚡ PHANTOM HYPER-XR</div>
-        <div class="car-tagline">Experimental Aerotuner • Lightspeed Phase</div>
-        <div class="stat-row"><span>TOP SPEED</span><span>360 KM/H</span></div>
-        <div class="stat-bar"><div class="stat-fill" style="width: 100%; background:#9d00ff;"></div></div>
-        <div class="stat-row"><span>ACCELERATION</span><span>1.4x (INSANE)</span></div>
-        <div class="stat-bar"><div class="stat-fill" style="width: 95%; background:#9d00ff;"></div></div>
-        <div class="stat-row" style="color:#c084fc;"><span>PERK: Phase-Cloak Through Road Spikes</span></div>
+        <div class="car-name">PHANTOM HYPER-XR</div>
+        <div class="car-archetype">TWIN-TURBO V12 HIGHWAY MISSILE</div>
+        <div class="car-stat-row"><span>TOP SPEED</span><span>360 KM/H</span></div>
+        <div class="car-stat-bar"><div class="car-stat-fill" style="width:98%;"></div></div>
+        <div class="car-stat-row"><span>RAMMING MASS</span><span>MEDIUM (1100 KG)</span></div>
+        <div class="car-stat-bar"><div class="car-stat-fill" style="width:72%;"></div></div>
+        <div class="car-stat-row"><span>DRIFT MULTIPLIER</span><span>x2.5</span></div>
+        <div class="car-stat-bar"><div class="car-stat-fill" style="width:80%;"></div></div>
       </div>
     </div>
 
-    <div class="action-btn-row">
-      <button class="primary-btn" id="start-race-btn">IGNITE ENGINE</button>
+    <button id="start-race-btn" class="start-race-btn">IGNITE ENGINE & COMMENCE PURSUIT</button>
+
+    <div class="garage-records">
+      <div>🏆 BEST DRIFT SCORE: <span id="record-score-val" style="color:#00f5ff;font-weight:bold;">0 PTS</span></div>
+      <div>💰 CAREER BOUNTY: <span id="record-credits-val" style="color:#ffd700;font-weight:bold;">$0</span></div>
     </div>
   </div>
 
+  <!-- ========================================================================
+       LOAD ARCHITECTURE SPECIALIST MODULES (Agents 1, 3, 12, 20)
+       ======================================================================== -->
+  <script src="src/vehicle_physics.js"></script>
+  <script src="src/racer_ai.js"></script>
+  <script src="src/racer_audio.js"></script>
+  <script src="src/racer_hud.js"></script>
+
+  <!-- ========================================================================
+       CORE GAMEPLAY & PSEUDO-3D HIGHWAY ENGINE
+       ======================================================================== -->
   <script>
-    // =========================================================================
-    // 1. PROCEDURAL WEB AUDIO SYNTHESIZER (FM Bass, Drums, Doppler Sirens)
-    // =========================================================================
-    class SynthwaveAudioEngine {
-      constructor() {
-        this.ctx = null;
-        this.engineOsc = null;
-        this.engineGain = null;
-        this.sirenOsc = null;
-        this.sirenGain = null;
-        this.isMusicPlaying = false;
-        this.bassNotes = [55, 55, 65.41, 73.42, 82.41, 73.42, 65.41, 55];
-        this.step = 0;
+    (function () {
+      'use strict';
+
+      // ----------------------------------------------------------------------
+      // 1. ENGINE CONSTANTS & SETUP
+      // ----------------------------------------------------------------------
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      let W = 0, H = 0;
+
+      function resize() {
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight - 44;
       }
-      init() {
-        if (this.ctx) return;
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        this.ctx = new AudioCtx();
+      window.addEventListener('resize', resize);
+      resize();
 
-        // Engine rumble
-        this.engineOsc = this.ctx.createOscillator();
-        this.engineOsc.type = 'sawtooth';
-        this.engineGain = this.ctx.createGain();
-        this.engineGain.gain.setValueAtTime(0.045, this.ctx.currentTime);
+      const ROAD_WIDTH = 2200;
+      const SEGMENT_LEN = 200;
+      const TOTAL_SEGMENTS = 2500;
+      const CAMERA_DEPTH = 0.84;
+      const CAMERA_HEIGHT = 1050;
 
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(160, this.ctx.currentTime);
+      let segments = [];
+      let playerZ = 0;
+      let playerTrackX = 0; // -1.0 (left) to 1.0 (right)
+      let selectedCarModel = 'interceptor';
+      let physics = null;
+      let pursuitAI = null;
+      let isPlaying = false;
+      let score = 0;
+      let careerCredits = parseInt(localStorage.getItem('neon_velocity_credits') || '0', 10);
+      let bestScore = parseInt(localStorage.getItem('neon_velocity_best_score') || '0', 10);
+      let screenShake = 0;
+      let hitStopRemaining = 0;
+      let nitroAmount = 100; // 0 to 100
 
-        this.engineOsc.connect(filter);
-        filter.connect(this.engineGain);
-        this.engineGain.connect(this.ctx.destination);
-        this.engineOsc.start();
+      // Keyboard state
+      const keys = {
+        throttle: false,
+        brake: false,
+        steerLeft: false,
+        steerRight: false,
+        handbrake: false,
+        nitro: false
+      };
 
-        // Police Siren
-        this.sirenOsc = this.ctx.createOscillator();
-        this.sirenOsc.type = 'sine';
-        this.sirenGain = this.ctx.createGain();
-        this.sirenGain.gain.setValueAtTime(0.0001, this.ctx.currentTime);
-        this.sirenOsc.connect(this.sirenGain);
-        this.sirenGain.connect(this.ctx.destination);
-        this.sirenOsc.start();
+      window.addEventListener('keydown', e => {
+        if (e.code === 'KeyW' || e.code === 'ArrowUp') keys.throttle = true;
+        if (e.code === 'KeyS' || e.code === 'ArrowDown') keys.brake = true;
+        if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.steerLeft = true;
+        if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.steerRight = true;
+        if (e.code === 'Space') keys.handbrake = true;
+        if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') keys.nitro = true;
+      });
 
-        this.startSynthwaveBGM();
-      }
-      updateEngineRPM(speedRatio) {
-        if (!this.ctx || !this.engineOsc) return;
-        const freq = 55 + speedRatio * 115;
-        this.engineOsc.frequency.setTargetAtTime(freq, this.ctx.currentTime, 0.04);
-      }
-      updateSiren(heatLevel) {
-        if (!this.ctx || !this.sirenGain) return;
-        if (heatLevel >= 1) {
-          const time = this.ctx.currentTime;
-          const sirenFreq = (Math.floor(time * 2.8) % 2 === 0) ? 770 : 960;
-          this.sirenOsc.frequency.setTargetAtTime(sirenFreq, time, 0.08);
-          this.sirenGain.gain.setTargetAtTime(0.035 + heatLevel * 0.015, time, 0.1);
-        } else {
-          this.sirenGain.gain.setTargetAtTime(0.0001, this.ctx.currentTime, 0.2);
+      window.addEventListener('keyup', e => {
+        if (e.code === 'KeyW' || e.code === 'ArrowUp') keys.throttle = false;
+        if (e.code === 'KeyS' || e.code === 'ArrowDown') keys.brake = false;
+        if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.steerLeft = false;
+        if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.steerRight = false;
+        if (e.code === 'Space') keys.handbrake = false;
+        if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') keys.nitro = false;
+      });
+
+      // ----------------------------------------------------------------------
+      // 2. TRACK PROCEDURAL BUILDER (Hills, Curves, Colors)
+      // ----------------------------------------------------------------------
+      function buildTrack() {
+        segments = [];
+        for (let i = 0; i < TOTAL_SEGMENTS; i++) {
+          let curve = 0;
+          if (i > 100 && i < 350) curve = 2.4 * Math.sin((i - 100) / 40);
+          else if (i > 500 && i < 800) curve = -3.2 * Math.sin((i - 500) / 50);
+          else if (i > 1000 && i < 1400) curve = 3.6 * Math.sin((i - 1000) / 60);
+          else if (i > 1600 && i < 2000) curve = -2.8 * Math.sin((i - 1600) / 45);
+
+          const hillY = Math.sin(i / 35) * (i > 250 && i < 1100 ? 1400 : 280);
+
+          segments.push({
+            index: i,
+            p1: { world: { x: 0, y: hillY, z: i * SEGMENT_LEN }, camera: {}, screen: {} },
+            p2: { world: { x: 0, y: hillY, z: (i + 1) * SEGMENT_LEN }, camera: {}, screen: {} },
+            curve: curve,
+            color: Math.floor(i / 3) % 2 ?
+              { grass: '#060212', rumble: '#ff007f', road: '#140828', lane: '#00f5ff' } :
+              { grass: '#08031a', rumble: '#00f5ff', road: '#1c0c38', lane: '#1c0c38' }
+          });
         }
       }
-      playTakedownStinger() {
-        if (!this.ctx) return;
-        const time = this.ctx.currentTime;
-        // Deep sub boom
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(140, time);
-        osc.frequency.exponentialRampToValueAtTime(30, time + 0.45);
-        gain.gain.setValueAtTime(0.35, time);
-        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.5);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(time);
-        osc.stop(time + 0.52);
 
-        // Crash noise burst
-        const bufferSize = this.ctx.sampleRate * 0.35;
-        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = buffer;
-        const noiseFilter = this.ctx.createBiquadFilter();
-        noiseFilter.type = 'lowpass';
-        noiseFilter.frequency.setValueAtTime(450, time);
-        const noiseGain = this.ctx.createGain();
-        noiseGain.gain.setValueAtTime(0.25, time);
-        noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.35);
-        noise.connect(noiseFilter);
-        noiseFilter.connect(noiseGain);
-        noiseGain.connect(this.ctx.destination);
-        noise.start(time);
+      function projectPoint(p, camX, camY, camZ) {
+        p.camera.x = p.world.x - camX;
+        p.camera.y = p.world.y - camY;
+        p.camera.z = p.world.z - camZ;
+        const scale = CAMERA_DEPTH / Math.max(0.001, p.camera.z);
+        p.screen.scale = scale;
+        p.screen.x = Math.round((W / 2) + (scale * p.camera.x * W / 2));
+        p.screen.y = Math.round((H / 2) - (scale * p.camera.y * H / 2));
+        p.screen.w = Math.round(scale * ROAD_WIDTH * W / 2);
       }
-      startSynthwaveBGM() {
-        if (this.isMusicPlaying) return;
-        this.isMusicPlaying = true;
-        const tick = () => {
-          if (!this.isMusicPlaying) return;
-          const time = this.ctx.currentTime;
 
-          // Bass
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = 'sawtooth';
-          const freq = this.bassNotes[this.step % this.bassNotes.length];
-          this.step++;
-          osc.frequency.setValueAtTime(freq, time);
-
-          const filter = this.ctx.createBiquadFilter();
-          filter.type = 'lowpass';
-          filter.frequency.setValueAtTime(500, time);
-          filter.frequency.exponentialRampToValueAtTime(120, time + 0.16);
-
-          gain.gain.setValueAtTime(0.08, time);
-          gain.gain.exponentialRampToValueAtTime(0.001, time + 0.18);
-
-          osc.connect(filter);
-          filter.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start(time);
-          osc.stop(time + 0.2);
-
-          setTimeout(tick, 135);
-        };
-        tick();
+      function drawPoly(x1, y1, w1, x2, y2, w2, color) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(x1 - w1, y1);
+        ctx.lineTo(x2 - w2, y2);
+        ctx.lineTo(x2 + w2, y2);
+        ctx.lineTo(x1 + w1, y1);
+        ctx.closePath();
+        ctx.fill();
       }
-    }
 
-    // =========================================================================
-    // 2. PSEUDO-3D KINEMATICS, VEHICLE ROSTER & PURSUIT SWARM
-    // =========================================================================
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const audio = new SynthwaveAudioEngine();
+      // ----------------------------------------------------------------------
+      // 3. INITIALIZE GARAGE & PERSISTENCE
+      // ----------------------------------------------------------------------
+      document.getElementById('record-score-val').textContent = bestScore.toLocaleString() + ' PTS';
+      document.getElementById('record-credits-val').textContent = '$' + careerCredits.toLocaleString();
 
-    let width, height;
-    function resize() {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight - 44;
-    }
-    window.addEventListener('resize', resize);
-    resize();
+      const carCards = document.querySelectorAll('.car-card');
+      carCards.forEach(card => {
+        card.addEventListener('click', () => {
+          carCards.forEach(c => c.classList.remove('selected'));
+          card.classList.add('selected');
+          selectedCarModel = card.getAttribute('data-car');
+        });
+      });
 
-    // Vehicles
-    const VEHICLES = {
-      interceptor: { name: 'V-800 INTERCEPTOR', topSpeed: 12500, accel: 5200, driftMult: 1.5, mass: 1.4, color: '#00f5ff' },
-      cyber_drifter: { name: 'SHINOBI GT DRIFTER', topSpeed: 13500, accel: 5800, driftMult: 3.0, mass: 0.9, color: '#ff007f' },
-      phantom: { name: 'PHANTOM HYPER-XR', topSpeed: 15200, accel: 6500, driftMult: 2.0, mass: 1.1, color: '#9d00ff' }
-    };
-    let activeCar = VEHICLES.interceptor;
-
-    // Road Constants
-    const ROAD_WIDTH = 2200;
-    const SEGMENT_LEN = 200;
-    const TOTAL_SEGMENTS = 2000;
-    const CAMERA_DEPTH = 0.84;
-    const CAMERA_HEIGHT = 1050;
-
-    let segments = [];
-    let traffic = [];
-    let policeCruisers = [];
-    let roadSpikes = [];
-    let floatTexts = [];
-    let particles = [];
-
-    let playerX = 0;
-    let position = 0;
-    let speed = 0;
-    let nitro = 100;
-    let score = 0;
-    let timeLeft = 60.0;
-    let heatLevel = 1;
-    let heatProgress = 0;
-    let isDrifting = false;
-    let driftAngle = 0;
-    let driftDuration = 0;
-    let screenShake = 0;
-    let hitStopTimer = 0;
-    let gameState = 'ready';
-
-    // Controls
-    const keys = { left: false, right: false, up: false, down: false, nitro: false };
-    window.addEventListener('keydown', e => {
-      if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
-      if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
-      if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.up = true;
-      if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = true;
-      if (e.code === 'Space') keys.nitro = true;
-    });
-    window.addEventListener('keyup', e => {
-      if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
-      if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
-      if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.up = false;
-      if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = false;
-      if (e.code === 'Space') keys.nitro = false;
-    });
-
-    // Touch
-    const bindTouch = (id, keyName) => {
-      const el = document.getElementById(id);
-      el.addEventListener('touchstart', e => { e.preventDefault(); keys[keyName] = true; });
-      el.addEventListener('touchend', e => { e.preventDefault(); keys[keyName] = false; });
-    };
-    bindTouch('btn-left', 'left');
-    bindTouch('btn-right', 'right');
-    bindTouch('btn-gas', 'up');
-    bindTouch('btn-drift', 'down');
-    bindTouch('btn-nitro', 'nitro');
-
-    // Build Track with Multi-Curves and Crests
-    function buildTrack() {
-      segments = [];
-      for (let i = 0; i < TOTAL_SEGMENTS; i++) {
-        const curve = (i > 150 && i < 450) ? Math.sin(i / 25) * 3.5 : (i > 700 && i < 1100) ? -2.8 : (i > 1300 && i < 1650) ? 3.0 : 0;
-        const y = Math.sin(i / 30) * (i > 300 && i < 900 ? 1600 : 350);
-        segments.push({
-          index: i,
-          p1: { world: { x: 0, y: y, z: i * SEGMENT_LEN }, camera: {}, screen: {} },
-          p2: { world: { x: 0, y: y, z: (i + 1) * SEGMENT_LEN }, camera: {}, screen: {} },
-          curve: curve,
-          color: Math.floor(i / 3) % 2 ?
-            { grass: '#060212', rumble: '#ff007f', road: '#140828', lane: '#00f5ff' } :
-            { grass: '#08031a', rumble: '#00f5ff', road: '#1c0c38', lane: '#1c0c38' }
+      // Audio Toggle Button
+      const audioToggle = document.getElementById('btn-audio-toggle');
+      if (audioToggle) {
+        audioToggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (window.RacerAudio) {
+            const isMuted = window.RacerAudio.toggleMute();
+            audioToggle.textContent = isMuted ? '🔇 MUTED' : '🔊 AUDIO';
+            audioToggle.style.color = isMuted ? '#ff1e27' : '#00f5ff';
+            audioToggle.style.borderColor = isMuted ? '#ff1e27' : '#00f5ff';
+          }
         });
       }
 
-      // Populate civilian traffic
-      traffic = [];
-      for (let i = 0; i < 50; i++) {
-        traffic.push({
-          z: (i * 38 + 60) * SEGMENT_LEN,
-          offset: (Math.random() * 1.6 - 0.8),
-          speed: 4200 + Math.random() * 3200,
-          color: ['#00f5ff', '#ffd700', '#00f5a0', '#ff007f'][i % 4],
-          nearMissed: false
+      // ----------------------------------------------------------------------
+      // 4. START GAME & SPECIALIST INITIALIZATION
+      // ----------------------------------------------------------------------
+      document.getElementById('start-race-btn').addEventListener('click', () => {
+        document.getElementById('garage-modal').classList.add('hidden');
+        startGame();
+      });
+
+      function startGame() {
+        buildTrack();
+
+        // 1. Initialize Vehicle Physics (Agent 20)
+        physics = window.NeonVehiclePhysics.createVehicle(selectedCarModel);
+        playerZ = 0;
+        playerTrackX = 0;
+        nitroAmount = 100;
+        score = 0;
+
+        // 2. Initialize Pursuit AI Director (Agent 1)
+        pursuitAI = new window.NeonPursuitAI({
+          trackLength: TOTAL_SEGMENTS * SEGMENT_LEN,
+          roadWidth: ROAD_WIDTH,
+          onTakedown: (event) => {
+            hitStopRemaining = 0.080; // 80ms Burnout hit-stop
+            screenShake = 24;
+            nitroAmount = 100; // 100% Nitro refill reward
+            careerCredits += event.bounty || 1500;
+            localStorage.setItem('neon_velocity_credits', careerCredits);
+            if (window.NeonHUD) {
+              window.NeonHUD.triggerTakedownBanner(
+                (event.unit ? event.unit.name.toUpperCase() : 'CRUISER') + ' DESTROYED!',
+                `+$${event.bounty || 1500} BOUNTY & NITRO OVERLOAD`
+              );
+            }
+            if (window.RacerAudio) {
+              window.RacerAudio.playTakedown();
+            }
+          },
+          onSpikeBlowout: () => {
+            screenShake = 20;
+            if (window.NeonHUD) {
+              window.NeonHUD.triggerTakedownBanner('⚠️ TIRE BLOWOUT!', 'SPEED CAPPED AT 75 KM/H (4.5s)');
+            }
+            if (window.RacerAudio) {
+              window.RacerAudio.playSpikeBlowout();
+            }
+          },
+          onSpikeEvasion: () => {
+            careerCredits += 500;
+            score += 1200;
+            if (window.NeonHUD) {
+              window.NeonHUD.triggerTakedownBanner('SPIKE EVADED!', '+$500 APEX BONUS');
+            }
+          },
+          onHeatChange: (event) => {
+            if (window.RacerAudio) {
+              window.RacerAudio.playHeatAlarm(event.heatLevel);
+            }
+          },
+          onScreenShake: (amount) => {
+            screenShake = Math.max(screenShake, amount);
+          }
         });
-      }
 
-      // Police pursuit fleet
-      policeCruisers = [
-        { z: position - 500, offset: 0, speed: 11000, active: true, state: 'chasing' },
-        { z: position - 900, offset: 0.6, speed: 12200, active: true, state: 'flanking' }
-      ];
-
-      // Spike strips
-      roadSpikes = [
-        { z: 1200 * SEGMENT_LEN, offset: -0.4, width: 0.5 },
-        { z: 1550 * SEGMENT_LEN, offset: 0.3, width: 0.6 }
-      ];
-    }
-
-    function projectPoint(p, camX, camY, camZ) {
-      p.camera.x = p.world.x - camX;
-      p.camera.y = p.world.y - camY;
-      p.camera.z = p.world.z - camZ;
-      const scale = CAMERA_DEPTH / Math.max(0.001, p.camera.z);
-      p.screen.scale = scale;
-      p.screen.x = Math.round((width / 2) + (scale * p.camera.x * width / 2));
-      p.screen.y = Math.round((height / 2) - (scale * p.camera.y * height / 2));
-      p.screen.w = Math.round(scale * ROAD_WIDTH * width / 2);
-    }
-
-    // =========================================================================
-    // 3. MAIN GAME LOOP, POLICE TAKEDOWNS & DRIFT STATE MACHINE
-    // =========================================================================
-    let lastNow = performance.now();
-    function loop(now) {
-      const dt = Math.min(0.05, (now - lastNow) / 1000);
-      lastNow = now;
-
-      if (hitStopTimer > 0) {
-        hitStopTimer -= dt;
-      } else if (gameState === 'playing') {
-        update(dt);
-      }
-      render();
-
-      requestAnimationFrame(loop);
-    }
-
-    function update(dt) {
-      timeLeft -= dt;
-      if (timeLeft <= 0) {
-        timeLeft = 0;
-        gameOver();
-      }
-
-      // Nitro & Max Speed
-      let maxSpd = activeCar.topSpeed;
-      if (keys.nitro && nitro > 0) {
-        maxSpd *= 1.38;
-        speed += activeCar.accel * 1.6 * dt;
-        nitro = Math.max(0, nitro - 26 * dt);
-      } else {
-        nitro = Math.min(100, nitro + 10 * dt);
-      }
-
-      // Acceleration & Braking
-      if (keys.up) {
-        speed = Math.min(maxSpd, speed + activeCar.accel * dt);
-      } else if (keys.down) {
-        speed = Math.max(0, speed - activeCar.accel * 2.5 * dt);
-      } else {
-        speed = Math.max(0, speed - activeCar.accel * 0.5 * dt);
-      }
-
-      const speedRatio = speed / activeCar.topSpeed;
-
-      // Drift State Machine
-      if (keys.down && (keys.left || keys.right) && speedRatio > 0.45) {
-        if (!isDrifting) {
-          isDrifting = true;
-          driftDuration = 0;
+        // 3. Initialize Cockpit HUD (Agent 3)
+        if (window.NeonHUD) {
+          window.NeonHUD.init({ externalControl: true });
+          window.NeonHUD.triggerTakedownBanner('PURSUIT RADAR ENGAGED', 'MAINTAIN 200+ KM/H TO ESCAPE HEAT');
         }
-        driftDuration += dt;
-        driftAngle = (keys.left ? -1 : 1) * 0.42;
-        score += Math.floor(speedRatio * 80 * activeCar.driftMult);
 
-        // Spawn drift tire smoke
-        particles.push({
-          x: width / 2 + (keys.left ? 40 : -40),
-          y: height - 60,
-          vx: (Math.random() - 0.5) * 80,
-          vy: -60 - Math.random() * 40,
-          color: activeCar.color,
-          life: 0.4
-        });
-      } else {
-        if (isDrifting && driftDuration > 1.2) {
-          // Clean Exit Mini-Turbo Burst!
-          speed = Math.min(maxSpd * 1.2, speed + 3500);
-          floatTexts.push({ text: '⚡ MINI-TURBO!', x: width / 2, y: height / 2 - 40, color: '#00f5ff', life: 1.2 });
+        // 4. Initialize Procedural Web Audio Engine (Agent 12)
+        if (window.RacerAudio) {
+          window.RacerAudio.init();
+          window.RacerAudio.startEngine();
+          window.RacerAudio.startMusic();
+          window.RacerAudio.playCountdown('go');
         }
-        isDrifting = false;
-        driftAngle = 0;
-        driftDuration = 0;
+
+        isPlaying = true;
       }
 
-      // Steering
-      if (keys.left) playerX -= 1.45 * (isDrifting ? 1.8 : 1.0) * speedRatio * dt;
-      if (keys.right) playerX += 1.45 * (isDrifting ? 1.8 : 1.0) * speedRatio * dt;
+      // ----------------------------------------------------------------------
+      // 5. MASTER GAME LOOP (60-120 FPS)
+      // ----------------------------------------------------------------------
+      let lastTime = performance.now();
 
-      // Centrifugal Road Pull
-      const currentSegment = segments[Math.floor(position / SEGMENT_LEN) % TOTAL_SEGMENTS];
-      playerX -= (currentSegment.curve * 0.024) * (speedRatio ** 2);
+      function gameLoop(now) {
+        const dt = Math.min(0.05, (now - lastTime) / 1000);
+        lastTime = now;
 
-      // Off-road penalty
-      if (Math.abs(playerX) > 1.08) {
-        speed = Math.max(0, speed - activeCar.accel * 2.0 * dt);
-        screenShake = 6;
-      }
-
-      position += speed * dt;
-      score += Math.floor(speed * dt * 0.08);
-
-      // Police Heat Level Progression
-      heatProgress += dt * 0.08;
-      if (heatProgress > 1.0 && heatLevel < 5) {
-        heatProgress = 0;
-        heatLevel++;
-        floatTexts.push({ text: `🚨 HEAT LEVEL ${heatLevel} REACHED!`, x: width / 2, y: height / 3, color: '#ff0044', life: 2.0 });
-      }
-      audio.updateEngineRPM(speedRatio);
-      audio.updateSiren(heatLevel);
-
-      // Police Cruisers Pursuit AI & Takedowns
-      policeCruisers.forEach(cop => {
-        if (!cop.active) return;
-        // Follow or flank
-        if (cop.z < position - 200) cop.z += 12800 * dt;
-        else if (cop.z > position + 200) cop.z += 9000 * dt;
-        else cop.z += speed * dt;
-
-        cop.offset += (playerX - cop.offset) * 1.5 * dt;
-
-        // Collision Check
-        const distZ = Math.abs(position - cop.z);
-        if (distZ < 180 && Math.abs(playerX - cop.offset) < 0.32) {
-          if (keys.nitro || isDrifting || speedRatio > 0.85) {
-            // BURNOUT TAKEDOWN!
-            cop.active = false;
-            hitStopTimer = 0.12;
-            screenShake = 22;
-            score += 2500;
-            nitro = Math.min(100, nitro + 50);
-            audio.playTakedownStinger();
-            floatTexts.push({ text: '💥 CRUISER TAKEDOWN! +2500 PTS', x: width / 2, y: height / 2 - 80, color: '#ffd700', life: 1.8 });
-
-            // Respawn cruiser ahead as road blocker
-            setTimeout(() => {
-              cop.z = position + 3500;
-              cop.active = true;
-            }, 5000);
+        if (isPlaying) {
+          if (hitStopRemaining > 0) {
+            hitStopRemaining -= dt;
+            // Screen shake continues vibrating even during hit-stop freeze!
+            if (screenShake > 0) screenShake = Math.max(0, screenShake - 40 * dt);
           } else {
-            // Player rammed by cop!
-            speed *= 0.5;
-            screenShake = 14;
-            floatTexts.push({ text: '⚠️ RAMMED BY ENFORCER!', x: width / 2, y: height / 2, color: '#ff0044', life: 1.0 });
+            updateGame(dt);
           }
         }
-      });
 
-      // Civilian Traffic & Near Misses
-      traffic.forEach(car => {
-        car.z += car.speed * dt;
-        if (car.z > TOTAL_SEGMENTS * SEGMENT_LEN) car.z -= TOTAL_SEGMENTS * SEGMENT_LEN;
+        renderGame();
+        requestAnimationFrame(gameLoop);
+      }
 
-        const distZ = Math.abs(position - car.z);
-        if (distZ < 220) {
-          const distX = Math.abs(playerX - car.offset);
-          if (distX < 0.28) {
-            speed *= 0.45;
-            screenShake = 12;
-          } else if (distX < 0.65 && !car.nearMissed) {
-            car.nearMissed = true;
-            score += 600;
-            nitro = Math.min(100, nitro + 20);
-            floatTexts.push({ text: '+600 NEAR MISS!', x: width / 2, y: height / 2 - 40, color: '#00f5ff', life: 1.2 });
+      // ----------------------------------------------------------------------
+      // 6. GAMEPLAY TELEMETRY & PHYSICS UPDATE
+      // ----------------------------------------------------------------------
+      function updateGame(dt) {
+        // Collect inputs from keyboard & virtual mobile layer
+        const mobileIn = window.NeonHUD && window.NeonHUD.getMobileInputs ? window.NeonHUD.getMobileInputs() : {};
+        
+        let throttle = keys.throttle ? 1.0 : (mobileIn.throttle || 0);
+        let brake = keys.brake ? 1.0 : (mobileIn.brake || 0);
+        let steer = 0;
+        if (keys.steerLeft) steer -= 1.0;
+        if (keys.steerRight) steer += 1.0;
+        if (mobileIn.steer) steer += mobileIn.steer;
+        steer = Math.max(-1.0, Math.min(1.0, steer));
+
+        let handbrake = keys.handbrake || mobileIn.handbrake;
+        let nitroWanted = (keys.nitro || mobileIn.nitro) && nitroAmount > 0;
+
+        // Nitro usage & refill
+        if (nitroWanted) {
+          nitroAmount = Math.max(0, nitroAmount - 22 * dt);
+        } else if (physics && physics.isDrifting) {
+          nitroAmount = Math.min(100, nitroAmount + 14 * dt); // Drift fills nitro
+        }
+
+        // Get current road curve & segment
+        const currentSegIdx = Math.floor(playerZ / SEGMENT_LEN) % TOTAL_SEGMENTS;
+        const currentSeg = segments[currentSegIdx] || segments[0];
+        const roadCurve = currentSeg.curve || 0;
+
+        // Update Vehicle Physics
+        physics.update(dt, {
+          throttle: throttle,
+          brake: brake,
+          steer: steer,
+          handbrake: handbrake,
+          nitro: nitroWanted
+        }, {
+          roadCurve: roadCurve,
+          roadFriction: 1.0
+        });
+
+        // Advance player along track
+        const speedMs = physics.velocityLong;
+        playerZ += speedMs * dt * 18.0;
+        if (playerZ >= TOTAL_SEGMENTS * SEGMENT_LEN) playerZ -= TOTAL_SEGMENTS * SEGMENT_LEN;
+
+        // Advance lateral position
+        playerTrackX += (physics.velocityLat * 0.0028) + (steer * (physics.speedKmh / 360) * 1.6 * dt);
+        // Road centrifugal force
+        playerTrackX -= roadCurve * (physics.speedKmh / 280) * 0.0016 * dt * 60;
+        playerTrackX = Math.max(-1.4, Math.min(1.4, playerTrackX));
+
+        // Off-road slowdown penalty
+        if (Math.abs(playerTrackX) > 1.05) {
+          physics.velocityLong = Math.max(20, physics.velocityLong - 18 * dt);
+        }
+
+        // Update Pursuit AI Director
+        const playerAIState = {
+          x: playerTrackX * (ROAD_WIDTH / 2),
+          z: playerZ,
+          y: currentSeg.p1.world.y,
+          speed: physics.speedKmh,
+          isDrifting: physics.isDrifting,
+          driftAngle: physics.overallSlipAngle * (180 / Math.PI),
+          isNitro: nitroWanted,
+          isInvulnerable: hitStopRemaining > 0
+        };
+
+        const aiStatus = pursuitAI.update(dt, playerAIState);
+
+        // Apply blowout cap if active
+        if (aiStatus.blowoutActive && physics.speedKmh > aiStatus.blowoutSpeedCap) {
+          physics.velocityLong = Math.max(10, (aiStatus.blowoutSpeedCap / 3.6));
+        }
+
+        // Drift scoring
+        if (physics.isDrifting) {
+          const mult = selectedCarModel === 'cyber_drifter' ? 3.5 : 2.0;
+          const pts = Math.round(Math.abs(physics.overallSlipAngle) * 45 * mult * dt * 60);
+          score += pts;
+          if (score > bestScore) {
+            bestScore = score;
+            localStorage.setItem('neon_velocity_best_score', bestScore);
           }
         }
-        if (distZ > 500) car.nearMissed = false;
-      });
 
-      // Spike Strips
-      roadSpikes.forEach(sp => {
-        if (Math.abs(position - sp.z) < 120 && Math.abs(playerX - sp.offset) < sp.width) {
-          speed = Math.max(0, speed * 0.3);
-          screenShake = 18;
-          floatTexts.push({ text: '💥 SPIKE STRIP HIT! -70% SPEED', x: width / 2, y: height / 2, color: '#ff0044', life: 1.4 });
+        // Screen shake decay
+        if (screenShake > 0) screenShake = Math.max(0, screenShake - 35 * dt);
+
+        // Synchronize Procedural Web Audio Engine
+        if (window.RacerAudio && window.RacerAudio.isInitialized) {
+          const telemetry = physics.getTelemetry();
+          
+          // Gear shift audio
+          if (window._prevGear !== undefined && telemetry.gear !== window._prevGear) {
+            window.RacerAudio.playGearShift('up', telemetry.gear);
+          }
+          window._prevGear = telemetry.gear;
+
+          // Backfire pop audio
+          if (telemetry.backfireActive && Math.random() < 0.28) {
+            window.RacerAudio.playBackfire(0.85);
+          }
+
+          // Gather active police cars for 3D Doppler synthesis
+          const copsForAudio = [];
+          if (pursuitAI && pursuitAI.policeUnits) {
+            pursuitAI.policeUnits.forEach(u => {
+              if (u.isWrecked) return;
+              const dist = (u.z - playerZ) / 18.0;
+              if (Math.abs(dist) < 180) {
+                copsForAudio.push({
+                  id: u.id,
+                  distance: Math.abs(dist),
+                  relSpeed: (u.speed - physics.speedKmh) / 3.6,
+                  side: u.x / (ROAD_WIDTH / 2),
+                  mode: pursuitAI.heatLevel >= 3 ? 'yelp' : 'wail'
+                });
+              }
+            });
+          }
+
+          window.RacerAudio.update(dt, {
+            car: {
+              rpm: telemetry.rpm,
+              throttle: throttle,
+              gear: telemetry.gear,
+              speed: telemetry.speedKmh,
+              slipAngle: Math.abs(telemetry.driftAngleDeg) / 50,
+              isNitro: nitroWanted
+            },
+            policeCars: copsForAudio
+          });
         }
-      });
 
-      // Checkpoints
-      if (Math.floor(position / (SEGMENT_LEN * 380)) !== Math.floor((position - speed * dt) / (SEGMENT_LEN * 380))) {
-        timeLeft += 28.0;
-        floatTexts.push({ text: '🏁 CHECKPOINT! +28s', x: width / 2, y: height / 3, color: '#ffd700', life: 1.6 });
-      }
+        // Synchronize Cockpit HUD
+        if (window.NeonHUD) {
+          const tel = physics.getTelemetry();
+          const rearviewCops = [];
+          const radarCops = [];
 
-      // Screen Shake Decay
-      if (screenShake > 0) screenShake = Math.max(0, screenShake - 35 * dt);
+          if (pursuitAI && pursuitAI.policeUnits) {
+            pursuitAI.policeUnits.forEach(u => {
+              if (u.isWrecked) return;
+              const relZ = u.z - playerZ;
+              // Rearview mirror (behind player)
+              if (relZ < 0 && relZ > -3200) {
+                rearviewCops.push({
+                  dist: Math.abs(relZ / 18.0),
+                  lane: u.x / (ROAD_WIDTH / 2),
+                  flashing: true
+                });
+              }
+              // Radar map
+              radarCops.push({
+                dist: relZ / 18.0,
+                lane: u.x / (ROAD_WIDTH / 2)
+              });
+            });
+          }
 
-      // HUD updates
-      document.getElementById('speed-val').innerHTML = `${Math.floor(speedRatio * 280)} <span style="font-size:12px;color:#00f5ff;">KM/H</span>`;
-      document.getElementById('time-val').innerText = timeLeft.toFixed(1);
-      document.getElementById('score-val').innerText = String(score).padStart(5, '0');
-      document.getElementById('nitro-fill').style.width = `${nitro}%`;
-
-      const stars = '★'.repeat(heatLevel) + '☆'.repeat(5 - heatLevel);
-      document.getElementById('heat-stars').innerText = stars;
-
-      const driftMult = isDrifting ? (1.0 + driftDuration * 1.2).toFixed(1) : '1.0';
-      document.getElementById('drift-fill').style.width = `${Math.min(100, driftDuration * 45)}%`;
-      document.getElementById('drift-label').innerText = `DRIFT MULTIPLIER: x${driftMult}`;
-    }
-
-    // =========================================================================
-    // 4. RENDERING PIPELINE: HORIZON, ROAD SCANLINES, SPRITES & JUICE
-    // =========================================================================
-    function render() {
-      ctx.save();
-      // Apply screen shake
-      if (screenShake > 0) {
-        const sx = (Math.random() - 0.5) * screenShake;
-        const sy = (Math.random() - 0.5) * screenShake;
-        ctx.translate(sx, sy);
-      }
-
-      ctx.clearRect(0, 0, width, height);
-
-      // Sky Gradient
-      const skyGrad = ctx.createLinearGradient(0, 0, 0, height / 2);
-      skyGrad.addColorStop(0, '#060212');
-      skyGrad.addColorStop(0.65, '#2c043e');
-      skyGrad.addColorStop(1, '#ff007f');
-      ctx.fillStyle = skyGrad;
-      ctx.fillRect(0, 0, width, height / 2);
-
-      // Retrowave Setting Sun
-      const sunY = height / 2 - 15;
-      const sunR = Math.min(width, height) * 0.17;
-      const sunGrad = ctx.createLinearGradient(width / 2, sunY - sunR, width / 2, sunY + sunR);
-      sunGrad.addColorStop(0, '#ffe600');
-      sunGrad.addColorStop(0.5, '#ff007f');
-      sunGrad.addColorStop(1, '#7928ca');
-      ctx.fillStyle = sunGrad;
-      ctx.beginPath();
-      ctx.arc(width / 2, sunY, sunR, 0, Math.PI, true);
-      ctx.fill();
-
-      // Sun Slits
-      ctx.fillStyle = '#060212';
-      for (let s = 0; s < 7; s++) {
-        const sy = sunY - sunR * 0.4 + s * (sunR * 0.13);
-        ctx.fillRect(width / 2 - sunR, sy, sunR * 2, 3 + s * 1.4);
-      }
-
-      // Render Road
-      const baseIdx = Math.floor(position / SEGMENT_LEN);
-      let maxY = height;
-      let curveSum = 0;
-
-      for (let n = 0; n < 260; n++) {
-        const seg = segments[(baseIdx + n) % TOTAL_SEGMENTS];
-        const loop = Math.floor((baseIdx + n) / TOTAL_SEGMENTS);
-
-        const camX = playerX * ROAD_WIDTH;
-        const camY = CAMERA_HEIGHT;
-        const camZ = position - (loop * TOTAL_SEGMENTS * SEGMENT_LEN);
-
-        projectPoint(seg.p1, camX - curveSum, camY, camZ);
-        projectPoint(seg.p2, camX - curveSum - seg.curve, camY, camZ);
-
-        curveSum += seg.curve;
-
-        if (seg.p1.camera.z <= CAMERA_DEPTH || seg.p2.screen.y >= maxY) continue;
-
-        // Draw Grass
-        ctx.fillStyle = seg.color.grass;
-        ctx.fillRect(0, seg.p2.screen.y, width, seg.p1.screen.y - seg.p2.screen.y);
-
-        // Rumble Strips
-        drawPoly(
-          seg.p1.screen.x, seg.p1.screen.y, seg.p1.screen.w * 1.22,
-          seg.p2.screen.x, seg.p2.screen.y, seg.p2.screen.w * 1.22,
-          seg.color.rumble
-        );
-        // Tarmac
-        drawPoly(
-          seg.p1.screen.x, seg.p1.screen.y, seg.p1.screen.w,
-          seg.p2.screen.x, seg.p2.screen.y, seg.p2.screen.w,
-          seg.color.road
-        );
-        // Dividing Lane
-        drawPoly(
-          seg.p1.screen.x, seg.p1.screen.y, seg.p1.screen.w * 0.035,
-          seg.p2.screen.x, seg.p2.screen.y, seg.p2.screen.w * 0.035,
-          seg.color.lane
-        );
-
-        maxY = seg.p2.screen.y;
-      }
-
-      // Render Traffic
-      traffic.forEach(car => {
-        const distZ = car.z - position;
-        if (distZ > 0 && distZ < 260 * SEGMENT_LEN) {
-          const seg = segments[Math.floor(car.z / SEGMENT_LEN) % TOTAL_SEGMENTS];
-          const scale = CAMERA_DEPTH / distZ;
-          const sx = (width / 2) + (scale * (car.offset * ROAD_WIDTH - playerX * ROAD_WIDTH) * width / 2);
-          const sy = (height / 2) - (scale * (seg.p1.world.y - CAMERA_HEIGHT) * height / 2);
-          const cw = scale * 480 * (width / 2);
-          if (sy > 0 && sy < height) drawVectorCar(sx, sy, cw, cw * 0.52, car.color, false, 0);
+          window.NeonHUD.update({
+            speed: tel.speedKmh,
+            rpm: tel.rpm,
+            gear: tel.gear,
+            nitro: nitroAmount / 100,
+            heatLevel: pursuitAI.heatLevel,
+            heatPercent: Math.round(pursuitAI.heatProgress * 100),
+            isDrifting: tel.isDrifting,
+            driftAngle: tel.driftAngleDeg,
+            driftScore: score,
+            driftMult: tel.isDrifting ? (selectedCarModel === 'cyber_drifter' ? 3.5 : 2.0) : 1.0,
+            credits: careerCredits,
+            rearview: { cops: rearviewCops },
+            radar: {
+              roadblocks: (pursuitAI.roadblocks || []).map(rb => ({ dist: (rb.z - playerZ) / 18.0, lane: 0 })),
+              copsAhead: radarCops
+            }
+          });
         }
-      });
+      }
 
-      // Render Police Cruisers
-      policeCruisers.forEach(cop => {
-        if (!cop.active) return;
-        const distZ = cop.z - position;
-        if (distZ > -400 && distZ < 260 * SEGMENT_LEN) {
-          const seg = segments[Math.max(0, Math.floor(cop.z / SEGMENT_LEN)) % TOTAL_SEGMENTS];
-          const scale = CAMERA_DEPTH / Math.max(50, Math.abs(distZ));
-          const sx = (width / 2) + (scale * (cop.offset * ROAD_WIDTH - playerX * ROAD_WIDTH) * width / 2);
-          const sy = (height / 2) - (scale * (seg.p1.world.y - CAMERA_HEIGHT) * height / 2);
-          const cw = scale * 520 * (width / 2);
-          if (sy > 0 && sy < height) drawPoliceCruiser(sx, sy, cw, cw * 0.55);
-        }
-      });
-
-      // Render Player Car with Drift Angle
-      const pcW = width * 0.17;
-      const pcH = pcW * 0.52;
-      drawVectorCar(width / 2, height - pcH - 12, pcW, pcH, activeCar.color, true, driftAngle);
-
-      // Render Particles
-      particles = particles.filter(p => {
-        p.x += p.vx * 0.016;
-        p.y += p.vy * 0.016;
-        p.life -= 0.025;
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, Math.max(1, p.life * 8), 0, Math.PI * 2);
-        ctx.fill();
-        return p.life > 0;
-      });
-
-      // Render Floating Notifications
-      floatTexts = floatTexts.filter(ft => {
-        ft.life -= 0.02;
-        ft.y -= 1.2;
+      // ----------------------------------------------------------------------
+      // 7. RENDERING PIPELINE (OutRun 3D Road, Vectors, FX)
+      // ----------------------------------------------------------------------
+      function renderGame() {
         ctx.save();
-        ctx.fillStyle = ft.color;
-        ctx.font = '900 24px Orbitron';
-        ctx.textAlign = 'center';
-        ctx.shadowColor = ft.color;
-        ctx.shadowBlur = 18;
-        ctx.fillText(ft.text, ft.x, ft.y);
+        if (screenShake > 0) {
+          const sx = (Math.random() - 0.5) * screenShake;
+          const sy = (Math.random() - 0.5) * screenShake;
+          ctx.translate(sx, sy);
+        }
+
+        ctx.clearRect(0, 0, W, H);
+
+        // 1. Synthwave Horizon & Sun
+        drawSynthwaveSky();
+
+        // 2. Scanline Pseudo-3D Road
+        const baseIdx = Math.floor(playerZ / SEGMENT_LEN);
+        let maxY = H;
+        let curveSum = 0;
+
+        for (let n = 0; n < 240; n++) {
+          const seg = segments[(baseIdx + n) % TOTAL_SEGMENTS];
+          const loop = Math.floor((baseIdx + n) / TOTAL_SEGMENTS);
+
+          const camX = playerTrackX * ROAD_WIDTH;
+          const camY = CAMERA_HEIGHT;
+          const camZ = playerZ - (loop * TOTAL_SEGMENTS * SEGMENT_LEN);
+
+          projectPoint(seg.p1, camX - curveSum, camY, camZ);
+          projectPoint(seg.p2, camX - curveSum - seg.curve, camY, camZ);
+
+          curveSum += seg.curve;
+
+          if (seg.p1.camera.z <= CAMERA_DEPTH || seg.p2.screen.y >= maxY) continue;
+
+          // Void Grass
+          ctx.fillStyle = seg.color.grass;
+          ctx.fillRect(0, seg.p2.screen.y, W, seg.p1.screen.y - seg.p2.screen.y);
+
+          // Rumble Strip
+          drawPoly(
+            seg.p1.screen.x, seg.p1.screen.y, seg.p1.screen.w * 1.2,
+            seg.p2.screen.x, seg.p2.screen.y, seg.p2.screen.w * 1.2,
+            seg.color.rumble
+          );
+          // Tarmac
+          drawPoly(
+            seg.p1.screen.x, seg.p1.screen.y, seg.p1.screen.w,
+            seg.p2.screen.x, seg.p2.screen.y, seg.p2.screen.w,
+            seg.color.road
+          );
+          // Dividing Lane
+          drawPoly(
+            seg.p1.screen.x, seg.p1.screen.y, seg.p1.screen.w * 0.035,
+            seg.p2.screen.x, seg.p2.screen.y, seg.p2.screen.w * 0.035,
+            seg.color.lane
+          );
+
+          maxY = seg.p2.screen.y;
+        }
+
+        // 3. Render Roadblocks & Spike Strips
+        if (pursuitAI) {
+          (pursuitAI.roadblocks || []).forEach(rb => {
+            const relZ = rb.z - playerZ;
+            if (relZ > 0 && relZ < 240 * SEGMENT_LEN) {
+              const scale = CAMERA_DEPTH / relZ;
+              const sx = (W / 2) + (scale * (rb.x - playerTrackX * (ROAD_WIDTH / 2)) * W / 2);
+              const sy = (H / 2) + scale * 300 * (H / 2);
+              const bw = scale * 1200 * (W / 2);
+              drawRoadblockBarricade(sx, sy, bw);
+            }
+          });
+
+          (pursuitAI.spikeStrips || []).forEach(sp => {
+            const relZ = sp.z - playerZ;
+            if (relZ > 0 && relZ < 240 * SEGMENT_LEN) {
+              const scale = CAMERA_DEPTH / relZ;
+              const sx = (W / 2) + (scale * (sp.x - playerTrackX * (ROAD_WIDTH / 2)) * W / 2);
+              const sy = (H / 2) + scale * 300 * (H / 2);
+              const sw = scale * 600 * (W / 2);
+              drawSpikeStrip(sx, sy, sw);
+            }
+          });
+        }
+
+        // 4. Render Police Units & Debris
+        if (pursuitAI && pursuitAI.policeUnits) {
+          pursuitAI.policeUnits.forEach(u => {
+            const relZ = u.z - playerZ;
+            if (relZ > -300 && relZ < 240 * SEGMENT_LEN) {
+              const scale = CAMERA_DEPTH / Math.max(60, Math.abs(relZ));
+              const sx = (W / 2) + (scale * (u.x - playerTrackX * (ROAD_WIDTH / 2)) * W / 2);
+              const sy = (H / 2) + scale * 260 * (H / 2);
+              const cw = scale * 620 * (W / 2);
+              if (sy > 0 && sy < H) {
+                drawPoliceUnit(sx, sy, cw, u);
+              }
+            }
+          });
+        }
+
+        // 5. Render Police Helicopter & Spotlight
+        if (pursuitAI && pursuitAI.chopper && pursuitAI.chopper.active) {
+          drawPoliceChopper(pursuitAI.chopper);
+        }
+
+        // 6. Render Player Cyberpunk Car (With Roll/Pitch & Nitro)
+        if (physics) {
+          drawPlayerVehicle();
+        }
+
         ctx.restore();
-        return ft.life > 0;
-      });
-
-      ctx.restore();
-    }
-
-    function drawPoly(x1, y1, w1, x2, y2, w2, color) {
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.moveTo(x1 - w1, y1);
-      ctx.lineTo(x2 - w2, y2);
-      ctx.lineTo(x2 + w2, y2);
-      ctx.lineTo(x1 + w1, y1);
-      ctx.closePath();
-      ctx.fill();
-    }
-
-    // Vector Sports Car
-    function drawVectorCar(x, y, w, h, color, isPlayer, angle) {
-      ctx.save();
-      ctx.translate(x, y);
-      if (angle !== 0) ctx.rotate(angle);
-
-      // Ground Shadow
-      ctx.fillStyle = 'rgba(0,0,0,0.65)';
-      ctx.beginPath();
-      ctx.ellipse(0, h * 0.36, w * 0.56, h * 0.22, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Chassis
-      ctx.fillStyle = '#100726';
-      ctx.strokeStyle = color;
-      ctx.lineWidth = Math.max(2, w * 0.035);
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 16;
-
-      ctx.beginPath();
-      ctx.moveTo(-w * 0.46, h * 0.32);
-      ctx.lineTo(-w * 0.41, -h * 0.12);
-      ctx.lineTo(-w * 0.29, -h * 0.42);
-      ctx.lineTo(w * 0.29, -h * 0.42);
-      ctx.lineTo(w * 0.41, -h * 0.12);
-      ctx.lineTo(w * 0.46, h * 0.32);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      // Taillights
-      ctx.fillStyle = isPlayer ? '#ff0044' : '#ffd700';
-      ctx.shadowColor = ctx.fillStyle;
-      ctx.shadowBlur = 20;
-      ctx.fillRect(-w * 0.38, h * 0.16, w * 0.24, h * 0.1);
-      ctx.fillRect(w * 0.14, h * 0.16, w * 0.24, h * 0.1);
-
-      // Nitro exhaust fire
-      if (isPlayer && keys.nitro && nitro > 0) {
-        ctx.fillStyle = '#00f5ff';
-        ctx.shadowColor = '#00f5ff';
-        ctx.shadowBlur = 25;
-        ctx.beginPath();
-        ctx.moveTo(-w * 0.14, h * 0.32);
-        ctx.lineTo(0, h * 0.85 + Math.random() * 25);
-        ctx.lineTo(w * 0.14, h * 0.32);
-        ctx.fill();
       }
 
-      ctx.restore();
-    }
+      // ----------------------------------------------------------------------
+      // 8. VECTOR DRAWING PRIMITIVES
+      // ----------------------------------------------------------------------
+      function drawSynthwaveSky() {
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, H * 0.55);
+        skyGrad.addColorStop(0, '#060114');
+        skyGrad.addColorStop(0.5, '#240046');
+        skyGrad.addColorStop(0.8, '#ff007f');
+        skyGrad.addColorStop(1, '#ffe600');
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, W, H * 0.55);
 
-    // Vector Police Cruiser with Flashing Strobe Lights
-    function drawPoliceCruiser(x, y, w, h) {
-      ctx.save();
-      ctx.translate(x, y);
+        // Neon Sun
+        const sunY = H * 0.44;
+        const sunR = Math.min(W, H) * 0.17;
+        const sunGrad = ctx.createLinearGradient(W / 2, sunY - sunR, W / 2, sunY + sunR);
+        sunGrad.addColorStop(0, '#ffe600');
+        sunGrad.addColorStop(0.5, '#ff007f');
+        sunGrad.addColorStop(1, '#9d00ff');
 
-      // Chassis
-      ctx.fillStyle = '#05030a';
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = Math.max(2, w * 0.03);
-      ctx.shadowColor = '#ffffff';
-      ctx.shadowBlur = 10;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(W / 2, sunY, sunR, 0, Math.PI * 2);
+        ctx.fillStyle = sunGrad;
+        ctx.shadowColor = '#ff007f';
+        ctx.shadowBlur = 35;
+        ctx.fill();
 
-      ctx.beginPath();
-      ctx.moveTo(-w * 0.46, h * 0.32);
-      ctx.lineTo(-w * 0.4, -h * 0.1);
-      ctx.lineTo(-w * 0.28, -h * 0.42);
-      ctx.lineTo(w * 0.28, -h * 0.42);
-      ctx.lineTo(w * 0.4, -h * 0.1);
-      ctx.lineTo(w * 0.46, h * 0.32);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
+        // Horizontal sun slits
+        ctx.fillStyle = '#0a021c';
+        for (let i = 0; i < 7; i++) {
+          const sy = sunY + (i / 7) * sunR;
+          const sh = 2.5 + i * 1.6;
+          ctx.fillRect(W / 2 - sunR, sy, sunR * 2, sh);
+        }
+        ctx.restore();
+      }
 
-      // Red & Blue Emergency Strobe Bar
-      const flash = Math.floor(Date.now() / 120) % 2 === 0;
-      ctx.fillStyle = flash ? '#ff0044' : '#0066ff';
-      ctx.shadowColor = ctx.fillStyle;
-      ctx.shadowBlur = 25;
-      ctx.fillRect(-w * 0.22, -h * 0.52, w * 0.2, h * 0.1);
+      function drawRoadblockBarricade(x, y, w) {
+        ctx.save();
+        ctx.fillStyle = '#ff1e27';
+        ctx.fillRect(x - w / 2, y - 24, w, 24);
+        // Warning diagonal stripes
+        ctx.fillStyle = '#ffffff';
+        for (let sx = -w / 2; sx < w / 2; sx += 30) {
+          ctx.beginPath();
+          ctx.moveTo(x + sx, y);
+          ctx.lineTo(x + sx + 14, y - 24);
+          ctx.lineTo(x + sx + 22, y - 24);
+          ctx.lineTo(x + sx + 8, y);
+          ctx.fill();
+        }
+        // Strobe beacon
+        const strobe = Math.floor(performance.now() / 150) % 2 === 0;
+        ctx.fillStyle = strobe ? '#00f5ff' : '#ff007f';
+        ctx.beginPath();
+        ctx.arc(x, y - 32, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
 
-      ctx.fillStyle = flash ? '#0066ff' : '#ff0044';
-      ctx.shadowColor = ctx.fillStyle;
-      ctx.shadowBlur = 25;
-      ctx.fillRect(w * 0.02, -h * 0.52, w * 0.2, h * 0.1);
+      function drawSpikeStrip(x, y, w) {
+        ctx.save();
+        ctx.fillStyle = '#444';
+        ctx.fillRect(x - w / 2, y - 4, w, 8);
+        ctx.fillStyle = '#00f5ff';
+        for (let sx = -w / 2; sx < w / 2; sx += 12) {
+          ctx.beginPath();
+          ctx.moveTo(x + sx, y - 4);
+          ctx.lineTo(x + sx + 4, y - 16);
+          ctx.lineTo(x + sx + 8, y - 4);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
 
-      ctx.restore();
-    }
+      function drawPoliceUnit(x, y, w, unit) {
+        const h = w * 0.48;
+        ctx.save();
+        ctx.translate(x, y);
 
-    // Car Selection in Modal
-    document.querySelectorAll('.car-card').forEach(card => {
-      card.addEventListener('click', () => {
-        document.querySelectorAll('.car-card').forEach(c => c.classList.remove('selected'));
-        card.classList.add('selected');
-        const carId = card.getAttribute('data-car');
-        activeCar = VEHICLES[carId];
-      });
-    });
+        if (unit.isWrecked) {
+          ctx.rotate(unit.wreckSpin || 0.6);
+          ctx.fillStyle = '#222';
+          ctx.fillRect(-w / 2, -h, w, h);
+          // Smoke puff
+          ctx.fillStyle = 'rgba(255, 60, 0, 0.7)';
+          ctx.beginPath();
+          ctx.arc(0, -h * 0.5, w * 0.4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+          return;
+        }
 
-    // Start Button
-    const menuModal = document.getElementById('menu-modal');
-    document.getElementById('start-race-btn').addEventListener('click', () => {
-      audio.init();
-      menuModal.style.display = 'none';
-      buildTrack();
-      position = 0;
-      speed = 0;
-      score = 0;
-      timeLeft = 60.0;
-      heatLevel = 1;
-      heatProgress = 0;
-      nitro = 100;
-      playerX = 0;
-      gameState = 'playing';
-    });
+        // SWAT Rhino (Heavy Armored APC)
+        if (unit.archetype === 'RHINO_RAMMER') {
+          ctx.fillStyle = '#10141f';
+          ctx.fillRect(-w / 2, -h * 1.3, w, h * 1.3);
+          ctx.strokeStyle = '#ff1e27';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(-w / 2, -h * 1.3, w, h * 1.3);
+          // Heavy Bullbar Grill
+          ctx.fillStyle = '#333';
+          ctx.fillRect(-w * 0.45, -h * 0.5, w * 0.9, h * 0.45);
+        } else {
+          // Patrol Cruiser & Corvette Interceptor
+          ctx.fillStyle = '#0d0d14';
+          ctx.fillRect(-w / 2, -h, w, h);
+          // White door wrap
+          ctx.fillStyle = '#e8e8ff';
+          ctx.fillRect(-w * 0.35, -h * 0.9, w * 0.7, h * 0.6);
+        }
 
-    function gameOver() {
-      gameState = 'gameover';
-      menuModal.style.display = 'flex';
-      menuModal.querySelector('.modal-title').innerText = 'TIME EXPIRED';
-      menuModal.querySelector('.modal-subtitle').innerHTML = `Final Score: <strong>${score} PTS</strong> • Evaded Heat Level ${heatLevel}!`;
-      document.getElementById('start-race-btn').innerText = 'RACE AGAIN';
-    }
+        // Flashing Lightbar Sirens (Red / Blue)
+        const strobe = Math.floor(performance.now() / 120) % 2 === 0;
+        ctx.fillStyle = strobe ? '#ff1e27' : '#0084ff';
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 18;
+        ctx.fillRect(-w * 0.35, -h - 8, w * 0.35, 8);
+        ctx.fillStyle = strobe ? '#0084ff' : '#ff1e27';
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.fillRect(0, -h - 8, w * 0.35, 8);
 
-    buildTrack();
-    requestAnimationFrame(loop);
+        ctx.restore();
+      }
+
+      function drawPoliceChopper(chopper) {
+        ctx.save();
+        const cx = W / 2 + chopper.x * 0.5;
+        const cy = H * 0.18;
+        const cw = 110;
+
+        // Spinning Rotor Blade
+        chopper.rotorAngle = (chopper.rotorAngle || 0) + 0.8;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(cx - cw, cy - 14);
+        ctx.lineTo(cx + cw, cy - 14);
+        ctx.stroke();
+
+        // Fuselage
+        ctx.fillStyle = '#0c0818';
+        ctx.strokeStyle = '#00f5ff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 45, 18, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Sweeping Conical Spotlight Beam to Road
+        const spotX = W / 2 + (chopper.spotlight.x || 0) * (W / 3);
+        const spotY = H * 0.78;
+        const spotGrad = ctx.createRadialGradient(spotX, spotY, 10, spotX, spotY, 120);
+        spotGrad.addColorStop(0, 'rgba(0, 245, 255, 0.55)');
+        spotGrad.addColorStop(1, 'rgba(0, 245, 255, 0.0)');
+
+        ctx.fillStyle = spotGrad;
+        ctx.beginPath();
+        ctx.ellipse(spotX, spotY, 110, 45, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      function drawPlayerVehicle() {
+        const pcW = W * 0.18;
+        const pcH = pcW * 0.48;
+        const pcX = W / 2;
+        const pcY = H - pcH - 24;
+
+        ctx.save();
+        ctx.translate(pcX, pcY);
+
+        // 2-DOF Suspension Body Roll & Pitch
+        const rollRad = (physics.suspension ? physics.suspension.rollAngle : 0);
+        const pitchPx = (physics.suspension ? physics.suspension.pitchAngle * 40 : 0);
+        ctx.rotate(rollRad);
+        ctx.translate(0, pitchPx);
+
+        // Underglow Neon Glow
+        const underglowColor = selectedCarModel === 'cyber_drifter' ? '#ff007f' : (selectedCarModel === 'phantom' ? '#9d00ff' : '#00f5ff');
+        ctx.shadowColor = underglowColor;
+        ctx.shadowBlur = 30;
+        ctx.fillStyle = underglowColor;
+        ctx.fillRect(-pcW * 0.45, pcH * 0.35, pcW * 0.9, 8);
+
+        // Cyberpunk Chassis
+        ctx.fillStyle = '#0f0822';
+        ctx.strokeStyle = underglowColor;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(-pcW * 0.48, pcH * 0.4);
+        ctx.lineTo(-pcW * 0.42, -pcH * 0.1);
+        ctx.lineTo(-pcW * 0.28, -pcH * 0.45);
+        ctx.lineTo(pcW * 0.28, -pcH * 0.45);
+        ctx.lineTo(pcW * 0.42, -pcH * 0.1);
+        ctx.lineTo(pcW * 0.48, pcH * 0.4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Tinted Rear Windshield
+        ctx.fillStyle = 'rgba(0, 245, 255, 0.25)';
+        ctx.beginPath();
+        ctx.moveTo(-pcW * 0.25, -pcH * 0.4);
+        ctx.lineTo(pcW * 0.25, -pcH * 0.4);
+        ctx.lineTo(pcW * 0.32, -pcH * 0.1);
+        ctx.lineTo(-pcW * 0.32, -pcH * 0.1);
+        ctx.closePath();
+        ctx.fill();
+
+        // Neon Dual Taillights
+        ctx.fillStyle = '#ff0033';
+        ctx.shadowColor = '#ff0033';
+        ctx.shadowBlur = 20;
+        ctx.fillRect(-pcW * 0.42, pcH * 0.1, pcW * 0.22, 10);
+        ctx.fillRect(pcW * 0.20, pcH * 0.1, pcW * 0.22, 10);
+
+        // Dual Nitro Thrusters Flame
+        const isNitro = keys.nitro && nitroAmount > 0;
+        if (isNitro) {
+          ctx.fillStyle = '#00f5ff';
+          ctx.shadowColor = '#00f5ff';
+          ctx.shadowBlur = 35;
+          const flameLen = 40 + Math.random() * 25;
+          ctx.fillRect(-pcW * 0.25, pcH * 0.4, 12, flameLen);
+          ctx.fillRect(pcW * 0.25 - 12, pcH * 0.4, 12, flameLen);
+        }
+
+        // Exhaust Backfire Pop Flame
+        if (physics.backfireTimer > 0) {
+          ctx.fillStyle = '#ff7700';
+          ctx.shadowColor = '#ffe600';
+          ctx.shadowBlur = 25;
+          ctx.beginPath();
+          ctx.arc(-pcW * 0.22, pcH * 0.48, 16 + Math.random() * 12, 0, Math.PI * 2);
+          ctx.arc(pcW * 0.22, pcH * 0.48, 16 + Math.random() * 12, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+
+      // Start RAF loop
+      requestAnimationFrame(gameLoop);
+
+    })();
   </script>
 </body>
 </html>
