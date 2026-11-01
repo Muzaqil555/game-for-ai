@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Autonomous 36-Agent Universal Game & Software Studio - Fast Installer
+# Autonomous 37-Agent Universal Game & Software Studio - Fast Installer
 set -e
 
 REPO_URL="https://github.com/Muzaqil555/game-for-ai.git"
 TEMP_DIR=$(mktemp -d 2>/dev/null || mktemp -d -t 'game-studio')
 
 echo "=========================================================="
-echo "⚡ Installing Autonomous 36-Agent Studio into current directory..."
+echo "⚡ Installing Autonomous 37-Agent Studio into current directory..."
 echo "=========================================================="
 
 git clone --quiet --depth 1 "$REPO_URL" "$TEMP_DIR"

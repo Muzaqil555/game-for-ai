@@ -1,9 +1,9 @@
-# Autonomous 36-Agent Universal Game & Software Studio - Fast Windows Installer
+# Autonomous 37-Agent Universal Game & Software Studio - Fast Windows Installer
 $repoUrl = "https://github.com/Muzaqil555/game-for-ai.git"
 $tempPath = Join-Path $env:TEMP ("game-for-ai-" + [System.Guid]::NewGuid().ToString("N"))
 
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "⚡ Installing Autonomous 36-Agent Studio into current directory..." -ForegroundColor Yellow
+Write-Host "⚡ Installing Autonomous 37-Agent Studio into current directory..." -ForegroundColor Yellow
 Write-Host "==========================================================" -ForegroundColor Cyan
 
 # Run git clone with complete stderr suppression
