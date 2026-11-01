@@ -6,37 +6,49 @@ Bu iş mühitində işləyərkən sən **4-cü Agent — CEO (Baş Koordinator v
 
 ---
 
+## 🌐 Universal Model Uyğunlaşdırması (Antigravity | Claude Code | Cursor | Codex)
+
+Bu arxitektura istənilən AI iş mühitində (Google Antigravity, Anthropic Claude Code, Cursor, OpenAI Codex və s.) vendor-lock-in olmadan sıfır xəta ilə işləmək üçün **Universal Model Səviyyələri (Tiers)** ilə tənzimlənir:
+
+| Model Səviyyəsi (Tier) | Təyinatı və Vəzifələri | Google (Antigravity) | Anthropic (Claude Code) | OpenAI (Cursor / Codex) |
+| :--- | :--- | :--- | :--- | :--- |
+| **🧠 Flagship / Heavy Reasoning Tier** | **CEO (#4)**, **Baş Memar (#26)**, **Təhlükəsizlik (#5)**<br/>*Dərin arxitektura planlaması, toqquşmasız müqavilə nəzarəti, strateji koordinasiya* | `pro` / `inherit` | **Claude Opus (High) / Claude Sonnet** | **GPT-4o / o3-mini (High)** |
+| **⚡ Fast / Worker Execution Tier** | **24 Mühəndis/Dizayn Subagenti** & **9-lu Tester Şurası**<br/>*Hər agentin tək bir faylı sürətlə kodlaması, sıfır gecikmə ilə QA və balans testləri* | `flash` | **Claude Haiku (High Speed)** | **GPT-4o-mini** |
+| **🛡️ Universal Safe Fallback** | *Əgər hər hansı mühitdə xüsusi model identifikatoru təyin edilməyibsə, sistem sessiyanın aktiv modelini təhlükəsiz miras alır* | `inherit` | `inherit` | `inherit` |
+
+---
+
 ## 🏛️ 1. Əsas Mühəndis, Yaradıcı, Memar və Psixologiya Komandası (1–6, 12–28, 33–36)
 
-| № | Agent İdentifikatoru | Vəzifəsi | Tövsiyə Olunan Model | Təlimat Faylı |
+| № | Agent İdentifikatoru | Vəzifəsi | Model Səviyyəsi (Tier) | Təlimat Faylı |
 | :- | :--- | :--- | :--- | :--- |
-| **1** | `ai_specialist` | **AI & Bot Mütəxəssisi** — Düşmən AI vəziyyət maşınları (FSM), dinamik çətinlik, hədəf alma | `Model: "flash"` | [`.agents/agents/1_ai_specialist.md`](./.agents/agents/1_ai_specialist.md) |
-| **2** | `backend_specialist` | **Backend & Yaddaş Mütəxəssisi** — Server runtime, API-lər, persistent state, local storage, liderlər lövhəsi | `Model: "flash"` | [`.agents/agents/2_backend_specialist.md`](./.agents/agents/2_backend_specialist.md) |
-| **3** | `frontend_specialist` | **UI/UX & İnterfeys Mütəxəssisi** — Glassmorphism HUD, menyular, responsive ekran, toxunma (touch joystik) | `Model: "flash"` | [`.agents/agents/3_frontend_specialist.md`](./.agents/agents/3_frontend_specialist.md) |
-| **4** | `ceo` *(Əsas Agent / Sən)* | **CEO (Baş Koordinator)** — Bütün subagentləri paralel işə salan, toqquşmasız müqaviləni qoruyan və hesabat verən | `inherit` / `pro` | [`.agents/agents/4_ceo.md`](./.agents/agents/4_ceo.md) |
-| **5** | `security_specialist` | **Təhlükəsizlik və Audit Mütəxəssisi** — Bütün kodu yoxlayan, memory leak və xətaları tapan və düzəldən | `inherit` / `pro` | [`.agents/agents/5_security_specialist.md`](./.agents/agents/5_security_specialist.md) |
-| **6** | `game_developer` | **Core Game Engine Tərtibatçısı** — 60–120 FPS Game Loop, Canvas/WebGL konteksti, oyunçu idarəetməsi | `Model: "flash"` | [`.agents/agents/6_game_developer.md`](./.agents/agents/6_game_developer.md) |
-| **12** | `audio_designer` | **Universal Səs & Musiqi Mütəxəssisi** — Sıfır `.mp3` faylı ilə Web Audio API prosedural SFX və fon musiqisi | `Model: "flash"` | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
-| **13** | `art_director` | **Prosedural Qrafika & VFX Rəssamı** — Sıfır şəkil faylı ilə Canvas/SVG prosedural spritelar, auralar, zərrəciklər | `Model: "flash"` | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
-| **14** | `game_writer` | **Ssenarist & Balans Dizayneri** — Mərhələlər, süjet xətti, iqtisadiyyat, çətinlik əyrisi | `Model: "flash"` | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
-| **15** | `performance_optimizer` | **FPS & Sürət Mühəndisi** — Obyekt hovuzları (Object Pooling), zibil təmizlənməsi (GC), 60–120 FPS sabitliyi | `Model: "flash"` | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
-| **16** | `devops_deployer` | **Paketləmə & Canlıya Çıxarma** — Lokal HTTP serverlər, avtomatik test skriptləri, web deploy | `Model: "flash"` | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
-| **17** | `bug_fixer` | **Avtomatik Xəta Düzəldən** — Testlərdən və konsoldan çıxan xətaların dərhal və səssiz təmiri | `Model: "flash"` | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
-| **18** | `market_researcher` | **Bazar & Trend Analitiki** — Janr standartları, oyunçu gözləntiləri və rəqabət üstünlükləri | `Model: "flash"` | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
-| **19** | `monetization_expert` | **Retention & Mükafat Mütəxəssisi** — Nailiyyətlər, xal artımları, daimi gücləndirmə döngəsi | `Model: "flash"` | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
-| **20** | `physics_juice_specialist` | **Fizika, Döyüş & "Game Feel" Mühəndisi** — Ekran sarsıntısı (Shake), Hit-stop, Slow-mo, Knockback, Coyote Time | `Model: "flash"` | [`.agents/agents/20_22_game_power_agents.md`](./.agents/agents/20_22_game_power_agents.md) |
-| **21** | `level_boss_designer` | **Xəritə, Maneə & Boss Mütəxəssisi** — Mərhələ generatsiyası, dinamik maneələr, mərhələli boss döyüşləri | `Model: "flash"` | [`.agents/agents/20_22_game_power_agents.md`](./.agents/agents/20_22_game_power_agents.md) |
-| **22** | `qa_browser_tester` | **Canlı Brauzer Avto-Oynayıcı** — Oyunu real mühitdə açıb konsol xətalarını (0 error) və kadr sürətini yoxlayan QA | `Model: "flash"` | [`.agents/agents/20_22_game_power_agents.md`](./.agents/agents/20_22_game_power_agents.md) |
-| **23** | `weapon_relic_specialist` | **Arsenal & Təkmilləşdirmə Mütəxəssisi** — Silahlar, güc modifikatorları, lütf və qabiliyyət kartları | `Model: "flash"` | [`.agents/agents/23_25_addiction_specialists.md`](./.agents/agents/23_25_addiction_specialists.md) |
-| **24** | `companion_mount_specialist` | **Döyüş Yoldaşları & Ultimate Mütəxəssisi** — Avtomatik köməkçi botlar, auralar və böyük sahə qabiliyyətləri | `Model: "flash"` | [`.agents/agents/23_25_addiction_specialists.md`](./.agents/agents/23_25_addiction_specialists.md) |
-| **25** | `world_events_arena_specialist` | **Stil Komboları & Sonsuz Rejimlər** — Kombo sayğacları, Mükəmməl Yayınma (Perfect Dodge), Sonsuz Dalğa rejimi | `Model: "flash"` | [`.agents/agents/23_25_addiction_specialists.md`](./.agents/agents/23_25_addiction_specialists.md) |
-| **26** | `tech_stack_architect_planner` | **Baş Memar & `GAME_SPEC.md` Planlayıcısı** — Janr təyini, toqquşmasız fayl bölgüsü və paralel iş xəritəsini quran memar | `inherit` / `pro` | [`.agents/agents/26_tech_stack_planner.md`](./.agents/agents/26_tech_stack_planner.md) |
-| **27** | `mission_campaign_specialist` | **Missiya, Tapşırıq & Bələdçi Mütəxəssisi** — Dinamik müqavilələr, müdafiə zonaları, canlı GPS bələdçi oxu | `Model: "flash"` | [`.agents/agents/27_32_mission_and_user_council.md`](./.agents/agents/27_32_mission_and_user_council.md) |
-| **28** | `dopamine_addiction_psychologist` | **Oyun Psixologiyası & Dopamin Mütəxəssisi** — Zeigarnik effekti, Kill-streak anonsları, rütbə sistemi | `Model: "flash"` | [`.agents/agents/27_32_mission_and_user_council.md`](./.agents/agents/27_32_mission_and_user_council.md) |
-| **33** | `loot_synergy_specialist` | **Qənimət Şüaları & Təkamül Sinerjiləri** — Diablo-tipli lazer şüaları, əfsanəvi affikslər və silah birləşmələri | `Model: "flash"` | [`.agents/agents/33_36_v4_expansion_agents.md`](./.agents/agents/33_36_v4_expansion_agents.md) |
-| **34** | `meta_progression_specialist` | **Daimi Tərəqqi & İstedad Ağacı Mütəxəssisi** — Daimi yaddaş valyutaları, istedad ağacı modalları və dirilmə | `Model: "flash"` | [`.agents/agents/33_36_v4_expansion_agents.md`](./.agents/agents/33_36_v4_expansion_agents.md) |
-| **35** | `elite_enemy_specialist` | **Elit Çempionlar & Regional Təhlükələr** — Taktiki affikslər (Alovlu, Dondurucu, Teleport, Qalxanlı) və xəritə tələləri | `Model: "flash"` | [`.agents/agents/33_36_v4_expansion_agents.md`](./.agents/agents/33_36_v4_expansion_agents.md) |
-| **36** | `onboarding_daily_specialist` | **Kontekstual FTUE & Gündəlik Sınaqlar** — Oyunu kəsməyən canlı təlimat, gündəlik sınaqlar və giriş seriyası | `Model: "flash"` | [`.agents/agents/33_36_v4_expansion_agents.md`](./.agents/agents/33_36_v4_expansion_agents.md) |
+| **1** | `ai_specialist` | **AI & Bot Mütəxəssisi** — Düşmən AI vəziyyət maşınları (FSM), dinamik çətinlik, hədəf alma | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/1_ai_specialist.md`](./.agents/agents/1_ai_specialist.md) |
+| **2** | `backend_specialist` | **Backend & Yaddaş Mütəxəssisi** — Server runtime, API-lər, persistent state, local storage, liderlər lövhəsi | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/2_backend_specialist.md`](./.agents/agents/2_backend_specialist.md) |
+| **3** | `frontend_specialist` | **UI/UX & İnterfeys Mütəxəssisi** — Glassmorphism HUD, menyular, responsive ekran, toxunma (touch joystik) | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/3_frontend_specialist.md`](./.agents/agents/3_frontend_specialist.md) |
+| **4** | `ceo` *(Əsas Agent / Sən)* | **CEO (Baş Koordinator)** — Bütün subagentləri paralel işə salan, toqquşmasız müqaviləni qoruyan və hesabat verən | `Flagship Tier` (`pro` / `Opus/Sonnet` / `inherit`) | [`.agents/agents/4_ceo.md`](./.agents/agents/4_ceo.md) |
+| **5** | `security_specialist` | **Təhlükəsizlik və Audit Mütəxəssisi** — Bütün kodu yoxlayan, memory leak və xətaları tapan və düzəldən | `Flagship Tier` (`pro` / `Opus/Sonnet` / `inherit`) | [`.agents/agents/5_security_specialist.md`](./.agents/agents/5_security_specialist.md) |
+| **6** | `game_developer` | **Core Game Engine Tərtibatçısı** — 60–120 FPS Game Loop, Canvas/WebGL konteksti, oyunçu idarəetməsi | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/6_game_developer.md`](./.agents/agents/6_game_developer.md) |
+| **12** | `audio_designer` | **Universal Səs & Musiqi Mütəxəssisi** — Sıfır `.mp3` faylı ilə Web Audio API prosedural SFX və fon musiqisi | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
+| **13** | `art_director` | **Prosedural Qrafika & VFX Rəssamı** — Sıfır şəkil faylı ilə Canvas/SVG prosedural spritelar, auralar, zərrəciklər | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
+| **14** | `game_writer` | **Ssenarist & Balans Dizayneri** — Mərhələlər, süjet xətti, iqtisadiyyat, çətinlik əyrisi | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
+| **15** | `performance_optimizer` | **FPS & Sürət Mühəndisi** — Obyekt hovuzları (Object Pooling), zibil təmizlənməsi (GC), 60–120 FPS sabitliyi | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
+| **16** | `devops_deployer` | **Paketləmə & Canlıya Çıxarma** — Lokal HTTP serverlər, avtomatik test skriptləri, web deploy | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
+| **17** | `bug_fixer` | **Avtomatik Xəta Düzəldən** — Testlərdən və konsoldan çıxan xətaların dərhal və səssiz təmiri | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
+| **18** | `market_researcher` | **Bazar & Trend Analitiki** — Janr standartları, oyunçu gözləntiləri və rəqabət üstünlükləri | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
+| **19** | `monetization_expert` | **Retention & Mükafat Mütəxəssisi** — Nailiyyətlər, xal artımları, daimi gücləndirmə döngəsi | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
+| **20** | `physics_juice_specialist` | **Fizika, Döyüş & "Game Feel" Mühəndisi** — Ekran sarsıntısı (Shake), Hit-stop, Slow-mo, Knockback, Coyote Time | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/20_22_game_power_agents.md`](./.agents/agents/20_22_game_power_agents.md) |
+| **21** | `level_boss_designer` | **Xəritə, Maneə & Boss Mütəxəssisi** — Mərhələ generatsiyası, dinamik maneələr, mərhələli boss döyüşləri | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/20_22_game_power_agents.md`](./.agents/agents/20_22_game_power_agents.md) |
+| **22** | `qa_browser_tester` | **Canlı Brauzer Avto-Oynayıcı** — Oyunu real mühitdə açıb konsol xətalarını (0 error) və kadr sürətini yoxlayan QA | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/20_22_game_power_agents.md`](./.agents/agents/20_22_game_power_agents.md) |
+| **23** | `weapon_relic_specialist` | **Arsenal & Təkmilləşdirmə Mütəxəssisi** — Silahlar, güc modifikatorları, lütf və qabiliyyət kartları | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/23_25_addiction_specialists.md`](./.agents/agents/23_25_addiction_specialists.md) |
+| **24** | `companion_mount_specialist` | **Döyüş Yoldaşları & Ultimate Mütəxəssisi** — Avtomatik köməkçi botlar, auralar və böyük sahə qabiliyyətləri | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/23_25_addiction_specialists.md`](./.agents/agents/23_25_addiction_specialists.md) |
+| **25** | `world_events_arena_specialist` | **Stil Komboları & Sonsuz Rejimlər** — Kombo sayğacları, Mükəmməl Yayınma (Perfect Dodge), Sonsuz Dalğa rejimi | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/23_25_addiction_specialists.md`](./.agents/agents/23_25_addiction_specialists.md) |
+| **26** | `tech_stack_architect_planner` | **Baş Memar & `GAME_SPEC.md` Planlayıcısı** — Janr təyini, toqquşmasız fayl bölgüsü və paralel iş xəritəsini quran memar | `Flagship Tier` (`pro` / `Opus/Sonnet` / `inherit`) | [`.agents/agents/26_tech_stack_planner.md`](./.agents/agents/26_tech_stack_planner.md) |
+| **27** | `mission_campaign_specialist` | **Missiya, Tapşırıq & Bələdçi Mütəxəssisi** — Dinamik müqavilələr, müdafiə zonaları, canlı GPS bələdçi oxu | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/27_32_mission_and_user_council.md`](./.agents/agents/27_32_mission_and_user_council.md) |
+| **28** | `dopamine_addiction_psychologist` | **Oyun Psixologiyası & Dopamin Mütəxəssisi** — Zeigarnik effekti, Kill-streak anonsları, rütbə sistemi | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/27_32_mission_and_user_council.md`](./.agents/agents/27_32_mission_and_user_council.md) |
+| **33** | `loot_synergy_specialist` | **Qənimət Şüaları & Təkamül Sinerjiləri** — Diablo-tipli lazer şüaları, əfsanəvi affikslər və silah birləşmələri | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/33_36_v4_expansion_agents.md`](./.agents/agents/33_36_v4_expansion_agents.md) |
+| **34** | `meta_progression_specialist` | **Daimi Tərəqqi & İstedad Ağacı Mütəxəssisi** — Daimi yaddaş valyutaları, istedad ağacı modalları və dirilmə | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/33_36_v4_expansion_agents.md`](./.agents/agents/33_36_v4_expansion_agents.md) |
+| **35** | `elite_enemy_specialist` | **Elit Çempionlar & Regional Təhlükələr** — Taktiki affikslər (Alovlu, Dondurucu, Teleport, Qalxanlı) və xəritə tələləri | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/33_36_v4_expansion_agents.md`](./.agents/agents/33_36_v4_expansion_agents.md) |
+| **36** | `onboarding_daily_specialist` | **Kontekstual FTUE & Gündəlik Sınaqlar** — Oyunu kəsməyən canlı təlimat, gündəlik sınaqlar və giriş seriyası | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/33_36_v4_expansion_agents.md`](./.agents/agents/33_36_v4_expansion_agents.md) |
 
 ---
 
@@ -44,17 +56,17 @@ Bu iş mühitində işləyərkən sən **4-cü Agent — CEO (Baş Koordinator v
 
 Hər hansı oyun və ya funksiya hazır olduqda onu işlədib **nəyi bəyəndiklərini** və **nəyi bəyənmədiklərini** deyən 9 fərqli xarakterli istifadəçi agenti:
 
-| № | Agent İdentifikatoru | Baxış Bucağı və Fokus Sahəsi | Model |
+| № | Agent İdentifikatoru | Baxış Bucağı və Fokus Sahəsi | Model Səviyyəsi (Tier) |
 | :- | :--- | :--- | :--- |
-| **7** | `user_casual` | **Adi / Gündəlik İstifadəçi** — Sadəlik, rahatlıq, ilk 30 saniyədə anlaşılma | `Model: "flash"` |
-| **8** | `user_hardcore_gamer` | **Tələbkar Oyunçu** — 120 FPS sabitliyi, idarəetmə dəqiqliyi, yüksək skill tələbi | `Model: "flash"` |
-| **9** | `user_ui_critic` | **Dizayn və UX Tənqidçisi** — Rəng palitrası, şriftlər, kontrast, vizual estetikası | `Model: "flash"` |
-| **10** | `user_impatient` | **Səbirsiz / Stress Tester** — Sürətli basma, gecikmə, donma və bug axtarışı | `Model: "flash"` |
-| **11** | `user_explorer` | **Dərinlik Axtaran** — Bütün modallar, qısayollar, gizli funksiyalar və kənar ssenarilər | `Model: "flash"` |
-| **29** | `user_story_rpg_fan` | **Hekayə & Məzmun Fanatı** — Süjet dərinliyi, missiyalar, immersivlik | `Model: "flash"` |
-| **30** | `user_streamer_influencer` | **Strimer & Yaradıcı** — Ekran şousu, "clip-worthy" anlar, yüksək riskli qərarlar | `Model: "flash"` |
-| **31** | `user_completionist_grinder` | **Kolleksiyaçı & Rütbə Ovçusu** — 100% tamamlama, rütbə yüksəlişi, nailiyyətlər | `Model: "flash"` |
-| **32** | `user_teen_action_gamer` | **Sürətli Ekşn Gənci** — Sıfır ölü vaxt, fasiləsiz hərəkət, sürətli kombolar | `Model: "flash"` |
+| **7** | `user_casual` | **Adi / Gündəlik İstifadəçi** — Sadəlik, rahatlıq, ilk 30 saniyədə anlaşılma | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) |
+| **8** | `user_hardcore_gamer` | **Tələbkar Oyunçu** — 120 FPS sabitliyi, idarəetmə dəqiqliyi, yüksək skill tələbi | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) |
+| **9** | `user_ui_critic` | **Dizayn və UX Tənqidçisi** — Rəng palitrası, şriftlər, kontrast, vizual estetikası | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) |
+| **10** | `user_impatient` | **Səbirsiz / Stress Tester** — Sürətli basma, gecikmə, donma və bug axtarışı | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) |
+| **11** | `user_explorer` | **Dərinlik Axtaran** — Bütün modallar, qısayollar, gizli funksiyalar və kənar ssenarilər | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) |
+| **29** | `user_story_rpg_fan` | **Hekayə & Məzmun Fanatı** — Süjet dərinliyi, missiyalar, immersivlik | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) |
+| **30** | `user_streamer_influencer` | **Strimer & Yaradıcı** — Ekran şousu, "clip-worthy" anlar, yüksək riskli qərarlar | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) |
+| **31** | `user_completionist_grinder` | **Kolleksiyaçı & Rütbə Ovçusu** — 100% tamamlama, rütbə yüksəlişi, nailiyyətlər | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) |
+| **32** | `user_teen_action_gamer` | **Sürətli Ekşn Gənci** — Sıfır ölü vaxt, fasiləsiz hərəkət, sürətli kombolar | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) |
 
 ---
 

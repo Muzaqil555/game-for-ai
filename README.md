@@ -14,7 +14,7 @@
 
 **[⭐ Star this Repo](https://github.com/Muzaqil555/game-for-ai) to bookmark it for your next AI-generated game or software project!**
 
-[Overview](#-overview) • [Why It's Different](#-why-this-is-different) • [Architecture](#-5-phase-autonomous-swarm-pipeline) • [Agent Roster](#-the-36-agent-roster) • [Quick Start](#-quick-start-in-30-seconds) • [Genres](#-universal-genre-support) • [License](#-license)
+[Overview](#-overview) • [Why It's Different](#-why-this-is-different) • [Architecture](#-5-phase-autonomous-swarm-pipeline) • [Agent Roster](#-the-36-agent-roster) • [Model Mapping](#-universal-cross-platform-model-mapping) • [Genres](#-universal-genre-support) • [Quick Start](#-quick-start-in-30-seconds) • [License](#-license)
 
 </div>
 
@@ -161,6 +161,18 @@ After every build, the testing council reviews the game from 9 distinct psycholo
 * **`user_streamer_influencer` (#30)** — *Streamer:* Looks for hype moments, clip-worthy abilities, and high-risk rewards.
 * **`user_completionist_grinder` (#31)** — *Completionist:* Focuses on 100% completion, talent tree min-maxing, and rankings.
 * **`user_teen_action_gamer` (#32)** — *Action Gamer:* Zero downtime, relentless pacing, and fast weapon switching.
+
+---
+
+## 🌐 Universal Cross-Platform Model Mapping
+
+The 36-agent swarm is designed to operate seamlessly across **Google Antigravity**, **Anthropic Claude Code**, and **OpenAI (Cursor / Codex)** without vendor lock-in. Agent workloads are grouped into two dynamic performance tiers:
+
+| Performance Tier | Roles & Responsibilities | Google (Antigravity) | Anthropic (Claude Code) | OpenAI (Cursor / Codex) |
+| :--- | :--- | :--- | :--- | :--- |
+| **🧠 Flagship Tier (Heavy Reasoning)** | **CEO (#4)**, **Master Architect (#26)**, **Security Auditor (#5)**<br/>*Complex planning, zero-conflict contract enforcement, architecture oversight* | `pro` / `inherit` | **Claude Opus (High) / Claude Sonnet** | **GPT-4o / o3-mini (High)** |
+| **⚡ Fast Worker Tier (High-Speed Execution)** | **24 Domain Specialists** & **9-Persona Testing Council**<br/>*Rapid, isolated single-file implementation (audio, graphics, physics, AI) and instant QA* | `flash` | **Claude Haiku (High Speed)** | **GPT-4o-mini** |
+| **🛡️ Universal Safe Fallback** | *If a platform does not support explicit model switching, it safely inherits the active session model with zero errors.* | `inherit` | `inherit` | `inherit` |
 
 ---
 
