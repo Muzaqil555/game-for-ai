@@ -646,7 +646,7 @@
               window.NeonHUD.triggerTakedownBanner('⚠️ TIRE BLOWOUT!', 'SPEED CAPPED AT 75 KM/H (4.5s)');
             }
             if (window.RacerAudio) {
-              window.RacerAudio.playSpikeBlowout();
+              window.RacerAudio.playSpikeStrip();
             }
           },
           onSpikeEvasion: () => {
@@ -655,10 +655,13 @@
             if (window.NeonHUD) {
               window.NeonHUD.triggerTakedownBanner('SPIKE EVADED!', '+$500 APEX BONUS');
             }
+            if (window.RacerAudio) {
+              window.RacerAudio.handleAICue('spike_evasion');
+            }
           },
           onHeatChange: (event) => {
             if (window.RacerAudio) {
-              window.RacerAudio.playHeatAlarm(event.heatLevel);
+              window.RacerAudio.handleAICue('heat_escalation', event);
             }
           },
           onScreenShake: (amount) => {
@@ -675,6 +678,7 @@
         // 4. Initialize Procedural Web Audio Engine (Agent 12)
         if (window.RacerAudio) {
           window.RacerAudio.init();
+          window.RacerAudio.connectToAI(pursuitAI);
           window.RacerAudio.startEngine();
           window.RacerAudio.startMusic();
           window.RacerAudio.playCountdown('go');
