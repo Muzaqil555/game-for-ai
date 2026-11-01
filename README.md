@@ -1,156 +1,267 @@
-# ⚡ Autonomous 36-Agent Studio & Multi-Agent Swarm Framework
+<div align="center">
 
-> **A production-ready, zero-conflict multi-agent orchestration architecture for autonomous software and game development.** Compatible with **Google Antigravity**, **Cursor**, **Claude Code**, **OpenAI Codex**, and any LLM agent runtime supporting agent skills and subagents.
+# ⚡ Autonomous 36-Agent Universal Game & Software Studio
+
+### Turn any 1-sentence prompt into a fully playable, zero-dependency browser game in minutes with an autonomous 36-agent parallel swarm.
+
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
+[![Multi-Agent](https://img.shields.io/badge/Agents-36%20Specialized%20Swarm-orange?style=for-the-badge&logo=probot)](AGENTS.md)
+[![Zero-Conflict](https://img.shields.io/badge/Architecture-Zero--Conflict%20Parallel-emerald?style=for-the-badge&logo=git)](.agents/skills/universal-game-engine/SKILL.md)
+[![FPS](https://img.shields.io/badge/Performance-60--120%20FPS%20Guaranteed-purple?style=for-the-badge&logo=speedtest)](.agents/skills/universal-game-engine/SKILL.md)
+[![Compatibility](https://img.shields.io/badge/Compatible%20With-Antigravity%20%7C%20Cursor%20%7C%20Claude%20Code-cyan?style=for-the-badge&logo=openai)](README.md)
+
+<br/>
+
+**[⭐ Star this Repo](https://github.com/Muzaqil555/game-for-ai) to bookmark it for your next AI-generated game or software project!**
+
+[Overview](#-overview) • [Why It's Different](#-why-this-is-different) • [Architecture](#-5-phase-autonomous-swarm-pipeline) • [Agent Roster](#-the-36-agent-roster) • [Quick Start](#-quick-start-in-30-seconds) • [Genres](#-universal-genre-support) • [License](#-license)
+
+</div>
 
 ---
 
-## 🌍 Overview (Haqqında)
+## 🌍 Overview
 
-This repository contains the architecture, prompts, and skills for an **autonomous 36-agent development studio**. It coordinates **1 CEO Agent**, **26 specialized engineering, design, architecture, and psychology agents**, and **9 diverse user testing personas** who run in parallel to conceptualize, architect, code, test, and refine complex software and games from scratch.
+Most AI coding assistants struggle when asked to build complete games or multi-file applications: they hallucinate, rewrite each other's files, hit context limits, and produce broken code.
 
-Unlike single-agent prompts that fail from context pollution and merge conflicts, this framework uses **zero-conflict modular contracts** (`.agents/skills/game-plugin-module`), allowing 5 to 10+ subagents to write and execute code simultaneously without race conditions.
+**Autonomous 36-Agent Studio** is a production-grade multi-agent orchestration framework. It coordinates **1 CEO Orchestrator**, **26 specialized engineering/design/psychology agents**, and a **9-persona user testing council** who collaborate in a synchronized, conflict-free parallel swarm.
+
+Give it a single prompt like:
+> *"Create a cyberpunk motorcycle racing game where you slice enemy drones with a laser katana."*
+
+And the 36-agent swarm will automatically draft the architectural spec, code 6 modules in parallel, synthesize procedural audio and visuals, test the game in a live browser, balance the dopamine pacing, and deliver a 1-click playable game.
 
 ---
 
-## 🏛️ Studio Architecture
+## 💎 Why This is Different
 
 ```
-                                    👑 Agent 4: CEO (Lead Coordinator)
-                                                  │
-         ┌───────────────────────────────┬────────┴───────────────────────────────┬───────────────────────────────┐
-         ▼                               ▼                                       ▼                               ▼
-  Core Engineering              Creative & Audio                        Advanced Mechanics               Quality & Player Council
-• Game Developer (#6)          • Art Director (#13)                    • Physics & Juice (#20)          • Security Specialist (#5)
-• AI Specialist (#1)           • Audio Designer (#12)                  • Level & Bosses (#21)           • 120 FPS Optimizer (#15)
-• Backend Specialist (#2)      • Narrative & Balance (#14)             • Weapons & Relics (#23)         • QA Browser Tester (#22)
-• Frontend Specialist (#3)     • Monetization & Retention (#19)        • Companions & Ult (#24)         • 9-Persona User Council
-• DevOps & Deployer (#16)      • Market Researcher (#18)               • Style Combo & Arena (#25)        (Casual, Hardcore, Critic,
-• Auto Bug Fixer (#17)         • Tech Stack Planner (#26)              • Missions & Bounties (#27)         Streamer, Explorer, etc.)
-                                                                       • Dopamine Psychologist (#28)
-                                                                       • Loot & Synergies (#33)
-                                                                       • Talent Tree Meta (#34)
-                                                                       • Elite Affixes & Hazards (#35)
-                                                                       • Onboarding & Daily (#36)
+❌ Traditional Single-Agent Prompting        ✅ 36-Agent Autonomous Swarm
+┌──────────────────────────────────────┐     ┌────────────────────────────────────────────────────────┐
+│ • One model tries to do everything   │     │ • 36 Specialized Agents with dedicated roles           │
+│ • Edits one file, breaks another     │     │ • Immutable GAME_SPEC.md with zero-conflict ownership   │
+│ • Missing textures (broken .png/jpg) │     │ • 100% Procedural Canvas/SVG (Zero-asset download)    │
+│ • No audio or broken sound files     │     │ • 100% Procedural Web Audio API sound & music          │
+│ • Untested console runtime errors    │     │ • Autonomous QA Gate + Auto-healing Bug Fixer          │
+│ • Boring, uncalibrated difficulty    │     │ • 9-Persona User Council audits fun & skill-ceiling    │
+└──────────────────────────────────────┘     └────────────────────────────────────────────────────────┘
+```
+
+---
+
+## ⚡ 5-Phase Autonomous Swarm Pipeline
+
+Every game is built following an immutable, zero-conflict 5-phase production pipeline:
+
+```
+                                  USER PROMPT
+                 "Create [Any 2D/3D Game Concept or Genre]"
+                                       │
+                                       ▼
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │  PHASE 1: IMMUTABLE ARCHITECTURAL CONTRACT (GAME_SPEC.md)           │
+    │  • Agent 26 (Architect) & Agent 4 (CEO) analyze prompt & select     │
+    │    the genre matrix from universal-game-engine.                     │
+    │  • Establishes window.GameCore and strict file ownership table.     │
+    │  • RULE: No agent is permitted to touch another agent's file.       │
+    └──────────────────────────────────┬──────────────────────────────────┘
+                                       │
+                                       ▼
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │  PHASE 2: ZERO-CONFLICT PARALLEL BUILD SWARM (Simultaneous)         │
+    │  6–8 specialized subagents execute code concurrently:               │
+    │  ├─ Agent 6  ➔ src/engine.js    (Game Loop, Canvas, Entity Manager)│
+    │  ├─ Agent 20 ➔ src/physics.js   (Kinematics, Collision, Game Feel) │
+    │  ├─ Agent 13 ➔ src/render.js    (Procedural Sprites, Particles, FX)│
+    │  ├─ Agent 12 ➔ src/audio.js     (Procedural Web Audio SFX & Music) │
+    │  ├─ Agent 3  ➔ src/ui.js        (Glassmorphism HUD, Menus, Touch)  │
+    │  ├─ Agent 1  ➔ src/ai.js        (Enemy FSM, Waves, Boss AI)        │
+    │  └─ Agent 14 ➔ src/content.js   (Balance, Levels, Upgrades)        │
+    └──────────────────────────────────┬──────────────────────────────────┘
+                                       │
+                                       ▼
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │  PHASE 3: AUDIT, 120 FPS PROFILING & SELF-HEALING QA                │
+    │  • Agent 5 (Security) & Agent 15 (Performance) eliminate leaks.     │
+    │  • Agent 22 (Browser QA) runs a headless test; verifies 0 errors.   │
+    │  • If any runtime error occurs, Agent 17 (Bug Fixer) patches it     │
+    │    silently before delivery.                                        │
+    └──────────────────────────────────┬──────────────────────────────────┘
+                                       │
+                                       ▼
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │  PHASE 4: 9-PERSONA USER TESTING COUNCIL (Psychology Audit)         │
+    │  • 9 distinct gamer personas test readability, fun, and latency.    │
+    │  • Agent 28 (Dopamine Psychologist) fine-tunes the pacing loop.     │
+    └──────────────────────────────────┬──────────────────────────────────┘
+                                       │
+                                       ▼
+                        🏆 1-CLICK PLAYABLE GAME DELIVERED!
 ```
 
 ---
 
 ## 📋 The 36 Agent Roster
 
-### 1. Executive, Engineering, Creative & Psychology Team (Agents 1–6, 12–28, 33–36)
+### 🏛️ 1. Studio Leadership & Architecture
+| № | Agent | Role | Focus |
+| :- | :--- | :--- | :--- |
+| **4** | `ceo` | **CEO & Lead Orchestrator** | Dispatches subagents, maintains swarm discipline, reports progress |
+| **26** | `tech_stack_architect_planner` | **Master Architect & Planner** | Drafts `GAME_SPEC.md`, assigns file ownership, prevents race conditions |
 
-| № | Agent Identifier | Specialized Role | Recommended Model | Instruction File |
-| :--- | :--- | :--- | :--- | :--- |
-| **1** | `ai_specialist` | **AI Specialist** — State machines, dynamic difficulty adjustment, enemy combat AI | `flash` | [`.agents/agents/1_ai_specialist.md`](.agents/agents/1_ai_specialist.md) |
-| **2** | `backend_specialist` | **Backend Specialist** — Server runtime, APIs, persistent state, leaderboards | `flash` | [`.agents/agents/2_backend_specialist.md`](.agents/agents/2_backend_specialist.md) |
-| **3** | `frontend_specialist` | **Frontend Specialist** — Glassmorphism UI/UX, HUD, modals, touch controls | `flash` | [`.agents/agents/3_frontend_specialist.md`](.agents/agents/3_frontend_specialist.md) |
-| **4** | `ceo` | **CEO (Lead Coordinator)** — Multi-agent orchestrator, parallel task dispatcher | `inherit` / `pro` | [`.agents/agents/4_ceo.md`](.agents/agents/4_ceo.md) |
-| **5** | `security_specialist` | **Security Specialist** — Code audits, input validation, memory leak prevention | `inherit` / `pro` | [`.agents/agents/5_security_specialist.md`](.agents/agents/5_security_specialist.md) |
-| **6** | `game_developer` | **Core Engine Developer** — 60–120 FPS game loop, physics engine, entity cycles | `flash` | [`.agents/agents/6_game_developer.md`](.agents/agents/6_game_developer.md) |
-| **12** | `audio_designer` | **Audio & SFX Designer** — Procedural Web Audio API sound synthesis & BGM | `flash` | [`.agents/agents/12_19_studio_specialists.md`](.agents/agents/12_19_studio_specialists.md) |
-| **13** | `art_director` | **VFX & Asset Artist** — Procedural particle systems, lighting, screen shaders | `flash` | [`.agents/agents/12_19_studio_specialists.md`](.agents/agents/12_19_studio_specialists.md) |
-| **14** | `game_writer` | **Writer & Balance Designer** — Lore, campaign stages, economy balancing | `flash` | [`.agents/agents/12_19_studio_specialists.md`](.agents/agents/12_19_studio_specialists.md) |
-| **15** | `performance_optimizer` | **FPS & Performance Engineer** — Garbage collection reduction, 120 FPS profiling | `flash` | [`.agents/agents/12_19_studio_specialists.md`](.agents/agents/12_19_studio_specialists.md) |
-| **16** | `devops_deployer` | **DevOps & Packaging** — Local HTTP daemons, asset bundling, cloud deployment | `flash` | [`.agents/agents/12_19_studio_specialists.md`](.agents/agents/12_19_studio_specialists.md) |
-| **17** | `bug_fixer` | **Autonomous Bug Fixer** — Rapid patch pipeline based on test console reports | `flash` | [`.agents/agents/12_19_studio_specialists.md`](.agents/agents/12_19_studio_specialists.md) |
-| **18** | `market_researcher` | **Market & Competitor Analyst** — Genre trends, player expectation benchmarks | `flash` | [`.agents/agents/12_19_studio_specialists.md`](.agents/agents/12_19_studio_specialists.md) |
-| **19** | `monetization_expert` | **Retention & Economy Expert** — Progression sinks, cosmetics, achievement loops | `flash` | [`.agents/agents/12_19_studio_specialists.md`](.agents/agents/12_19_studio_specialists.md) |
-| **20** | `physics_juice_specialist` | **Physics & "Game Feel" Specialist** — Screen-shake, hit-stop, slow-mo, knockback | `flash` | [`.agents/agents/20_22_game_power_agents.md`](.agents/agents/20_22_game_power_agents.md) |
-| **21** | `level_boss_designer` | **Levels & Boss Architect** — Regional maps, phased epic boss fights | `flash` | [`.agents/agents/20_22_game_power_agents.md`](.agents/agents/20_22_game_power_agents.md) |
-| **22** | `qa_browser_tester` | **Browser QA Auto-Tester** — Headless/browser verification, zero-error validation | `flash` | [`.agents/agents/20_22_game_power_agents.md`](.agents/agents/20_22_game_power_agents.md) |
-| **23** | `weapon_relic_specialist` | **Arsenal & Roguelike Relics** — Hot-swappable weapon arsenals and draft relics | `flash` | [`.agents/agents/23_25_addiction_specialists.md`](.agents/agents/23_25_addiction_specialists.md) |
-| **24** | `companion_mount_specialist` | **Companions & Ultimates** — AI companion spirits and devastating screen ultimates | `flash` | [`.agents/agents/23_25_addiction_specialists.md`](.agents/agents/23_25_addiction_specialists.md) |
-| **25** | `world_events_arena_specialist` | **Style Combos & Arena Mode** — DMC/Hades style ranks, perfect dodge, endless arena | `flash` | [`.agents/agents/23_25_addiction_specialists.md`](.agents/agents/23_25_addiction_specialists.md) |
-| **26** | `tech_stack_architect_planner` | **Master Architect & Planner** — Tech stack discovery, MCP selection, work-breakdown | `flash` / `pro` | [`.agents/agents/26_tech_stack_planner.md`](.agents/agents/26_tech_stack_planner.md) |
-| **27** | `mission_campaign_specialist` | **Campaign & Bounty Architect** — Timed hunt bounties, defense zones, GPS guidance | `flash` | [`.agents/agents/27_32_mission_and_user_council.md`](.agents/agents/27_32_mission_and_user_council.md) |
-| **28** | `dopamine_addiction_psychologist` | **Game Psychology & Dopamine Loops** — Zeigarnik effect, kill-streak pacing, hunter rank | `flash` | [`.agents/agents/27_32_mission_and_user_council.md`](.agents/agents/27_32_mission_and_user_council.md) |
-| **33** | `loot_synergy_specialist` | **Loot Beams & Evolution Synergies** — Diablo-style beams, 8 legendary affixes, evolutions | `flash` | [`.agents/agents/33_36_v4_expansion_agents.md`](.agents/agents/33_36_v4_expansion_agents.md) |
-| **34** | `meta_progression_specialist` | **Ancient Talent Tree & Meta-Progression** — Permanent Soul Stones currency & Phoenix soul | `flash` | [`.agents/agents/33_36_v4_expansion_agents.md`](.agents/agents/33_36_v4_expansion_agents.md) |
-| **35** | `elite_enemy_specialist` | **Elite Affixes & Regional Hazards** — 8 tactical champion modifiers & environmental traps | `flash` | [`.agents/agents/33_36_v4_expansion_agents.md`](.agents/agents/33_36_v4_expansion_agents.md) |
-| **36** | `onboarding_daily_specialist` | **Contextual FTUE & Daily Trials** — 6-step in-game onboarding guide & 7-day streaks | `flash` | [`.agents/agents/33_36_v4_expansion_agents.md`](.agents/agents/33_36_v4_expansion_agents.md) |
+### ⚙️ 2. Core Engineering & Mechanics
+| № | Agent | Role | Focus |
+| :- | :--- | :--- | :--- |
+| **6** | `game_developer` | **Core Game Developer** | 60–120 FPS game loop, requestAnimationFrame delta timing, entity registry |
+| **20** | `physics_juice_specialist` | **Physics & Game Feel Specialist** | Screen shake, hit-stop, coyote time, jump buffering, knockback |
+| **1** | `ai_specialist` | **AI & Combat Specialist** | Enemy state machines, dynamic difficulty adjustment (DDA), wave spawner |
+| **2** | `backend_specialist` | **Backend & State Specialist** | Local storage persistence, high score leaderboards, save states |
+| **3** | `frontend_specialist` | **UI/UX & Mobile Specialist** | Glassmorphism HUD, action hotbars, touch joysticks, responsive layouts |
+| **15** | `performance_optimizer` | **FPS & Memory Engineer** | Object pooling, garbage collection reduction, 120 FPS profiling |
 
----
+### 🎨 3. Creative, Audio & World Design
+| № | Agent | Role | Focus |
+| :- | :--- | :--- | :--- |
+| **13** | `art_director` | **Procedural Graphics Artist** | Zero-asset Canvas/SVG vector sprites, dynamic lights, particle systems |
+| **12** | `audio_designer` | **Procedural Audio Synthesizer** | Zero-file Web Audio API procedural sound synthesis (laser, jump, explosion, chiptune) |
+| **14** | `game_writer` | **Narrative & Balance Designer** | Lore, mission objectives, economy pacing, difficulty curve |
+| **18** | `market_researcher` | **Genre Trend Analyst** | Player expectation benchmarks, core hook identification |
+| **19** | `monetization_expert` | **Retention & Economy Expert** | Progression currencies, cosmetics, achievement reward loops |
+| **21** | `level_boss_designer` | **Level & Boss Architect** | Phased boss encounters, obstacle generation, arenas |
 
-### 2. The 9-Persona User Testing Council (Agents 7–11, 29–32)
+### ⚡ 4. Advanced Game Systems & Progression
+| № | Agent | Role | Focus |
+| :- | :--- | :--- | :--- |
+| **23** | `weapon_relic_specialist` | **Weapons & Relics Specialist** | Hot-swappable weapon arsenals and roguelike boon drafting |
+| **24** | `companion_mount_specialist` | **Companions & Ultimates** | AI pets, passive damage auras, and screen-clearing ultimates |
+| **25** | `world_events_arena_specialist` | **Style Combos & Arena Mode** | DMC/Hades style ranks, perfect dodge slowdown, endless wave mode |
+| **27** | `mission_campaign_specialist` | **Campaign & Bounty Architect** | Dynamic contracts, defense zones, live GPS guidance compass |
+| **28** | `dopamine_addiction_psychologist` | **Game Psychology Specialist** | Zeigarnik effect, kill-streak announcements, hunter ranks |
+| **33** | `loot_synergy_specialist` | **Loot Beams & Evolution Synergies** | Diablo-style beams, 8 legendary affixes, weapon+companion evolutions |
+| **34** | `meta_progression_specialist` | **Ancient Talent Tree Specialist** | Permanent meta currencies, 3-branch skill trees, Phoenix resurrection |
+| **35** | `elite_enemy_specialist` | **Elite Champions & Regional Hazards** | 8 champion affixes (Fiery, Frozen, Teleport, Shielded) and environmental traps |
+| **36** | `onboarding_daily_specialist` | **Contextual FTUE & Daily Trials** | 6-step contextual tutorial, date-seeded daily trials, 7-day login streaks |
 
-Whenever a feature or build is complete, the testing council reviews it from 9 distinct user psychological viewpoints:
+### 🛡️ 5. Quality Assurance & Self-Healing
+| № | Agent | Role | Focus |
+| :- | :--- | :--- | :--- |
+| **5** | `security_specialist` | **Security & Code Auditor** | Memory leak checks, prototype pollution defense, edge-case validation |
+| **16** | `devops_deployer` | **Packaging & Deployment** | Local HTTP daemons, asset bundling, cloud deployment |
+| **17** | `bug_fixer` | **Autonomous Bug Fixer** | Automated hot-patching based on test console error logs |
+| **22** | `qa_browser_tester` | **Browser QA Auto-Tester** | Headless browser execution, 0-console-error verification |
 
-| № | Agent Identifier | Player Persona & Focus | Instruction File |
-| :--- | :--- | :--- | :--- |
-| **7** | `user_casual` | **Casual Player** — Simplicity, instant readability, zero steep learning curve | [`.agents/agents/7_11_user_testers.md`](.agents/agents/7_11_user_testers.md) |
-| **8** | `user_hardcore_gamer` | **Hardcore Power User** — High frame rates, tight control responsiveness, skill ceiling | [`.agents/agents/7_11_user_testers.md`](.agents/agents/7_11_user_testers.md) |
-| **9** | `user_ui_critic` | **Visual & UX Critic** — Color palette balance, typography, animations, padding | [`.agents/agents/7_11_user_testers.md`](.agents/agents/7_11_user_testers.md) |
-| **10** | `user_impatient` | **Impatient Bug Hunter** — Fast clicking, rapid input stress-testing, latency checks | [`.agents/agents/7_11_user_testers.md`](.agents/agents/7_11_user_testers.md) |
-| **11** | `user_explorer` | **Deep Feature Explorer** — Tests every modal, obscure hotkey, and edge-case behavior | [`.agents/agents/7_11_user_testers.md`](.agents/agents/7_11_user_testers.md) |
-| **29** | `user_story_rpg_fan` | **Story & Campaign Fan (#6)** — Lore depth, meaningful quests, world immersion | [`.agents/agents/27_32_mission_and_user_council.md`](.agents/agents/27_32_mission_and_user_council.md) |
-| **30** | `user_streamer_influencer` | **Streamer & Creator (#7)** — Screen presence, clip-worthy moments, high-risk shrines | [`.agents/agents/27_32_mission_and_user_council.md`](.agents/agents/27_32_mission_and_user_council.md) |
-| **31** | `user_completionist_grinder` | **Completionist & Hunter (#8)** — 100% completion, hunter ranks, stat min-maxing | [`.agents/agents/27_32_mission_and_user_council.md`](.agents/agents/27_32_mission_and_user_council.md) |
-| **32** | `user_teen_action_gamer` | **Fast-Action Fan (#9)** — Zero downtime, rapid combo chaining, high intensity | [`.agents/agents/27_32_mission_and_user_council.md`](.agents/agents/27_32_mission_and_user_council.md) |
-
----
-
-## 🛠️ Reusable Agent Skills (`.agents/skills/`)
-
-### 1. `universal-game-engine`
-- **Location:** [`.agents/skills/universal-game-engine/SKILL.md`](.agents/skills/universal-game-engine/SKILL.md)
-- **Purpose:** Universal genre-agnostic autonomous game creation pipeline for ANY game (2D Platformer, Top-Down Shooter, Tower Defense, Puzzle, Retro Racing, Roguelite RPG, 3D WebGL). Defines 7 genre matrices, physics equations (gravity, coyote time, jump buffering, 360° ballistics), procedural Canvas/SVG asset generation, and procedural Web Audio synthesizers (jump, laser, explosion, chiptune).
-
-### 2. `build-full-game`
-- **Location:** [`.agents/skills/build-full-game/SKILL.md`](.agents/skills/build-full-game/SKILL.md)
-- **Purpose:** Full autonomous production pipeline. When activated with a single prompt like *"build a complete game"*, it triggers Agent 26 to plan the architecture, spins up subagents in parallel waves, runs browser QA, queries user testers, and deploys.
-
-### 3. `game-plugin-module`
-- **Location:** [`.agents/skills/game-plugin-module/SKILL.md`](.agents/skills/game-plugin-module/SKILL.md)
-- **Purpose:** Zero-conflict parallel module contract. Dictates how any agent adds new systems (loot, talents, bosses, hazards) as self-contained plugin modules (`window.GamePlugins = window.GamePlugins || []`) without touching or conflicting with other files.
+### 👥 6. The 9-Persona User Testing Council
+After every build, the testing council reviews the game from 9 distinct psychological angles:
+* **`user_casual` (#7)** — *Casual Player:* Evaluates first-30-second clarity, simplicity, and onboarding.
+* **`user_hardcore_gamer` (#8)** — *Hardcore Power User:* Demands 120 FPS stability, input responsiveness, and high skill ceiling.
+* **`user_ui_critic` (#9)** — *Visual & UX Critic:* Audits color harmony, typography contrast, and aesthetic balance.
+* **`user_impatient` (#10)** — *Stress Tester:* Fast clicking, button mashing, rapid input latency checks.
+* **`user_explorer` (#11)** — *Deep Explorer:* Tests every obscure modal, edge-case hotkey, and hidden synergy.
+* **`user_story_rpg_fan` (#29)** — *Narrative Fan:* Evaluates world immersion, quest variety, and lore.
+* **`user_streamer_influencer` (#30)** — *Streamer:* Looks for hype moments, clip-worthy abilities, and high-risk rewards.
+* **`user_completionist_grinder` (#31)** — *Completionist:* Focuses on 100% completion, talent tree min-maxing, and rankings.
+* **`user_teen_action_gamer` (#32)** — *Action Gamer:* Zero downtime, relentless pacing, and fast weapon switching.
 
 ---
 
-## ⚡ Autonomous 5-Phase Parallel Swarm Protocol
+## 🕹️ Universal Genre Support
 
-When ANY user requests ANY game or application, the studio executes this ironclad pipeline:
+The studio includes pre-configured mathematical equations, physics models, and input handlers across 7 primary game genres:
 
 ```
-                            USER PROMPT: "Create [Any Game / Feature]"
-                                                │
-                 ┌──────────────────────────────┴──────────────────────────────┐
-                 ▼                                                             ▼
-     [PHASE 1: IMMUTABLE CONTRACT]                                 [PHASE 2: ZERO-CONFLICT SWARM]
-   Agent 26 & CEO generate GAME_SPEC.md:                        6–8 Subagents build in parallel:
-   • Genre Matrix & Core Rules                                  • Agent 6  ➔ src/engine.js (Loop & State)
-   • Global State: window.GameCore                              • Agent 20 ➔ src/physics.js (Kinematics)
-   • Strict File Ownership Table                                • Agent 13 ➔ src/render.js (Graphics)
-   (No agent touches another's file!)                           • Agent 12 ➔ src/audio.js (Web Audio)
-                                                                • Agent 3  ➔ src/ui.js & index.html (HUD)
-                                                                • Agent 1  ➔ src/ai.js (Enemy FSM)
-                                                │
-                 ┌──────────────────────────────┴──────────────────────────────┐
-                 ▼                                                             ▼
-     [PHASE 3: QA & SELF-HEALING]                                  [PHASE 4: 9-TESTER COUNCIL]
-   • Agent 22 verifies 0 console errors.                        9 distinct user personas audit:
-   • Agent 15 profiles 60–120 FPS.                              • Hardcore: Skill ceiling & latency
-   • Agent 17 auto-patches any issues.                          • Casual: Instant clarity & onboarding
-                                                                • UI Critic: Aesthetic balance
-                                                │
-                                                ▼
-                                    🏆 PLAYABLE GAME DELIVERED!
+┌─────────────────────────┬─────────────────────────────────┬────────────────────────────────┐
+│ Genre                   │ Physics & Math Engine Kit       │ Controls                       │
+├─────────────────────────┼─────────────────────────────────┼────────────────────────────────┤
+│ 🏃 2D Platformer        │ Gravity, Coyote Time, Wall Jump │ A/D Move, Space Jump, Shift    │
+│ 🚀 Top-Down Shooter     │ 360° Ballistics, Swarm AI       │ WASD Move, Mouse Aim & Shoot   │
+│ 🏰 Tower Defense / RTS  │ A* Pathfinding, Grid Matrix     │ Mouse Click, Drag & Upgrade    │
+│ 🧩 Puzzle & Grid        │ 2D Array Cascades, Tile Match   │ Arrow Keys / Drag              │
+│ 🏎️ Retro Racing         │ Pseudo-3D Perspective, Drift    │ WASD Steer, Accel, Brake       │
+│ ⚔️ Roguelite RPG        │ Room Graph, Loot Beams, Boons   │ WASD Move, Click Attack, Dash  │
+│ 🌐 3D WebGL (Three.js)  │ 3D Camera, Shaders, Raycasting  │ Mouse Look, WASD Walk, Jump    │
+└─────────────────────────┴─────────────────────────────────┴────────────────────────────────┘
 ```
 
 ---
 
-## 🚀 How to Use in Your Projects
+## 🚀 Quick Start in 30 Seconds
 
-1. **Clone or Copy:** Copy `AGENTS.md` and the `.agents/` folder into the root of your project:
-   ```bash
-   cp AGENTS.md /path/to/your/project/
-   cp -r .agents /path/to/your/project/
-   ```
-2. **Open in Your AI Assistant:** Open the folder in **Google Antigravity**, **Cursor**, **Claude Code**, or any agent runner that reads `AGENTS.md` and agent instructions.
-3. **Execute:** The AI assistant will automatically adopt the **Agent 4: CEO** role, reference the 35 subagents and skills, and execute your projects with full parallel division of labor!
+### Step 1: Clone or Copy
+Copy `AGENTS.md` and the `.agents/` folder into your project root:
+
+```bash
+git clone https://github.com/Muzaqil555/game-for-ai.git
+cd game-for-ai
+```
+
+### Step 2: Open in Your Favorite AI Environment
+Open the repository in any AI-powered agent IDE or CLI:
+* **[Google Antigravity](https://deepmind.google)**
+* **[Cursor](https://cursor.com)**
+* **[Claude Code](https://anthropic.com)**
+* **[Codex CLI](https://openai.com)**
+
+### Step 3: Issue Any Game Prompt
+Type your game idea in plain text:
+
+```text
+"Build me a 2D neon cyberpunk platformer with wall-slides, laser katanas, and procedural chiptune music."
+```
+
+The AI will instantly adopt the **Agent 4: CEO** persona, draft `GAME_SPEC.md`, spin up the subagent swarm in parallel, and deliver a working game!
+
+---
+
+## 📦 What's Inside the Box
+
+```
+├── AGENTS.md                            # Universal Master Orchestration Rules
+├── README.md                            # Complete Documentation & Architecture
+├── LICENSE                              # MIT Open Source License
+└── .agents/
+    ├── agents/                          # 36 Individual Agent System Instructions
+    │   ├── 1_ai_specialist.md
+    │   ├── 2_backend_specialist.md
+    │   ├── 3_frontend_specialist.md
+    │   ├── 4_ceo.md
+    │   ├── 5_security_specialist.md
+    │   ├── 6_game_developer.md
+    │   ├── 7_11_user_testers.md
+    │   ├── 12_19_studio_specialists.md
+    │   ├── 20_22_game_power_agents.md
+    │   ├── 23_25_addiction_specialists.md
+    │   ├── 26_tech_stack_planner.md
+    │   ├── 27_32_mission_and_user_council.md
+    │   └── 33_36_v4_expansion_agents.md
+    └── skills/                          # Reusable Production Skills
+        ├── universal-game-engine/       # 7-Genre Physics, Audio & Rendering Pipeline
+        ├── build-full-game/             # End-to-End Autonomous Game Pipeline
+        └── game-plugin-module/          # Zero-Conflict Modular Expansion Contract
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions, new genre templates, audio synthesis equations, and agent personas are warmly welcome!
+1. Fork the repo.
+2. Create your feature branch (`git checkout -b feature/cool-mechanic`).
+3. Commit your changes (`git commit -m 'feat: add voxel engine template'`).
+4. Push to the branch (`git push origin feature/cool-mechanic`).
+5. Open a Pull Request.
 
 ---
 
 ## 📄 License
 
-This framework is licensed under the [MIT License](LICENSE). You are free to use, modify, and distribute it for both commercial and personal AI agent projects.
+Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for more information.
 
-*Created by [Muzaqil](https://github.com/Muzaqil555) — 2026*
+---
+
+<div align="center">
+
+**⭐ If this multi-agent studio inspired you or helped you build something awesome, please give it a star! ⭐**
+
+*Maintained with ❤️ by [Muzaqil](https://github.com/Muzaqil555) — 2026*
+
+</div>
