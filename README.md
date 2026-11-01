@@ -4,20 +4,39 @@
 
 ### Turn any 1-sentence prompt into a fully playable, zero-dependency browser game in minutes with an autonomous 36-agent parallel swarm.
 
-[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
+[![Play Live Demo](https://img.shields.io/badge/🎮%20Play%20Live%20Demo-Browser%20Showcase-brightgreen?style=for-the-badge&logo=googlechrome)](https://muzaqil555.github.io/game-for-ai/)
+[![Prompt Cookbook](https://img.shields.io/badge/Prompt%20Cookbook-10%20Recipes-red?style=for-the-badge&logo=markdown)](PROMPTS.md)
 [![Multi-Agent](https://img.shields.io/badge/Agents-36%20Specialized%20Swarm-orange?style=for-the-badge&logo=probot)](AGENTS.md)
 [![Zero-Conflict](https://img.shields.io/badge/Architecture-Zero--Conflict%20Parallel-emerald?style=for-the-badge&logo=git)](.agents/skills/universal-game-engine/SKILL.md)
-[![Prompt Cookbook](https://img.shields.io/badge/Prompt%20Cookbook-10%20Recipes-red?style=for-the-badge&logo=markdown)](PROMPTS.md)
 [![FPS](https://img.shields.io/badge/Performance-60--120%20FPS%20Guaranteed-purple?style=for-the-badge&logo=speedtest)](.agents/skills/universal-game-engine/SKILL.md)
 [![Compatibility](https://img.shields.io/badge/Compatible%20With-Antigravity%20%7C%20Cursor%20%7C%20Claude%20Code-cyan?style=for-the-badge&logo=openai)](README.md)
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
 <br/>
 
+<a href="https://muzaqil555.github.io/game-for-ai/" target="_blank">
+  <img src="https://img.shields.io/badge/▶%20CLICK%20HERE%20TO%20PLAY%20LIVE%20BROWSER%20DEMO-60--120%20FPS%20NO%20INSTALL-success?style=for-the-badge&logo=googleplay&logoColor=white" alt="Play Live Demo" height="42"/>
+</a>
+
+<br/><br/>
+
 **[⭐ Star this Repo](https://github.com/Muzaqil555/game-for-ai) to bookmark it for your next AI-generated game or software project!**
 
-[Overview](#-overview) • [Prompt Cookbook](PROMPTS.md) • [Why It's Different](#-why-this-is-different) • [Architecture](#-5-phase-autonomous-swarm-pipeline) • [Agent Roster](#-the-36-agent-roster) • [Model Mapping](#-universal-cross-platform-model-mapping) • [Quick Start](#-quick-start-in-30-seconds) • [License](#-license)
+[🎮 Play Live Demo](https://muzaqil555.github.io/game-for-ai/) • [Overview](#-overview) • [Prompt Cookbook](PROMPTS.md) • [Why It's Different](#-why-this-is-different) • [Architecture](#-5-phase-autonomous-swarm-pipeline) • [Agent Roster](#-the-36-agent-roster) • [Model Mapping](#-universal-cross-platform-model-mapping) • [Quick Start](#-quick-start-in-30-seconds) • [License](#-license)
 
 </div>
+
+---
+
+## 🎮 Play Live Browser Demo
+
+Want to see what this 36-agent swarm creates from a single prompt? You don't have to take our word for it — play a complete game built 100% autonomously by the studio:
+
+👉 **[▶ Launch Live Browser Demo (https://muzaqil555.github.io/game-for-ai/)](https://muzaqil555.github.io/game-for-ai/)**
+
+* **Zero Installs, Zero Asset Downloads:** 100% procedural Web Audio sound synthesis and procedural vector Canvas rendering.
+* **Desktop & Mobile:** Full responsive glassmorphism UI with on-screen virtual touch joysticks for mobile phones.
+* **Features Included in Demo:** 4 hot-swappable weapons, automated AI drone pet, DMC-style combo rankings (D ➔ SSS), Diablo-style colored loot beams, 3-branch talent tree, elite champions, and contextual onboarding.
 
 ---
 
@@ -34,7 +53,7 @@ And the 36-agent swarm will automatically draft the architectural spec, code 6 m
 
 ---
 
-## 🎮 Prompt Cookbook (1-Click Copy & Paste)
+## 📖 Prompt Cookbook (1-Click Copy & Paste)
 
 Check out [**`PROMPTS.md`**](PROMPTS.md) for 10 tested, battle-hardened game prompts ready to paste into your AI assistant:
 * 🗡️ **Neon Cyberpunk Katana Roguelite** (Hades-style perfect-dodge, style combos)
@@ -63,7 +82,8 @@ Check out [**`PROMPTS.md`**](PROMPTS.md) for 10 tested, battle-hardened game pro
 │ • No audio or broken sound files     │     │ • 100% Procedural Web Audio API sound & music          │
 │ • Untested console runtime errors    │     │ • Autonomous QA Gate + Auto-healing Bug Fixer          │
 │ • Boring, uncalibrated difficulty    │     │ • 9-Persona User Council audits fun & skill-ceiling    │
-│ • Manual setup & complex prompt engineering│ • Auto-activated via CLAUDE.md & .cursorrules       │
+│ • Manual setup & complex prompting   │     │ • Auto-activated via CLAUDE.md & .cursorrules          │
+│ • Unverified claim / no demo         │     │ • 1-Click playable browser demo available right away   │
 └──────────────────────────────────────┘     └────────────────────────────────────────────────────────┘
 ```
 
