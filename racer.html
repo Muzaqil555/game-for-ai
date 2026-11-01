@@ -574,6 +574,8 @@
       // ----------------------------------------------------------------------
       // 3. INITIALIZE GARAGE & PERSISTENCE
       // ----------------------------------------------------------------------
+      buildTrack();
+
       document.getElementById('record-score-val').textContent = bestScore.toLocaleString() + ' PTS';
       document.getElementById('record-credits-val').textContent = '$' + careerCredits.toLocaleString();
 
@@ -905,13 +907,15 @@
         drawSynthwaveSky();
 
         // 2. Scanline Pseudo-3D Road
-        const baseIdx = Math.floor(playerZ / SEGMENT_LEN);
-        let maxY = H;
-        let curveSum = 0;
+        if (segments.length > 0) {
+          const baseIdx = Math.floor(playerZ / SEGMENT_LEN);
+          let maxY = H;
+          let curveSum = 0;
 
-        for (let n = 0; n < 240; n++) {
-          const seg = segments[(baseIdx + n) % TOTAL_SEGMENTS];
-          const loop = Math.floor((baseIdx + n) / TOTAL_SEGMENTS);
+          for (let n = 0; n < 240; n++) {
+            const seg = segments[(baseIdx + n) % TOTAL_SEGMENTS];
+            if (!seg || !seg.p1 || !seg.p2) continue;
+            const loop = Math.floor((baseIdx + n) / TOTAL_SEGMENTS);
 
           const camX = playerTrackX * ROAD_WIDTH;
           const camY = CAMERA_HEIGHT;
@@ -949,6 +953,7 @@
 
           maxY = seg.p2.screen.y;
         }
+      }
 
         // 3. Render Roadblocks & Spike Strips
         if (pursuitAI) {
