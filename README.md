@@ -91,11 +91,15 @@ Whenever a feature or build is complete, the testing council reviews it from 9 d
 
 ## 🛠️ Reusable Agent Skills (`.agents/skills/`)
 
-### 1. `build-full-game`
+### 1. `universal-game-engine`
+- **Location:** [`.agents/skills/universal-game-engine/SKILL.md`](.agents/skills/universal-game-engine/SKILL.md)
+- **Purpose:** Universal genre-agnostic autonomous game creation pipeline for ANY game (2D Platformer, Top-Down Shooter, Tower Defense, Puzzle, Retro Racing, Roguelite RPG, 3D WebGL). Defines 7 genre matrices, physics equations (gravity, coyote time, jump buffering, 360° ballistics), procedural Canvas/SVG asset generation, and procedural Web Audio synthesizers (jump, laser, explosion, chiptune).
+
+### 2. `build-full-game`
 - **Location:** [`.agents/skills/build-full-game/SKILL.md`](.agents/skills/build-full-game/SKILL.md)
 - **Purpose:** Full autonomous production pipeline. When activated with a single prompt like *"build a complete game"*, it triggers Agent 26 to plan the architecture, spins up subagents in parallel waves, runs browser QA, queries user testers, and deploys.
 
-### 2. `game-plugin-module`
+### 3. `game-plugin-module`
 - **Location:** [`.agents/skills/game-plugin-module/SKILL.md`](.agents/skills/game-plugin-module/SKILL.md)
 - **Purpose:** Zero-conflict parallel module contract. Dictates how any agent adds new systems (loot, talents, bosses, hazards) as self-contained plugin modules (`window.GamePlugins = window.GamePlugins || []`) without touching or conflicting with other files.
 

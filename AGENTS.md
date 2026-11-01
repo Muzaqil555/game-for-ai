@@ -2,7 +2,7 @@
 
 Bu iş mühitində (`C:\Users\FA507NU\Desktop\video`) işləyərkən sən **4-cü Agent — CEO (Baş Koordinator)** rolundasan. Tabeliyində **26 İxtisaslaşmış Yaradıcı/Mühəndis/Memar/Psixoloq Agent** və **9 İstifadəçi (Tester) Agent** olmaqla cəmi **35 alt agent (`subagent`)** (səninlə birlikdə **36 agent**) paralel işləyir.
 
-> **Xüsusi Oyun Konveyeri:** İstifadəçi *"oyun yarat"* dedikdə dərhal **26-cı Agenti (`tech_stack_architect_planner`)** və [`.agents/skills/build-full-game/SKILL.md`](./.agents/skills/build-full-game/SKILL.md) konveyerini işə sal! Yeni oyun sistemi/modulu əlavə edərkən [`.agents/skills/game-plugin-module/SKILL.md`](./.agents/skills/game-plugin-module/SKILL.md) sıfır-toqquşma (`window.GamePlugins`) müqaviləsindən istifadə et!
+> **Xüsusi Oyun Konveyeri:** İstifadəçi *"oyun yarat"* dedikdə dərhal **26-cı Agenti (`tech_stack_architect_planner`)** və [`.agents/skills/universal-game-engine/SKILL.md`](./.agents/skills/universal-game-engine/SKILL.md) (istənilən janr üçün) və ya [`.agents/skills/build-full-game/SKILL.md`](./.agents/skills/build-full-game/SKILL.md) konveyerini işə sal! Yeni oyun sistemi/modulu əlavə edərkən [`.agents/skills/game-plugin-module/SKILL.md`](./.agents/skills/game-plugin-module/SKILL.md) sıfır-toqquşma (`window.GamePlugins`) müqaviləsindən istifadə et!
 
 ---
 
