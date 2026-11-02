@@ -781,7 +781,7 @@
 
         // Qəzaya uğramış (Wrecked) maşının fizikası
         if (cop.isWrecked) {
-          cop.z += cop.vz * dt;
+          cop.z += (cop.vz * 5.0) * dt;
           cop.x += cop.wreckSlideVx * dt;
           cop.wreckAngle += cop.wreckSpinSpeed * dt;
           cop.vz *= 0.96; // Tədricən dayanır
@@ -803,7 +803,7 @@
 
         // SWAT Rhino Head-on Hücum AI
         if (cop.role === 'head_on_ram') {
-          cop.z += cop.vz * dt; // Əks yolda irəliləyir
+          cop.z += (cop.vz * 5.0) * dt; // Əks yolda irəliləyir
           // Oyunçunun zolağına doğru ləng, amma qətiyyətlə yönəlir
           const dX = player.x - cop.x;
           cop.x += Math.sign(dX) * Math.min(Math.abs(dX), cop.handling * 0.4 * dt);
@@ -856,7 +856,7 @@
       // X koordinatı üzrə hərəkət
       const steerX = (cop.targetX - cop.x);
       cop.x += clamp(steerX * handling * dt, -0.04, 0.04);
-      cop.z += (cop.vz || 180) * dt;
+      cop.z += ((cop.vz || 180) * 5.0) * dt;
     }
 
     /**
@@ -936,7 +936,7 @@
       if (cop.state !== 'pit_executing') {
         const steer = (cop.targetX - cop.x);
         cop.x += clamp(steer * handling * dt, -0.06, 0.06);
-        cop.z += (cop.vz || 200) * dt;
+        cop.z += ((cop.vz || 200) * 5.0) * dt;
       }
     }
 
@@ -948,7 +948,7 @@
         const car = this.trafficUnits[i];
 
         if (car.isWrecked) {
-          car.z += car.vz * dt;
+          car.z += (car.vz * 5.0) * dt;
           car.x += car.wreckSlideVx * dt;
           car.wreckAngle += car.wreckSpinSpeed * dt;
           car.vz *= 0.95;
@@ -956,7 +956,7 @@
           continue;
         }
 
-        car.z += car.vz * dt;
+        car.z += (car.vz * 5.0) * dt;
 
         // Dövri zolaq dəyişmə
         car.laneChangeTimer -= dt;
@@ -986,8 +986,8 @@
       let takedownOccurred = false;
       let spikeEvasionOccurred = false;
 
-      const playerHitW = 0.30;
-      const playerHitL = 12.0;
+      const playerHitW = 0.22;
+      const playerHitL = 75.0;
 
       // ----------------------------------------------------------------------
       // A. POLİS MAŞINLARI İLƏ TOQQUŞMALAR (Burnout Takedown Yoxlaması)
@@ -996,8 +996,8 @@
         const cop = this.policeUnits[i];
         if (cop.isWrecked) continue;
 
-        const copHitW = cop.hitboxW || cop.width || 0.32;
-        const copHitL = cop.hitboxL || cop.length || 12.0;
+        const copHitW = cop.hitboxW || 0.22;
+        const copHitL = cop.hitboxL ? (cop.hitboxL * 6.5) : 75.0;
 
         const dX = Math.abs(player.x - cop.x);
         const dZ = Math.abs(player.z - cop.z);

@@ -1515,6 +1515,15 @@
     }
 
     /**
+     * Polad Çəpər / Metal Sürtünməsi Səsi (Metal Scrape & Guardrail Grind)
+     * @param {number} severity - Sürtünmə şiddəti
+     */
+    playMetalScrape(severity = 0.45) {
+      if (!this.ctx) return;
+      this.playCrash(clamp(severity, 0.25, 0.65));
+    }
+
+    /**
      * Polis Takedown Qələbə Partlayışı (Freeze-frame Cinematic Boom)
      */
     playTakedown() {

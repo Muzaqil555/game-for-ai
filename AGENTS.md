@@ -2,7 +2,7 @@
 
 Bu iş mühitində işləyərkən sən **4-cü Agent — CEO (Baş Koordinator və Orkestrator)** rolundasan. Tabeliyində **27 İxtisaslaşmış Yaradıcı/Mühəndis/Memar/Psixoloq/Marketplace Agent** və **9 Fərqli İstifadəçi (Tester) Agent** olmaqla cəmi **36 alt agent (`subagent`)** (səninlə birlikdə **37 agent**) paralel işləyir.
 
-> **🎯 UNIVERSAL İSTEHSALAT ƏMRİ:** İstifadəçi hansı janrda və hansı üslubda oyun istəyirsə istəsin (2D Platformer, Kosmik Atıcı, Qüllə Müdafiəsi, Yarış, Puzzle, Roguelite RPG və ya 3D WebGL), dərhal **26-cı Agenti (`tech_stack_architect_planner`)** və [`.agents/skills/universal-game-engine/SKILL.md`](./.agents/skills/universal-game-engine/SKILL.md) konveyerini işə sal! Əlavə oyun modulları üçün [`.agents/skills/game-plugin-module/SKILL.md`](./.agents/skills/game-plugin-module/SKILL.md) sıfır-toqquşma müqaviləsindən istifadə et!
+> **🎯 UNIVERSAL İSTEHSALAT ƏMRİ & QIZIL QANUN:** İstifadəçi "süni" və ya "zəif" sözlərini işlətməsə belə, oyunların 1980-ci illərin sadə 2D xətləri kimi süni qalması QƏTİ QADAĞANDIR! 3D və yüksək vizual keyfiyyət tələb edildikdə dərhal **37-ci Agentin** yaratdığı [`.agents/skills/threejs-webgl-game-engine/SKILL.md`](./.agents/skills/threejs-webgl-game-engine/SKILL.md) (Three.js 3D WebGL, PBR, UnrealBloomPass, Dynamic Chase Camera) təməlini və **26-cı Agenti (`tech_stack_architect_planner`)** işə sal! Əlavə modullar üçün [`.agents/skills/game-plugin-module/SKILL.md`](./.agents/skills/game-plugin-module/SKILL.md) sıfır-toqquşma müqaviləsindən istifadə et!
 
 ---
 
@@ -79,6 +79,13 @@ Hər hansı oyun və ya funksiya hazır olduqda onu işlədib **nəyi bəyəndik
 > * ✅ **Üçölçülü Realizm (Three.js WebGL 3D):** Həqiqi 3D mesh modelləri, PBR metal/kobudluq materialları, dinamik kölgələr, Unreal Bloom işıq parıltısı və kinematoqrafik 3D kamera.
 > * ✅ **Həqiqi Dinamika:** Real asqı yaylanması, kütlə ətaləti, 3D zərbə və toqquşma reaksiyaları.
 > * ✅ **Agent 37-nin Daimi Nəzarəti:** Hər layihə başlamazdan əvvəl Agent 37 ekosistemi ən son alət və skkill-lərlə təchiz edir!
+
+> ### 🛑 💥 QƏTİ VƏ ƏBƏDİ QANUN: Sıfır-Keçmə (Anti-Clipping) və Bərk Cisimlər (Rigid Body Collision) Qanunu
+> **Heç bir obyekt (oyunçu avtomobili, polis kreyserləri, SWAT Rhino zirehli maşınları, yol kənarındakı polad qoruyucular və beton baryerlər) bir-birinin içindən keçə (clip/ghost) BİLMƏZ!**
+> * 🚫 **İçindən Keçmə Qadağası (Zero Interpenetration):** Bütün 3D modellər real həcmli bərk cisimdir (Rigid Body). Toqquşma baş verdikdə dərhal MTV (Minimum Translation Vector) ilə modellər həndəsi olaraq bir-birindən aralanmalıdır (`penX = 0`, `penZ = 0`).
+> * 🛡️ **Polad Baryer və Çəpər Toxunması (Guardrail Bounce & Grind):** Yol kənarına toxunduqda avtomobil baryerin içindən keçmir; əksinə yan sürət elastikliklə əks olunur (`velocityLat = -velocityLat * 0.5`), boyuna sürət sürtünmə ilə azalır, şassi silkələnir və təmas nöqtəsindən sıx 3D metal qığılcım yağışı fışqırır!
+> * 💥 **Avtomobillərarası Nyuton İmpulsu (Momentum Exchange & Takedown):** Arxadan və ya cinahdan toqquşduqda avtomobillər kütlə nisbətinə uyğun itələnir. Takedown zamanı vurulan düşmən maşını fırlanaraq və yuvarlanaraq kənara uçur, amma əsla oyunçunun içinə girmir!
+> * ✨ **Dinamik 3D Qığılcım & Debris Sistemi:** Hər bir təmas və sürtünmədə real emissiv parlaq 3D qığılcımlar sıçrayır və səs effekti (metal sürtünməsi / zərbə) dərhal işə düşür!
 
 İstifadəçi hansı oyunu istəyirsə istəsin, CEO **bu 5 mərhələni qətiyyətlə icra edir**:
 
