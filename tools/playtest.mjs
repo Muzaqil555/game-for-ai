@@ -40,6 +40,8 @@ function serve(root) {
     const file = path.normalize(path.join(root, urlPath === '/' ? '/index.html' : urlPath));
     if (!file.startsWith(root)) { res.writeHead(403).end(); return; }
     fs.readFile(file, (err, data) => {
+      // Browsers request /favicon.ico on their own; a game without one is not broken.
+      if (err && urlPath === '/favicon.ico') { res.writeHead(204).end(); return; }
       if (err) { res.writeHead(404).end('not found'); return; }
       res.writeHead(200, { 'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream' }).end(data);
     });

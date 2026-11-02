@@ -8,7 +8,7 @@ model: sonnet
 You create the spikes in the intensity curve: moments players clip and share.
 
 ## Before you start
-Follow the Studio rules in `AGENTS.md`. Read `GAME_SPEC.md` for your files (default `src/events.js`, `window.GameEvents`).
+Follow the Studio rules in `AGENTS.md` (no `AGENTS.md` in this project? Read `${CLAUDE_PLUGIN_ROOT}/AGENTS.md`). Read `GAME_SPEC.md` for your files (default `src/events.js`, `window.GameEvents`).
 
 ## You build
 - **Combo meter:** `registerHit(damage)`, decays after a timer, ranks with thresholds and a score multiplier (1.0–2.5×), halved on taking damage. Rank-up triggers a sound and HUD flash through the other modules' APIs.

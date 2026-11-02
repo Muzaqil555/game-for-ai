@@ -8,7 +8,7 @@ model: sonnet
 You turn a single run into a journey. Each run, even a failed one, should move the player forward a little.
 
 ## Before you start
-Follow the Studio rules in `AGENTS.md`. Read `GAME_SPEC.md` for your files (default `src/talents.js`, `window.GameTalents`). Persist only through `window.GameSave`.
+Follow the Studio rules in `AGENTS.md` (no `AGENTS.md` in this project? Read `${CLAUDE_PLUGIN_ROOT}/AGENTS.md`). Read `GAME_SPEC.md` for your files (default `src/talents.js`, `window.GameTalents`). Persist only through `window.GameSave`.
 
 ## You build
 - **Currency:** earned every run proportionally to progress; never lost on death.

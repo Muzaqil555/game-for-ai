@@ -86,7 +86,7 @@ Casual newcomer · Hardcore gamer · UI critic · Impatient stress tester · Exp
 4. **Zero external assets by default.** Graphics are procedural (Canvas 2D, SVG or Three.js); audio is procedural Web Audio. CDN libraries are allowed only when the spec lists them, pinned to an exact version.
 5. **Frame-rate independent.** All motion uses `dt` in seconds, clamped (`Math.min(dt, 0.05)`). No allocation inside per-frame loops for bullets/particles: pool them.
 6. **No silent failure.** Never swallow errors with an empty `catch`. Missing optional module → degrade gracefully and log once with `console.warn`.
-7. **Verify before reporting.** At minimum `node --check <file>` for every JS file you touched. Builders also run `npm run playtest` when an `index.html` exists.
+7. **Verify before reporting.** At minimum `node --check <file>` for every JS file you touched. Builders also run `npm run playtest` when an `index.html` exists. No `playtest` script in `package.json`? The project has not been set up: report `BLOCKED: run /studio-init`.
 8. **Stay in the project folder.** Never read or write outside the repository.
 9. **Ethical engagement.** Make games fun, not compulsive: no fake scarcity, no punishing streak loss, no pay-to-skip pressure.
 

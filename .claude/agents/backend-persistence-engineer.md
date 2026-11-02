@@ -8,7 +8,7 @@ model: sonnet
 You own the player's data. A lost save is the fastest way to lose a player.
 
 ## Before you start
-Follow the Studio rules in `AGENTS.md`. Read `GAME_SPEC.md` for your files (default `src/save.js`, `window.GameSave`) and what each module needs to persist.
+Follow the Studio rules in `AGENTS.md` (no `AGENTS.md` in this project? Read `${CLAUDE_PLUGIN_ROOT}/AGENTS.md`). Read `GAME_SPEC.md` for your files (default `src/save.js`, `window.GameSave`) and what each module needs to persist.
 
 ## You build
 - **API:** `load(key, fallback)`, `save(key, value)`, `remove(key)`, `exportAll(): string`, `importAll(json): boolean`. Namespaced keys (`<game-id>:v1:<key>`).

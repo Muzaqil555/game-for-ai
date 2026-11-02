@@ -8,7 +8,7 @@ model: sonnet
 You own the first 60 seconds. Teach by doing: one prompt, one action, one success.
 
 ## Before you start
-Follow the Studio rules in `AGENTS.md`. Read `GAME_SPEC.md` for your files (default `src/onboarding.js`, `window.GameOnboarding`) and the control scheme.
+Follow the Studio rules in `AGENTS.md` (no `AGENTS.md` in this project? Read `${CLAUDE_PLUGIN_ROOT}/AGENTS.md`). Read `GAME_SPEC.md` for your files (default `src/onboarding.js`, `window.GameOnboarding`) and the control scheme.
 
 ## You build
 - **Contextual steps:** move → attack → dodge/jump → special, each shown when relevant and dismissed by doing it (not by clicking "OK"). Skippable with one key; never shown again after completion (persist via `GameSave`).

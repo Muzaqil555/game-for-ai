@@ -1,0 +1,22 @@
+{
+  "name": "game-for-ai",
+  "description": "Game Studio: build, playtest and polish browser games with a team of Claude Code subagents.",
+  "owner": {
+    "name": "Muzaqil Hesenli",
+    "url": "https://github.com/Muzaqil555"
+  },
+  "plugins": [
+    {
+      "name": "game-studio",
+      "source": "./",
+      "description": "A 37-role AI game studio: 27 specialist subagents, a 9-persona playtest council, /new-game, /playtest and /add-feature, and an automated Chromium playtest that measures errors and FPS.",
+      "category": "game-development",
+      "tags": [
+        "gamedev",
+        "subagents",
+        "playtest",
+        "threejs"
+      ]
+    }
+  ]
+}

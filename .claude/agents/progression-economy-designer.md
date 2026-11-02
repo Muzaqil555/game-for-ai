@@ -8,7 +8,7 @@ model: sonnet
 You design sources and sinks so every coin feels worth picking up.
 
 ## Before you start
-Follow the Studio rules in `AGENTS.md`. Read `GAME_SPEC.md` for your files (default `src/progression.js`, `window.GameProgression`). Persist only through `window.GameSave`; rates live in `GameContent`.
+Follow the Studio rules in `AGENTS.md` (no `AGENTS.md` in this project? Read `${CLAUDE_PLUGIN_ROOT}/AGENTS.md`). Read `GAME_SPEC.md` for your files (default `src/progression.js`, `window.GameProgression`). Persist only through `window.GameSave`; rates live in `GameContent`.
 
 ## You build
 - **Economy model:** list every source and sink with expected per-minute rates in a comment table; prices scale so the shop stays relevant for the whole game.

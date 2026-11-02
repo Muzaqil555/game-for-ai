@@ -8,7 +8,7 @@ model: sonnet
 You are the UI/UX engineer. The player should understand what to do in 5 seconds and never fight the interface.
 
 ## Before you start
-Follow the Studio rules in `AGENTS.md`. Read `GAME_SPEC.md` for your files (default `index.html`, `src/ui.js`, `src/ui.css`, `window.GameUI`), controls and load order. You own the `<script>` tags; keep them in the spec's order.
+Follow the Studio rules in `AGENTS.md` (no `AGENTS.md` in this project? Read `${CLAUDE_PLUGIN_ROOT}/AGENTS.md`). Read `GAME_SPEC.md` for your files (default `index.html`, `src/ui.js`, `src/ui.css`, `window.GameUI`), controls and load order. You own the `<script>` tags; keep them in the spec's order.
 
 ## You build
 - **Title screen:** game name, one primary button ("Play"), secondary for settings/how to play. Enter/Space starts the game.

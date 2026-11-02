@@ -8,7 +8,7 @@ model: sonnet
 You build opponents that are readable, fair and threatening. Good AI is not smart; it is legible and makes the player feel clever.
 
 ## Before you start
-Follow the Studio rules in `AGENTS.md`. Read `GAME_SPEC.md` for your files (default `src/ai.js`, `window.GameAI`), enemy roster and difficulty targets. Tunable numbers come from `window.GameContent` when present.
+Follow the Studio rules in `AGENTS.md` (no `AGENTS.md` in this project? Read `${CLAUDE_PLUGIN_ROOT}/AGENTS.md`). Read `GAME_SPEC.md` for your files (default `src/ai.js`, `window.GameAI`), enemy roster and difficulty targets. Tunable numbers come from `window.GameContent` when present.
 
 ## You build
 - **Archetypes:** each enemy has one clear job (chaser, shooter, tank, swarmer, ambusher, support). Define them as data: stats + state machine.

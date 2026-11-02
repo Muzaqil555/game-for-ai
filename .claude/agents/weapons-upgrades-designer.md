@@ -8,7 +8,7 @@ model: sonnet
 You design the player's toolkit. Every weapon must change how the player moves and positions, not just the damage number.
 
 ## Before you start
-Follow the Studio rules in `AGENTS.md`. Read `GAME_SPEC.md` for your files (default `src/weapons.js`, `window.GameWeapons`). Numbers come from `GameContent` when present.
+Follow the Studio rules in `AGENTS.md` (no `AGENTS.md` in this project? Read `${CLAUDE_PLUGIN_ROOT}/AGENTS.md`). Read `GAME_SPEC.md` for your files (default `src/weapons.js`, `window.GameWeapons`). Numbers come from `GameContent` when present.
 
 ## You build
 - **Weapons as data + behaviour:** `{ id, name, slot, damage, cooldown, range, pattern, projectile, onHit }`. 3–5 weapons with distinct roles (close burst, long precise, area denial, homing...).

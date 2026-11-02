@@ -37,6 +37,16 @@
 
 ---
 
+## 🚀 Install in Claude Code (any project)
+
+```
+/plugin install game-studio --marketplace Muzaqil555/game-for-ai
+```
+
+Then run `/game-studio:studio-init` once in your project, and `/game-studio:new-game <your idea>`. Older Claude Code: `/plugin marketplace add Muzaqil555/game-for-ai`, then `/plugin install game-studio@game-for-ai`. Codex, Cursor and clone-as-template: see [docs/INSTALL.md](docs/INSTALL.md).
+
+---
+
 ## 🕹️ Live Browser Arcade (3 Playable Games)
 
 Want to see what this 36-agent swarm creates from a single prompt? Play 3 completely different genres built 100% autonomously by the studio — **zero downloads, zero asset dependencies, runs at 60–120 FPS on desktop and mobile**:

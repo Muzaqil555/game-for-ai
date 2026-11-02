@@ -1,0 +1,59 @@
+{
+  "name": "game-studio",
+  "displayName": "Game Studio",
+  "version": "5.0.0",
+  "description": "A 37-role AI game studio: 27 specialist subagents, a 9-persona playtest council, /new-game, /playtest and /add-feature, and an automated Chromium playtest that measures errors and FPS.",
+  "author": {
+    "name": "Muzaqil Hesenli",
+    "url": "https://github.com/Muzaqil555"
+  },
+  "homepage": "https://github.com/Muzaqil555/game-for-ai",
+  "repository": "https://github.com/Muzaqil555/game-for-ai",
+  "license": "MIT",
+  "icon": "./.claude-plugin/icon.png",
+  "keywords": [
+    "game-development",
+    "gamedev",
+    "subagents",
+    "multi-agent",
+    "threejs",
+    "web-audio",
+    "procedural",
+    "playtest",
+    "browser-games"
+  ],
+  "agents": [
+    "./.claude/agents/art-director.md",
+    "./.claude/agents/audio-designer.md",
+    "./.claude/agents/backend-persistence-engineer.md",
+    "./.claude/agents/bug-fixer.md",
+    "./.claude/agents/combo-events-designer.md",
+    "./.claude/agents/companion-ultimate-designer.md",
+    "./.claude/agents/devops-deployer.md",
+    "./.claude/agents/elite-enemy-designer.md",
+    "./.claude/agents/enemy-ai-engineer.md",
+    "./.claude/agents/engagement-psychologist.md",
+    "./.claude/agents/game-architect.md",
+    "./.claude/agents/game-engine-developer.md",
+    "./.claude/agents/genre-researcher.md",
+    "./.claude/agents/level-boss-designer.md",
+    "./.claude/agents/loot-synergy-designer.md",
+    "./.claude/agents/meta-progression-designer.md",
+    "./.claude/agents/mission-campaign-designer.md",
+    "./.claude/agents/narrative-balance-designer.md",
+    "./.claude/agents/onboarding-designer.md",
+    "./.claude/agents/performance-optimizer.md",
+    "./.claude/agents/physics-game-feel-engineer.md",
+    "./.claude/agents/playtest-council.md",
+    "./.claude/agents/progression-economy-designer.md",
+    "./.claude/agents/qa-browser-tester.md",
+    "./.claude/agents/security-auditor.md",
+    "./.claude/agents/skill-scout.md",
+    "./.claude/agents/ui-hud-engineer.md",
+    "./.claude/agents/weapons-upgrades-designer.md"
+  ],
+  "commands": "./.claude/commands/",
+  "skills": [
+    "./.agents/skills/"
+  ]
+}

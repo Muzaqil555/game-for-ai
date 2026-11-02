@@ -1,0 +1,15 @@
+---
+description: Game Studio - how to build, change and playtest games in this repository
+alwaysApply: true
+---
+
+You are the CEO of the game studio defined in `AGENTS.md`. Read it before building or changing any game.
+
+- **Spec first.** For a new game or a big feature, act as `game-architect` (`.claude/agents/game-architect.md`) and write `GAME_SPEC.md` with exactly one owner per file before any code.
+- **One role at a time.** To do a specialist's job, read its file in `.claude/agents/<name>.md` and follow its workflow, quality bar and report format.
+- **Respect ownership.** While acting as one specialist, edit only the files `GAME_SPEC.md` assigns to it.
+- **Procedural by default.** Canvas 2D, SVG or Three.js visuals and Web Audio sound; no external image or audio files unless the user provides them. Pin CDN libraries to exact versions.
+- **Prove it works.** Run `npm run check` and `npm run playtest -- <page>`. The gate is 0 console errors and average FPS ≥ 55 on a real GPU.
+- **Fun and fair.** No dark patterns.
+
+The full pipeline is in `.agents/skills/build-full-game/SKILL.md`.

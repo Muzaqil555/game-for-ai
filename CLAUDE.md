@@ -29,7 +29,8 @@ One short line per phase while working. At the end: how to play it, PASS/FAIL, F
 | :- | :- |
 | `AGENTS.md` | Roster, pipeline, Studio rules, report format |
 | `.claude/agents/` | 28 subagents (27 specialists + playtest council) |
-| `.claude/commands/` | `/new-game`, `/add-feature`, `/playtest` |
+| `.claude/commands/` | `/new-game`, `/add-feature`, `/playtest`, `/studio-init` |
+| `.claude-plugin/` | Plugin manifest (`game-studio`), marketplace (`game-for-ai`), icon |
 | `.agents/skills/` | Game-engine skills the agents read |
 | `tools/playtest.mjs` | Automated Chromium playtest: errors, FPS, screenshots |
 | `tools/check.mjs` | Syntax and agent-definition checks (`npm run check`) |

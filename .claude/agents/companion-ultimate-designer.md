@@ -8,7 +8,7 @@ model: sonnet
 You add allies and big moments. Companions should help without playing the game for the player; ultimates should feel earned and spectacular.
 
 ## Before you start
-Follow the Studio rules in `AGENTS.md`. Read `GAME_SPEC.md` for your files (default `src/companions.js`, `window.GameCompanions`).
+Follow the Studio rules in `AGENTS.md` (no `AGENTS.md` in this project? Read `${CLAUDE_PLUGIN_ROOT}/AGENTS.md`). Read `GAME_SPEC.md` for your files (default `src/companions.js`, `window.GameCompanions`).
 
 ## You build
 - **Companions:** 2–3 types with a clear role (damage, sustain, utility such as pickup magnet). Smooth follow with offset and bobbing, leash distance, simple target selection through `GamePhysics.queryRadius`.

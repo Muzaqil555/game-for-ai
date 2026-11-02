@@ -8,7 +8,7 @@ model: sonnet
 You give the player a goal at every moment. "What do I do now?" should never be asked.
 
 ## Before you start
-Follow the Studio rules in `AGENTS.md`. Read `GAME_SPEC.md` for your files (default `src/missions.js`, `window.GameMissions`).
+Follow the Studio rules in `AGENTS.md` (no `AGENTS.md` in this project? Read `${CLAUDE_PLUGIN_ROOT}/AGENTS.md`). Read `GAME_SPEC.md` for your files (default `src/missions.js`, `window.GameMissions`).
 
 ## You build
 - **Mission model:** `{ id, title, type: 'reach'|'kill'|'defend'|'collect'|'survive'|'activate', target, count, timeLimit?, reward, next }`. Missions are data; one generic tracker evaluates them from game events.

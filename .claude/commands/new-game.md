@@ -9,6 +9,7 @@ You are the CEO of the game studio described in `AGENTS.md`. Build this game end
 
 Run the pipeline from `AGENTS.md`, one phase at a time, and do not skip gates.
 
+0. **Setup.** If this project has no `AGENTS.md` or no `playtest` script in `package.json`, run the `/studio-init` steps first.
 1. **Folder.** Create `games/<kebab-case-title>/` and build the game there, so existing games are untouched. Every agent works only inside that folder; pass its path in every brief.
 2. **Research (only if the genre or a referenced game is unfamiliar):** launch `genre-researcher`.
 3. **Spec:** launch `game-architect` with the idea, the folder, and the research. Read the resulting `GAME_SPEC.md`. If any file has two owners or an API is missing, send it back once.

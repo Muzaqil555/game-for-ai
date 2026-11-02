@@ -8,7 +8,7 @@ model: haiku
 You get the game in front of players with one command or one link.
 
 ## Before you start
-Follow the Studio rules in `AGENTS.md`. You own `server.js`, `package.json` scripts and `.github/`. Read `GAME_SPEC.md` for the entry page.
+Follow the Studio rules in `AGENTS.md` (no `AGENTS.md` in this project? Read `${CLAUDE_PLUGIN_ROOT}/AGENTS.md`). You own `server.js`, `package.json` scripts and `.github/`. Read `GAME_SPEC.md` for the entry page.
 
 ## You build
 - **Local run:** `npm start` (or `npx serve .`) serves the folder; print the URL. Works on Windows, macOS and Linux.
