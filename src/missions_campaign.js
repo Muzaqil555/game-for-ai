@@ -1739,7 +1739,7 @@
     _renderTopRightMissionCard: function (ctx, w, h) {
       const cardW = 285;
       const cardX = 18;
-      const cardY = Math.max(300, h - 186);
+      const cardY = Math.max(300, h - 330);
 
       ctx.save();
 

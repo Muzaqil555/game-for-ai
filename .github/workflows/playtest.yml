@@ -1,0 +1,44 @@
+name: playtest
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  playtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      - name: Check scripts and agent definitions
+        run: npm run check
+
+      # CI runners have no GPU, so FPS is not representative there and is not gated.
+      # Every game must load, start and survive 15 s of random input with 0 console errors.
+      - name: Playtest Aetheria (index.html)
+        run: npm run playtest -- index.html --seconds 15 --software
+      - name: Playtest Apex Pursuit 3D (racer.html)
+        run: npm run playtest -- racer.html --seconds 15 --software
+      - name: Playtest Void Nova (shooter.html)
+        run: npm run playtest -- shooter.html --seconds 15 --software
+      - name: Playtest Void Nova on mobile
+        run: npm run playtest -- shooter.html --seconds 10 --software --mobile
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playtest-results
+          path: playtest-results/
+          retention-days: 14

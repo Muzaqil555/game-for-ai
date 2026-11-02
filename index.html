@@ -74,10 +74,10 @@
     /* UI Qatı */
     #ui-root {
       position: fixed;
-      top: 0;
+      top: var(--arcade-h, 42px);
       left: 0;
       width: 100vw;
-      height: 100vh;
+      height: calc(100vh - var(--arcade-h, 42px));
       pointer-events: none;
       z-index: 10;
       overflow: hidden;
@@ -1951,9 +1951,64 @@
       color: #c084fc;
       font-size: 1.15rem;
     }
+    /* ==========================================================================
+       ARCADE NAVIGATION BAR (fixed top strip; #ui-root starts below it)
+       ========================================================================== */
+    :root { --arcade-h: 42px; }
+    #arcade-bar { position: fixed; top: 0; left: 0; right: 0; height: var(--arcade-h); background: rgba(8, 6, 18, 0.94); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(245, 197, 66, 0.35); display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 16px; padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); z-index: 99999; font-family: 'Plus Jakarta Sans', sans-serif; pointer-events: auto; white-space: nowrap; }
+    .arcade-title { font-family: 'Cinzel', serif; font-size: 13px; font-weight: 800; color: #f5c542; display: flex; align-items: center; gap: 8px; }
+    .arcade-sub { font-size: 10px; color: #ffd700; font-family: sans-serif; font-weight: 600; }
+    .arcade-links { display: flex; gap: 8px; }
+    .arcade-btn { padding: 4px 11px; border-radius: 6px; font-size: 11px; font-weight: 700; text-decoration: none; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 5px; border: 1px solid rgba(255,255,255,0.2); color: #e2e8f0; background: rgba(255,255,255,0.05); }
+    .arcade-btn:hover, .arcade-btn.active { background: #f5c542; color: #000; border-color: #f5c542; box-shadow: 0 0 10px rgba(245,197,66,0.5); }
+    .arcade-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+    .arcade-github { background: rgba(255,215,0,0.15); border-color: #ffd700; color: #ffd700; }
+    .arcade-github:hover { background: #ffd700; color: #000; }
+    @media (max-width: 600px) {
+      :root { --arcade-h: 44px; }
+      #arcade-bar { padding: 0 8px; justify-content: center; }
+      .arcade-title, .arcade-name { display: none; }
+      .arcade-links { gap: 6px; }
+      .arcade-btn { min-width: 44px; min-height: 36px; padding: 4px 8px; font-size: 12px; }
+    }
+
+    /* Closed talent modal stays in the DOM (opacity 0); its children must never catch clicks or taps */
+    #talent-tree-modal:not(.active),
+    #talent-tree-modal:not(.active) * { pointer-events: none !important; }
+
+    /* Quest tracker never grows into the bottom action bar */
+    .hud-mid-right { max-height: calc(100vh - var(--arcade-h) - 225px - 112px); overflow: hidden; }
+    .hud-mid-right .quest-list { overflow: hidden; }
+    @media (max-width: 600px) {
+      /* Phones: keep the centre clear. Minimap and FPS are dropped, buttons stack on the right edge. */
+      .minimap-wrapper, .fps-badge, #quest-tracker { display: none !important; }
+      .hud-top-right { top: 10px; right: 10px; }
+      .hud-quick-buttons { flex-direction: column; gap: 8px; }
+      .hud-icon-btn { width: 44px; height: 44px; }
+      .hud-top-left { top: 10px; left: 10px; max-width: calc(100vw - 80px); }
+      .player-hero-card { min-width: 0; padding: 8px 12px; gap: 10px; }
+      .hud-mid-right { top: auto; bottom: 200px; max-width: 200px; }
+    }
+
+    /* Modal panel open: HUD trackers underneath get out of the way */
+    #game-hud.panel-open .hud-mid-right,
+    #game-hud.panel-open .combo-hud-container,
+    #game-hud.panel-open .hud-top-right,
+    #game-hud.panel-open .hud-top-center,
+    #game-hud.panel-open .weapons-panel,
+    #game-hud.panel-open .hud-bottom-center { opacity: 0; visibility: hidden; transition: opacity 0.15s; }
   </style>
 </head>
 <body>
+  <div id="arcade-bar">
+    <div class="arcade-title"><span>🕹️ AI STUDIO ARCADE</span><span class="arcade-sub">(Game 1 of 3)</span></div>
+    <div class="arcade-links">
+      <a href="index.html" class="arcade-btn active" aria-current="page" aria-label="Aetheria RPG"><span>⚔️ 1.</span><span class="arcade-name">Aetheria RPG</span></a>
+      <a href="racer.html" class="arcade-btn" aria-label="Apex Pursuit 3D"><span>🏎️ 2.</span><span class="arcade-name">Apex Pursuit 3D</span></a>
+      <a href="shooter.html" class="arcade-btn" aria-label="Void Nova"><span>🚀 3.</span><span class="arcade-name">Void Nova</span></a>
+      <a href="https://github.com/Muzaqil555/game-for-ai" target="_blank" rel="noopener" class="arcade-btn arcade-github" aria-label="Star the repo on GitHub">⭐<span class="arcade-name">Star Repo</span></a>
+    </div>
+  </div>
 
   <!-- ƏSAS OYUN KANVASI -->
   <canvas id="game-canvas"></canvas>

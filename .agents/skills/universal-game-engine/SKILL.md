@@ -1,108 +1,108 @@
 ---
 name: universal-game-engine
-description: Universal autonomous game creation pipeline for any genre (2D Platformer, Top-Down Shooter, Tower Defense, Puzzle, Retro Racing, Roguelite RPG, 3D WebGL). Defines genre matrices, physics rules, procedural assets, procedural Web Audio, and multi-agent coordination.
+description: Genre templates and engine rules for building any browser game from scratch with no external assets (2D platformer, top-down shooter, tower defense, puzzle, retro racer, roguelike RPG, 3D WebGL). Use when picking a genre, physics rules, procedural graphics or Web Audio, or when splitting work across agents.
 ---
 
-# 🕹️ Universal AI Game Engine & Genre Pipeline
+# Universal Game Engine and Genre Pipeline
 
-Bu bacarıq (**Skill**) studiyaya **istənilən janrda və istənilən üslubda** brauzer oyunlarını sıfırdan, xarici fayl asılılığı olmadan (Zero-Asset) və 60–120 FPS sabitliklə yaratmaq üçün universal memarlıq və riyazi qaydaları təmin edir.
-
----
-
-## 🎯 1. Əsas Fəlsəfə və Prinsiplər
-
-1. **Sıfır Xarici Asılılıq (Zero-Dependency):** İnternetdən heç bir `.png`, `.jpg`, `.mp3` və ya ağır kitabxana yüklənmir. Bütün vizuallar HTML5 Canvas/SVG, bütün səslər isə Web Audio API ilə kod səviyyəsində sintez olunur.
-2. **60–120 FPS Standartı:** Obyekt hovuzları (Object Pooling), minimum garbage collection və `requestAnimationFrame` delta-time (`dt`) inteqrasiyası.
-3. **Mükəmməl "Game Feel" (Juice):** İstənilən janrda ekran sarsıntısı (Screen Shake), zərbə anında mikroskopik dondurma (Hit-Stop), zərrəcik partlayışları (Particles) və dinamik rənglər.
-4. **Hər Cihazda İşləmə:** Həm klaviatura/siçan, həm də toxunma (Touch/Mobil virtual joystik) dəstəyi.
-5. **Sıfır-Keçmə və Bərk Cisimlər (Zero-Clipping Rigid Body Collisions):** Heç bir fiziki obyekt, düşmən və ya baryer bir-birinin içindən keçə bilməz. Bütün toqquşmalarda MTV (Minimum Translation Vector) ayırması, Nyuton impulsu, çəpər sıçrayışı və təmas nöqtəsindən qığılcım/zibil püskürməsi məcburidir.
+This skill gives the studio the architecture and math rules to build browser games in **any genre and style** from scratch, with no external file dependencies (zero-asset) and a stable 60-120 FPS.
 
 ---
 
-## 🎮 2. 7 Əsas Janr Matrisi (Genre Matrix)
+## 1. Core Principles
 
-İstifadəçi bir oyun istədikdə, **`game-architect`** və **CEO (əsas sessiya)** dərhal aşağıdakı 7 şablondan ən uyğun olanını seçir:
-
-### A. 2D Platformer (Mario, Celeste, Hollow Knight üslubu)
-* **İdarəetmə:** `A/D` və ya Oxlar (Hərəkət), `Space / W` (Tullanma), `Shift` (Dash / Sürətlənmə).
-* **Fizika:**
-  * Qravitasiya: `vy += GRAVITY * dt` (`GRAVITY ≈ 1800-2400 px/s²`).
-  * Tullanma İmpulsu: `vy = -JUMP_FORCE` (`JUMP_FORCE ≈ 650-800 px/s`).
-  * **Coyote Time (0.1s):** Platformanın kənarından düşdükdən sonra 100ms ərzində tullanma şansı saxlanılır.
-  * **Jump Buffering (0.1s):** Yerə enməzdən 100ms əvvəl tullanma düyməsi basılarsa, yerə dəyən an avtomatik tullanır.
-  * Divardan Sürüşmə və Divardan Tullanma (Wall Slide / Wall Jump).
-* **Məqsəd:** Maneələrdən keçmək, qızıl/ulduz toplamaq, bayrağa/qapıya çatmaq.
-
-### B. Top-Down / Kosmik Atıcı (Vampire Survivors, Galaga, Asteroids)
-* **İdarəetmə:** `WASD` (Hərəkət), Siçan Kursoru (360° Nişanalma), Sol Klik və ya Avtomatik Atəş.
-* **Fizika:**
-  * Bucaq: `const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x)`.
-  * Mərmi sürəti: `vx = Math.cos(angle) * SPEED; vy = Math.sin(angle) * SPEED`.
-  * Düşmən axını (Swarm / Wave Spawner) və toqquşma dairələri (`dist < r1 + r2`).
-* **Məqsəd:** Düşmən dalğalarını məhv etmək, silahları upgrade etmək, vaxt bitənədək sağ qalmaq.
-
-### C. Qüllə Müdafiəsi & Strategiya (Tower Defense / RTS)
-* **İdarəetmə:** Siçan Kliki (Qüllə tikmək, upgrade etmək, qabiliyyət seçmək).
-* **Fizika və Məntiq:**
-  * Şəbəkə Sistemi (Grid Matrix: məsələn, 20x12 xanalar).
-  * **A* (A-Star) və ya Yol Xətti (Waypoints):** Düşmənlərin bazaya doğru hərəkəti.
-  * Qüllə Baxışı və Atəşi: Dairəvi radius daxilindəki ilk düşməni hədəf alıb atəş açmaq.
-  * İqtisadiyyat: Qızıl qazanmaq, qüllələrin səviyyəsini artırmaq.
-* **Məqsəd:** Baza canını 0-a düşməkdən qorumaq, 20-50 dalğanı dəf etmək.
-
-### D. Puzzle / Məntiq / Qrid (Tetris, Match-3, 2048)
-* **İdarəetmə:** Oxlar / WASD (Fiqurları fırlatmaq və ya sürüşdürmək).
-* **Məntiq:**
-  * İkiölçülü Matris Yoxlanışı (`grid[row][col]`).
-  * Xətlərin tamamlanması və ya 3 eyni rəngin yan-yana gəlməsi alqoritmi.
-  * Kombo sayğacı və kaskad partlayışlar.
-* **Məqsəd:** Sahənin dolmasının qarşısını almaq, maksimum rekord xal (High Score) toplamaq.
-
-### E. Retro Yarış və Sürət (Outrun, Micro Machines)
-* **İdarəetmə:** `A/D` (Sükan / Dönmə), `W` (Qaz / Akselerasiya), `S` (Əyləc).
-* **Fizika:**
-  * Sürət və Sürtünmə: `speed = clamp(speed + accel * dt - friction * dt, 0, maxSpeed)`.
-  * Psevdo-3D yol perspektivi və ya 2D yuxarıdan baxışlı maşın drifti (`driftFactor`).
-  * Yoldakı maneələr, benzin/turbo çənləri və rəqib maşınlar.
-* **Məqsəd:** Vaxt bitmədən finiş xəttini keçmək və ya 3 dövrə vurmaq.
-
-### F. Zindan Kəşfiyyatı & Roguelike RPG (Hades, Binding of Isaac)
-* **İdarəetmə:** `WASD` + Hücum + Xüsusi Güc + Dash.
-* **Məntiq:**
-  * Otaqdan-otağa keçid, təsadüfi qənimətlər, reliktlər, bacarıq ağacı.
-  * Boss döyüşləri və faza dəyişmələri.
-* **Məqsəd:** Zindanın son mərtəbəsinə çatıb qaranlıq hakimi devirmək.
-
-### G. 3D WebGL (Three.js Minimalist)
-* **Kitabxana:** CDN üzərindən tək Three.js script-i (`https://unpkg.com/three@0.160.0/build/three.min.js`).
-* **Məntiq:**
-  * 3D Səhnə (`Scene`), Perspektiv Kamera (`PerspectiveCamera`), İşıqlandırma (`DirectionalLight` + `AmbientLight`).
-  * Sadə həndəsi fiqurlardan ibarət parlaq stilizə olunmuş 3D modellər (`BoxGeometry`, `SphereGeometry`, `CylinderGeometry`).
-* **Məqsəd:** 3D dünyada qaçış, tullanma və ya kosmik uçuş.
+1. **Zero dependencies:** no `.png`, `.jpg`, `.mp3` or heavy library is loaded from the internet. All visuals are drawn in code with HTML5 Canvas/SVG, and all sounds are synthesized with the Web Audio API.
+2. **60-120 FPS:** object pooling, minimal garbage collection, and `requestAnimationFrame` with delta-time (`dt`) integration.
+3. **Game feel (juice):** every genre gets screen shake, a micro-freeze on impact (hit-stop), particle bursts and dynamic colors.
+4. **Works on every device:** keyboard/mouse and touch (mobile virtual joystick).
+5. **Zero clipping, solid rigid bodies:** no physical object, enemy or barrier may pass through another. Every collision must use MTV (Minimum Translation Vector) separation, a Newtonian impulse, a bounce off barriers, and a spark/debris burst at the contact point.
 
 ---
 
-## 🎨 3. Prosedural Qrafika Standartı (Procedural Asset Forge)
+## 2. The 7 Genre Templates (Genre Matrix)
 
-Heç bir xarici şəkil olmadan Canvas 2D API ilə hər şeyi çəkmək:
+When the user asks for a game, **`game-architect`** and the **CEO (main session)** pick the best-fitting template from the seven below.
+
+### A. 2D Platformer (Mario, Celeste, Hollow Knight style)
+* **Controls:** `A/D` or arrow keys (move), `Space / W` (jump), `Shift` (dash / sprint).
+* **Physics:**
+  * Gravity: `vy += GRAVITY * dt` (`GRAVITY ≈ 1800-2400 px/s²`).
+  * Jump impulse: `vy = -JUMP_FORCE` (`JUMP_FORCE ≈ 650-800 px/s`).
+  * **Coyote time (0.1s):** after walking off a platform edge, the jump stays available for 100ms.
+  * **Jump buffering (0.1s):** if jump is pressed within 100ms before landing, the jump fires on the frame the player touches the ground.
+  * Wall slide and wall jump.
+* **Goal:** get past obstacles, collect gold/stars, reach the flag/door.
+
+### B. Top-Down / Space Shooter (Vampire Survivors, Galaga, Asteroids)
+* **Controls:** `WASD` (move), mouse cursor (360° aiming), left click or auto-fire.
+* **Physics:**
+  * Angle: `const angle = Math.atan2(mouse.y - player.y, mouse.x - player.x)`.
+  * Projectile velocity: `vx = Math.cos(angle) * SPEED; vy = Math.sin(angle) * SPEED`.
+  * Enemy swarm / wave spawner and circle collisions (`dist < r1 + r2`).
+* **Goal:** destroy enemy waves, upgrade weapons, survive until the timer ends.
+
+### C. Tower Defense and Strategy (Tower Defense / RTS)
+* **Controls:** mouse click (build towers, upgrade, pick abilities).
+* **Physics and logic:**
+  * Grid system (grid matrix, e.g. 20x12 cells).
+  * **A* (A-Star) or waypoint paths:** enemy movement toward the base.
+  * Tower targeting and fire: target the first enemy inside a circular radius and shoot.
+  * Economy: earn gold, upgrade tower levels.
+* **Goal:** keep the base health above 0 and survive 20-50 waves.
+
+### D. Puzzle / Logic / Grid (Tetris, Match-3, 2048)
+* **Controls:** arrow keys / WASD (rotate or slide pieces).
+* **Logic:**
+  * Two-dimensional matrix checks (`grid[row][col]`).
+  * Line-completion or 3-in-a-row color matching algorithm.
+  * Combo counter and cascading clears.
+* **Goal:** keep the board from filling up and reach the highest score.
+
+### E. Retro Racing (Outrun, Micro Machines)
+* **Controls:** `A/D` (steer), `W` (throttle / accelerate), `S` (brake).
+* **Physics:**
+  * Speed and friction: `speed = clamp(speed + accel * dt - friction * dt, 0, maxSpeed)`.
+  * Pseudo-3D road perspective, or top-down 2D car drift (`driftFactor`).
+  * Road obstacles, fuel/turbo pickups and rival cars.
+* **Goal:** cross the finish line before time runs out, or complete 3 laps.
+
+### F. Dungeon Crawler and Roguelike RPG (Hades, Binding of Isaac)
+* **Controls:** `WASD` + attack + special power + dash.
+* **Logic:**
+  * Room-to-room transitions, random loot, relics, skill tree.
+  * Boss fights and phase changes.
+* **Goal:** reach the last floor of the dungeon and defeat the dark lord.
+
+### G. 3D WebGL (Three.js, minimalist)
+* **Library:** a single Three.js script from a CDN (`https://unpkg.com/three@0.160.0/build/three.min.js`).
+* **Logic:**
+  * 3D scene (`Scene`), perspective camera (`PerspectiveCamera`), lighting (`DirectionalLight` + `AmbientLight`).
+  * Bright, stylized 3D models built from simple geometric shapes (`BoxGeometry`, `SphereGeometry`, `CylinderGeometry`).
+* **Goal:** running, jumping or space flight in a 3D world.
+
+---
+
+## 3. Procedural Graphics Standard (Procedural Asset Forge)
+
+Draw everything with the Canvas 2D API, with no external images:
 
 ```javascript
-// Universal Personaj Çəkmə Nümunəsi (Gözlər, Bədən və Parıltı)
+// Universal character drawing example (eyes, body and glow)
 function drawCharacter(ctx, x, y, radius, color, glowColor, facingAngle) {
   ctx.save();
   ctx.translate(x, y);
   
-  // 1. Qızılı / Neon Parıltı Aurası
+  // 1. Golden / neon glow aura
   ctx.shadowColor = glowColor;
   ctx.shadowBlur = 15;
   ctx.fillStyle = color;
   
-  // 2. Əsas Bədən
+  // 2. Main body
   ctx.beginPath();
   ctx.arc(0, 0, radius, 0, Math.PI * 2);
   ctx.fill();
   
-  // 3. Baxış Bucaq İndikatoru və Gözlər
+  // 3. Facing-angle indicator and eyes
   ctx.rotate(facingAngle);
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
@@ -116,9 +116,9 @@ function drawCharacter(ctx, x, y, radius, color, glowColor, facingAngle) {
 
 ---
 
-## 🔊 4. Prosedural Universal Səs Sintezatoru (Web Audio API)
+## 4. Procedural Universal Sound Synthesizer (Web Audio API)
 
-Hər janr üçün sıfır faylla səs effektləri:
+Sound effects for every genre with zero files:
 
 ```javascript
 const AudioForge = {
@@ -127,7 +127,7 @@ const AudioForge = {
     if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
   },
   
-  // Platformer Tullanma Səsi (Pitch up sweep)
+  // Platformer jump sound (pitch-up sweep)
   jump() {
     this.init();
     const osc = this.ctx.createOscillator();
@@ -140,7 +140,7 @@ const AudioForge = {
     osc.start(); osc.stop(this.ctx.currentTime + 0.16);
   },
 
-  // Kosmik Lazer Səsi (Pitch down laser)
+  // Space laser sound (pitch-down laser)
   laser() {
     this.init();
     const osc = this.ctx.createOscillator();
@@ -154,7 +154,7 @@ const AudioForge = {
     osc.start(); osc.stop(this.ctx.currentTime + 0.13);
   },
 
-  // Partlayış Gurultusu (Noise Buffer + Lowpass Filter)
+  // Explosion rumble (noise buffer + lowpass filter)
   explosion() {
     this.init();
     const bufferSize = this.ctx.sampleRate * 0.4;
@@ -178,21 +178,21 @@ const AudioForge = {
 
 ---
 
-## ⚡ 5. Avtonom İstehsalat Konveyeri (İş Bölgüsü)
+## 5. Autonomous Production Pipeline (Division of Work)
 
-İstifadəçi hər hansı bir oyun istədikdə, CEO aşağıdakı paralel axını başladır:
+When the user asks for a game, the CEO runs the following flow:
 
-1. **Mərhələ 1 (Plan & Arxitektura):**
-   * **`game-architect`**: Janrı müəyyən edir, oyun mexanikalarını və qələbə şərtini yazır.
-2. **Mərhələ 2 (Paralel Kodlaşdırma):**
-   * **`game-engine-developer`**: Əsas Game Loop və Oyunçu idarəetməsini qurur.
-   * **`physics-game-feel-engineer`**: Janra uyğun qravitasiya, toqquşma və ekran sarsıntısını yazır.
-   * **`art-director`**: Canvas procedural qrafikalarını və rəng palitrasını çəkir.
-   * **`audio-designer`**: Janra uyğun Web Audio SFX və fon ritmini qurur.
-   * **`ui-hud-engineer`**: Xal sayğacı, Can barı və Menyu pəncərələrini hazırlayır.
-3. **Mərhələ 3 (Təhlükəsizlik və 120 FPS):**
-   * **`security-auditor`** və **`performance-optimizer`**: Kodu analiz edir, xətaları aradan qaldırır.
-4. **Mərhələ 4 (9-Persona İstifadəçi Testi):**
-   * `playtest-council` (9 persona) oyunu sınaqdan keçirir, rəy bildirir, **`bug-fixer`** düzəlişləri edir.
-5. **Mərhələ 5 (Təhvil):**
-   * CEO tam hazır, brauzerdə dərhal açılan oyunu təqdim edir!
+1. **Phase 1 (plan and architecture):**
+   * **`game-architect`**: picks the genre and writes the mechanics and win condition.
+2. **Phase 2 (parallel coding):**
+   * **`game-engine-developer`**: builds the core game loop and player controls.
+   * **`physics-game-feel-engineer`**: writes genre-appropriate gravity, collision and screen shake.
+   * **`art-director`**: draws the procedural Canvas graphics and sets the color palette.
+   * **`audio-designer`**: builds genre-appropriate Web Audio SFX and background rhythm.
+   * **`ui-hud-engineer`**: builds the score counter, health bar and menu screens.
+3. **Phase 3 (security and 120 FPS):**
+   * **`security-auditor`** and **`performance-optimizer`**: analyze the code and remove problems.
+4. **Phase 4 (9-persona playtest):**
+   * `playtest-council` (9 personas) tests the game and gives feedback, and **`bug-fixer`** applies the fixes.
+5. **Phase 5 (handoff):**
+   * The CEO delivers a finished game that opens in the browser immediately.

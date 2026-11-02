@@ -16,6 +16,29 @@
       .replace(/'/g, '&#39;');
   }
 
+  // Dirty-checked DOM writers: skip the write when the value is unchanged so the
+  // browser does not invalidate/repaint the (backdrop-filtered) HUD panels every frame.
+  function setText(el, v) {
+    if (!el) return;
+    v = String(v);
+    if (el.textContent !== v) el.textContent = v;
+  }
+  function setStyle(el, prop, v) {
+    if (!el) return;
+    v = String(v);
+    if (el.style[prop] !== v) el.style[prop] = v;
+  }
+  function setTitle(el, v) {
+    if (!el) return;
+    v = String(v);
+    if (el.title !== v) el.title = v;
+  }
+  function setCls(el, name, on) {
+    if (!el) return;
+    on = !!on;
+    if (el.classList.contains(name) !== on) el.classList.toggle(name, on);
+  }
+
   function sanitizeColor(c) {
     if (typeof c === 'string') {
       var trimmed = c.trim();
@@ -32,6 +55,7 @@
     currentShopTab: 'upgrades',
     radarSweepAngle: 0,
     _lastShopToggleTime: 0,
+    _lastPanelSync: 0,
     _lastQuestSignature: '',
     _lastRelicsSignature: '',
     _lastComboCount: 0,
@@ -510,6 +534,15 @@
         });
       }
 
+      // 8b. Panel exclusivity: J / T close the other open modal panels before the engine toggles its own
+      window.addEventListener('keydown', function (e) {
+        if (e.repeat || self.activeDialogue) return;
+        var tag = e.target && e.target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+        if (e.code === 'KeyJ') self.closeOtherPanels('daily');
+        else if (e.code === 'KeyT') self.closeOtherPanels('talents');
+      }, true);
+
       // 9. Klaviatura Qısayolları (Esc -> Pauza, B -> Mağaza, F -> Qarşılıqlı Əlaqə)
       window.addEventListener('keydown', function (e) {
         // Dialoq aktivdirsə Space və ya Enter ilə irəlilə
@@ -824,6 +857,34 @@
     /**
      * Mağaza və Təkmilləşdirmələr Modalı
      */
+    // Modal panel manager: only one modal panel (shop B, talents T, daily trials J) at a time.
+    _isShopOpen: function () {
+      return !!(this.dom.modalShop && !this.dom.modalShop.classList.contains('hidden'));
+    },
+    _isTalentsOpen: function () {
+      return !!(window.GameTalents && typeof window.GameTalents.isBlockingInput === 'function' && window.GameTalents.isBlockingInput());
+    },
+    _isDailyOpen: function () {
+      if (!window.GameDaily || typeof window.GameDaily.getSummary !== 'function') return false;
+      var sum = window.GameDaily.getSummary();
+      return !!(sum && sum.isPanelOpen);
+    },
+    // Close every modal panel except `keep` ('shop' | 'talents' | 'daily' | undefined)
+    closeOtherPanels: function (keep) {
+      if (keep !== 'shop' && this._isShopOpen()) this.dom.modalShop.classList.add('hidden');
+      if (keep !== 'talents' && this._isTalentsOpen()) window.GameTalents.closeModal();
+      if (keep !== 'daily' && this._isDailyOpen() && typeof window.GameDaily.togglePanel === 'function') {
+        window.GameDaily.togglePanel();
+      }
+    },
+    // Hide HUD trackers while any modal panel is open (cheap, throttled, dirty-checked)
+    _syncPanelState: function (nowMs) {
+      if (nowMs - this._lastPanelSync < 120) return;
+      this._lastPanelSync = nowMs;
+      var open = this._isShopOpen() || this._isTalentsOpen() || this._isDailyOpen();
+      setCls(this.dom.gameHud, 'panel-open', open);
+    },
+
     toggleShopModal: function (forceState) {
       if (!this.dom.modalShop) return;
       var now = Date.now();
@@ -834,6 +895,7 @@
 
       var show = forceState !== undefined ? forceState : this.dom.modalShop.classList.contains('hidden');
       if (show) {
+        this.closeOtherPanels('shop');
         this.renderShopContent();
         this.dom.modalShop.classList.remove('hidden');
       } else {
@@ -1215,6 +1277,7 @@
     updateHUD: function (player, worldState, progressionState, fps) {
       if (!player) return;
       worldState = worldState || {};
+      this._syncPanelState(Date.now());
       progressionState = progressionState || (window.GameProgression ? window.GameProgression.state : null);
 
       // 1. Can (HP)
@@ -1222,14 +1285,14 @@
       var curHp = Math.max(0, Number(player.hp) || 0);
       var hpPct = Math.min(100, Math.max(0, (curHp / maxHp) * 100));
 
-      if (this.dom.hpFill) this.dom.hpFill.style.width = hpPct + '%';
-      if (this.dom.hpText) this.dom.hpText.textContent = Math.ceil(curHp) + ' / ' + maxHp;
+      if (this.dom.hpFill) setStyle(this.dom.hpFill, 'width', hpPct + '%');
+      if (this.dom.hpText) setText(this.dom.hpText, Math.ceil(curHp) + ' / ' + maxHp);
 
       if (this.dom.hpContainer) {
         if (hpPct < 25) {
-          this.dom.hpContainer.classList.add('low-hp-pulsing');
+          setCls(this.dom.hpContainer, 'low-hp-pulsing', true);
         } else {
-          this.dom.hpContainer.classList.remove('low-hp-pulsing');
+          setCls(this.dom.hpContainer, 'low-hp-pulsing', false);
         }
       }
 
@@ -1238,8 +1301,8 @@
       var curMp = Math.max(0, Number(player.mana) || 0);
       var mpPct = Math.min(100, Math.max(0, (curMp / maxMp) * 100));
 
-      if (this.dom.mpFill) this.dom.mpFill.style.width = mpPct + '%';
-      if (this.dom.mpText) this.dom.mpText.textContent = Math.ceil(curMp) + ' / ' + maxMp;
+      if (this.dom.mpFill) setStyle(this.dom.mpFill, 'width', mpPct + '%');
+      if (this.dom.mpText) setText(this.dom.mpText, Math.ceil(curMp) + ' / ' + maxMp);
 
       // 3. XP və Level
       if (progressionState) {
@@ -1247,21 +1310,21 @@
         var xpNext = Math.max(1, Number(progressionState.xpToNext) || 100);
         var xpPct = Math.min(100, Math.max(0, (xp / xpNext) * 100));
 
-        if (this.dom.xpFill) this.dom.xpFill.style.width = xpPct + '%';
-        if (this.dom.xpText) this.dom.xpText.textContent = 'XP: ' + xp + ' / ' + xpNext;
-        if (this.dom.playerLevel) this.dom.playerLevel.textContent = 'LVL ' + (progressionState.level || 1);
-        if (this.dom.goldCount) this.dom.goldCount.textContent = progressionState.gold || 0;
-        if (this.dom.crystalCount) this.dom.crystalCount.textContent = progressionState.crystals || 0;
+        if (this.dom.xpFill) setStyle(this.dom.xpFill, 'width', xpPct + '%');
+        if (this.dom.xpText) setText(this.dom.xpText, 'XP: ' + xp + ' / ' + xpNext);
+        if (this.dom.playerLevel) setText(this.dom.playerLevel, 'LVL ' + (progressionState.level || 1));
+        if (this.dom.goldCount) setText(this.dom.goldCount, progressionState.gold || 0);
+        if (this.dom.crystalCount) setText(this.dom.crystalCount, progressionState.crystals || 0);
       }
 
       // 4. Region Adı
       if (worldState.region && worldState.region.name && this.dom.regionName) {
-        this.dom.regionName.textContent = worldState.region.name;
+        setText(this.dom.regionName, worldState.region.name);
       }
 
       // 5. FPS
       if (this.dom.fpsCounter && fps !== undefined) {
-        this.dom.fpsCounter.textContent = Math.round(fps) + ' FPS';
+        setText(this.dom.fpsCounter, Math.round(fps) + ' FPS');
       }
 
       // 6. Action Bar Cooldownları və Kombo
@@ -1296,9 +1359,9 @@
       // Combo Pips (LMB / J)
       var step = player.comboStep || 0;
       if (this.dom.skillComboPips && this.dom.skillComboPips.length >= 3) {
-        this.dom.skillComboPips[0].classList.toggle('active', step >= 1);
-        this.dom.skillComboPips[1].classList.toggle('active', step >= 2);
-        this.dom.skillComboPips[2].classList.toggle('active', step >= 3);
+        setCls(this.dom.skillComboPips[0], 'active', step >= 1);
+        setCls(this.dom.skillComboPips[1], 'active', step >= 2);
+        setCls(this.dom.skillComboPips[2], 'active', step >= 3);
       }
 
       // Spell Q Cooldown
@@ -1307,11 +1370,11 @@
         var maxSpellCd = 0.8;
         if (spellCd > 0.05) {
           var sPct = Math.min(100, (spellCd / maxSpellCd) * 100);
-          this.dom.skillCooldownQ.style.height = sPct + '%';
-          this.dom.skillCooldownQ.textContent = spellCd.toFixed(1) + 's';
-          this.dom.skillCooldownQ.classList.remove('hidden');
+          setStyle(this.dom.skillCooldownQ, 'height', sPct + '%');
+          setText(this.dom.skillCooldownQ, spellCd.toFixed(1) + 's');
+          setCls(this.dom.skillCooldownQ, 'hidden', false);
         } else {
-          this.dom.skillCooldownQ.classList.add('hidden');
+          setCls(this.dom.skillCooldownQ, 'hidden', true);
         }
       }
 
@@ -1321,11 +1384,11 @@
         var maxAoeCd = 4.0;
         if (aoeCd > 0.05) {
           var aPct = Math.min(100, (aoeCd / maxAoeCd) * 100);
-          this.dom.skillCooldownE.style.height = aPct + '%';
-          this.dom.skillCooldownE.textContent = aoeCd.toFixed(1) + 's';
-          this.dom.skillCooldownE.classList.remove('hidden');
+          setStyle(this.dom.skillCooldownE, 'height', aPct + '%');
+          setText(this.dom.skillCooldownE, aoeCd.toFixed(1) + 's');
+          setCls(this.dom.skillCooldownE, 'hidden', false);
         } else {
-          this.dom.skillCooldownE.classList.add('hidden');
+          setCls(this.dom.skillCooldownE, 'hidden', true);
         }
       }
 
@@ -1335,11 +1398,11 @@
         var maxDashCd = 1.2;
         if (dashCd > 0.05) {
           var dPct = Math.min(100, (dashCd / maxDashCd) * 100);
-          this.dom.skillCooldownSpace.style.height = dPct + '%';
-          this.dom.skillCooldownSpace.textContent = dashCd.toFixed(1) + 's';
-          this.dom.skillCooldownSpace.classList.remove('hidden');
+          setStyle(this.dom.skillCooldownSpace, 'height', dPct + '%');
+          setText(this.dom.skillCooldownSpace, dashCd.toFixed(1) + 's');
+          setCls(this.dom.skillCooldownSpace, 'hidden', false);
         } else {
-          this.dom.skillCooldownSpace.classList.add('hidden');
+          setCls(this.dom.skillCooldownSpace, 'hidden', true);
         }
       }
     },
@@ -1348,27 +1411,27 @@
       if (!this.dom.bossHud) return;
 
       if (boss && boss.hp > 0 && boss.isBoss) {
-        this.dom.bossHud.classList.remove('hidden');
-        if (this.dom.bossName) this.dom.bossName.textContent = boss.name || 'Epik Lord';
-        if (this.dom.bossTitle) this.dom.bossTitle.textContent = boss.title || 'Kölgələrin Qədim Hakimi';
+        setCls(this.dom.bossHud, 'hidden', false);
+        if (this.dom.bossName) setText(this.dom.bossName, boss.name || 'Epik Lord');
+        if (this.dom.bossTitle) setText(this.dom.bossTitle, boss.title || 'Kölgələrin Qədim Hakimi');
         if (this.dom.bossPhase) {
-          this.dom.bossPhase.textContent = 'FAZA ' + (boss.phase || 1) + ' / ' + (boss.maxPhases || 3);
+          setText(this.dom.bossPhase, 'FAZA ' + (boss.phase || 1) + ' / ' + (boss.maxPhases || 3));
         }
 
         var bMaxHp = boss.maxHp || 1000;
         var bCurHp = Math.max(0, boss.hp);
         var bPct = Math.min(100, Math.max(0, (bCurHp / bMaxHp) * 100));
 
-        if (this.dom.bossHpFill) this.dom.bossHpFill.style.width = bPct + '%';
+        if (this.dom.bossHpFill) setStyle(this.dom.bossHpFill, 'width', bPct + '%');
         if (this.dom.bossHpGhost) {
           // Yumşaq arxadan gələn can
-          this.dom.bossHpGhost.style.width = bPct + '%';
+          setStyle(this.dom.bossHpGhost, 'width', bPct + '%');
         }
         if (this.dom.bossHpText) {
-          this.dom.bossHpText.textContent = Math.ceil(bCurHp) + ' / ' + bMaxHp;
+          setText(this.dom.bossHpText, Math.ceil(bCurHp) + ' / ' + bMaxHp);
         }
       } else {
-        this.dom.bossHud.classList.add('hidden');
+        setCls(this.dom.bossHud, 'hidden', true);
       }
     },
 
@@ -1519,11 +1582,11 @@
       }
 
       if (foundInteract) {
-        if (this.dom.interactPromptKey) this.dom.interactPromptKey.textContent = foundInteract.key;
-        if (this.dom.interactPromptText) this.dom.interactPromptText.textContent = foundInteract.text;
-        this.dom.interactPrompt.classList.remove('hidden');
+        if (this.dom.interactPromptKey) setText(this.dom.interactPromptKey, foundInteract.key);
+        if (this.dom.interactPromptText) setText(this.dom.interactPromptText, foundInteract.text);
+        setCls(this.dom.interactPrompt, 'hidden', false);
       } else {
-        this.dom.interactPrompt.classList.add('hidden');
+        setCls(this.dom.interactPrompt, 'hidden', true);
       }
     },
 
@@ -1877,7 +1940,7 @@
      */
     hideRelicDraftModal: function () {
       if (this.dom.modalRelicDraft) {
-        this.dom.modalRelicDraft.classList.add('hidden');
+        setCls(this.dom.modalRelicDraft, 'hidden', true);
       }
     },
 
@@ -1911,17 +1974,17 @@
           var slotNum = parseInt(sEl.getAttribute('data-weapon-slot'), 10);
           var slotWId = sEl.getAttribute('data-weapon-id');
           var isMatch = slotNum === activeSlot || (slotWId && slotWId === activeId);
-          sEl.classList.toggle('active', Boolean(isMatch));
+          setCls(sEl, 'active', Boolean(isMatch));
         }
       }
 
       // Action Bar silah ikonu və adı
       if (this.dom.skillSlotWeaponIcon && activeWeapon) {
-        this.dom.skillSlotWeaponIcon.textContent = activeWeapon.icon || '⚔';
+        setText(this.dom.skillSlotWeaponIcon, activeWeapon.icon || '⚔');
       }
       if (this.dom.skillSlotWeaponLabel && activeWeapon) {
         var shortName = activeWeapon.name ? activeWeapon.name.split(' ')[0] : 'Hücum';
-        this.dom.skillSlotWeaponLabel.textContent = shortName;
+        setText(this.dom.skillSlotWeaponLabel, shortName);
       }
     },
 
@@ -1948,16 +2011,16 @@
       var ragePct = Math.min(100, Math.max(0, (curRage / (maxRage || 100)) * 100));
 
       if (this.dom.skillRageFill) {
-        this.dom.skillRageFill.style.height = ragePct + '%';
+        setStyle(this.dom.skillRageFill, 'height', ragePct + '%');
       }
       if (this.dom.skillRageText) {
-        this.dom.skillRageText.textContent = Math.floor(ragePct) + '%';
+        setText(this.dom.skillRageText, Math.floor(ragePct) + '%');
       }
       if (this.dom.skillSlotR) {
-        this.dom.skillSlotR.classList.toggle('ultimate-ready', isReady);
+        setCls(this.dom.skillSlotR, 'ultimate-ready', isReady);
       }
       if (this.dom.btnTouchUlt) {
-        this.dom.btnTouchUlt.classList.toggle('ready', isReady);
+        setCls(this.dom.btnTouchUlt, 'ready', isReady);
       }
 
       // 2. Yoldaş [C]
@@ -1968,16 +2031,16 @@
 
       if (activeComp) {
         if (this.dom.companionIcon) {
-          this.dom.companionIcon.textContent = activeComp.icon || '🦅';
+          setText(this.dom.companionIcon, activeComp.icon || '🦅');
         }
         if (this.dom.companionNameBadge) {
-          this.dom.companionNameBadge.textContent = activeComp.name || 'Simurq';
+          setText(this.dom.companionNameBadge, activeComp.name || 'Simurq');
         }
         if (this.dom.skillSlotC) {
-          this.dom.skillSlotC.title = '[C] Yoldaş: ' + (activeComp.name || '') + ' - ' + (activeComp.description || '');
+          setTitle(this.dom.skillSlotC, '[C] Yoldaş: ' + (activeComp.name || '') + ' - ' + (activeComp.description || ''));
         }
         if (this.dom.btnTouchComp) {
-          this.dom.btnTouchComp.textContent = activeComp.icon || '🦅';
+          setText(this.dom.btnTouchComp, activeComp.icon || '🦅');
         }
       }
     },
@@ -1994,25 +2057,25 @@
       }
 
       if (comboState && comboState.count > 0) {
-        this.dom.comboHud.classList.remove('hidden');
+        setCls(this.dom.comboHud, 'hidden', false);
 
         if (this.dom.comboRank) {
-          this.dom.comboRank.textContent = comboState.rank || 'D';
+          setText(this.dom.comboRank, comboState.rank || 'D');
           if (comboState.color) {
-            this.dom.comboRank.style.color = comboState.color;
+            setStyle(this.dom.comboRank, 'color', comboState.color);
           }
         }
 
         if (this.dom.comboHits) {
-          this.dom.comboHits.textContent = comboState.count + 'x HIT';
+          setText(this.dom.comboHits, comboState.count + 'x HIT');
         }
 
         if (this.dom.comboMultiplier) {
           var titleStr = comboState.title ? ' ' + comboState.title : '';
           var multVal = typeof comboState.multiplier === 'number' ? comboState.multiplier.toFixed(1) : '1.0';
-          this.dom.comboMultiplier.textContent = '[' + (comboState.rank || 'D') + ']' + titleStr + ' (' + multVal + 'x Zərər)';
+          setText(this.dom.comboMultiplier, '[' + (comboState.rank || 'D') + ']' + titleStr + ' (' + multVal + 'x Zərər)');
           if (comboState.color) {
-            this.dom.comboMultiplier.style.color = comboState.color;
+            setStyle(this.dom.comboMultiplier, 'color', comboState.color);
           }
         }
 
@@ -2021,21 +2084,21 @@
             ? comboState.progress * 100
             : ((comboState.timer / (comboState.maxTimer || 4)) * 100);
           pct = Math.min(100, Math.max(0, pct));
-          this.dom.comboTimerBar.style.width = pct + '%';
+          setStyle(this.dom.comboTimerBar, 'width', pct + '%');
           if (comboState.color) {
-            this.dom.comboTimerBar.style.backgroundColor = comboState.color;
+            setStyle(this.dom.comboTimerBar, 'backgroundColor', comboState.color);
           }
         }
 
         // Zərbə sayğacı artdıqda pop animasiyası
         if (this._lastComboCount !== comboState.count) {
           this._lastComboCount = comboState.count;
-          this.dom.comboHud.classList.remove('combo-bump');
+          setCls(this.dom.comboHud, 'combo-bump', false);
           void this.dom.comboHud.offsetWidth;
-          this.dom.comboHud.classList.add('combo-bump');
+          setCls(this.dom.comboHud, 'combo-bump', true);
         }
       } else {
-        this.dom.comboHud.classList.add('hidden');
+        setCls(this.dom.comboHud, 'hidden', true);
         this._lastComboCount = 0;
       }
     },

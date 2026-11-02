@@ -50,11 +50,19 @@ function serve(root) {
 }
 
 // Runs in the page before any game script: once `recording` is set, stores every frame time.
+// While recording it also keeps random clicks from leaving the game: links (e.g. a nav bar to
+// other games) and window.open are swallowed and logged, since leaving would test the wrong page.
 function installFrameProbe() {
-  const probe = { recording: false, frames: [] };
+  const probe = { recording: false, frames: [], blocked: [] };
   Object.defineProperty(window, '__playtest', { value: probe, writable: false });
   const tick = (t) => { if (probe.recording) probe.frames.push(t); requestAnimationFrame(tick); };
   requestAnimationFrame(tick);
+  document.addEventListener('click', (e) => {
+    const link = probe.recording && e.target.closest?.('a[href]');
+    if (link && !link.getAttribute('href').startsWith('#')) { e.preventDefault(); probe.blocked.push(link.href); }
+  }, true);
+  const open = window.open;
+  window.open = (...args) => (probe.recording ? (probe.blocked.push(String(args[0])), null) : open.apply(window, args));
 }
 
 // Headless Chromium renders WebGL in software (~10 FPS for 3D games). Use the real GPU where we can.
@@ -126,6 +134,7 @@ async function main() {
   const errors = [];
   const warnings = [];
   const failedRequests = [];
+  const blockedNavigations = [];
   page.on('pageerror', (e) => errors.push({ type: 'uncaught', message: e.message, stack: e.stack }));
   page.on('console', (m) => {
     if (m.type() === 'error') errors.push({ type: 'console.error', message: m.text(), location: m.location() });
@@ -139,6 +148,8 @@ async function main() {
   await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
   await page.waitForTimeout(1000);
   await page.screenshot({ path: path.join(outDir, 'start.png') });
+
+  context.on('page', (popup) => { blockedNavigations.push(popup.url() || 'popup'); popup.close().catch(() => {}); });
 
   const startAction = await clickStart(page);
   await page.waitForTimeout(800);
@@ -168,12 +179,14 @@ async function main() {
     const info = gl?.getExtension('WEBGL_debug_renderer_info');
     return {
       frames: window.__playtest.frames,
+      blocked: window.__playtest.blocked,
       gameState: window.GameCore?.state ?? window.game?.state ?? null,
       title: document.title,
       renderer: info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : 'unknown',
     };
   });
   const fps = frameStats(probe.frames);
+  blockedNavigations.push(...probe.blocked);
   const softwareGpu = /swiftshader|llvmpipe|software/i.test(probe.renderer);
   await browser.close();
   server.close();
@@ -192,6 +205,7 @@ async function main() {
     errors,
     warnings: [...new Set(warnings)].slice(0, 20),
     failedRequests,
+    blockedNavigations,
     screenshots: ['start.png', 'mid.png', 'end.png'].map((f) => path.relative(ROOT, path.join(outDir, f)).replaceAll('\\', '/')),
     pass: errors.length === 0 && localFailures.length === 0 && (softwareGpu || fps.avgFps >= opts.minFps),
   };

@@ -46,6 +46,38 @@
     return 'rgba(' + rgb.r + ', ' + rgb.g + ', ' + rgb.b + ', ' + alpha + ')';
   }
 
+  // Emoji glyphs are very slow to draw under the world camera transform (fractional
+  // translate/zoom/shake defeats Skia's glyph cache and the colour glyph is re-rasterised
+  // every frame). Floating texts containing emoji are therefore pre-rendered once into a
+  // small sprite (outline + fill) and blitted with globalAlpha.
+  var _EMOJI_RE = /[\u2190-\u2BFF\uFE0F\u{1F000}-\u{1FFFF}]/u;
+  var _textSprites = {};
+  var _textSpriteCount = 0;
+  function _getTextSprite(text, color, fSize, baseline) {
+    var key = fSize + '|' + baseline + '|' + color + '|' + text;
+    var spr = _textSprites[key];
+    if (spr) return spr;
+    if (_textSpriteCount >= 160) { _textSprites = {}; _textSpriteCount = 0; }
+    var cv = document.createElement('canvas');
+    var g = cv.getContext('2d');
+    var font = 'bold ' + fSize + 'px sans-serif';
+    g.font = font;
+    var pad = fSize + 8;
+    cv.width = Math.ceil(g.measureText(text).width) + pad * 2;
+    cv.height = Math.ceil(fSize * 3) + 16;
+    g.font = font; // resizing the canvas resets its state
+    g.textAlign = 'center';
+    g.textBaseline = baseline;
+    g.lineWidth = 3;
+    g.strokeStyle = 'rgba(0, 0, 0, 1)';
+    g.strokeText(text, cv.width / 2, cv.height / 2);
+    g.fillStyle = hexToRgba(color, 1);
+    g.fillText(text, cv.width / 2, cv.height / 2);
+    spr = _textSprites[key] = cv;
+    _textSpriteCount++;
+    return spr;
+  }
+
   // Y-Sıralama üçün təkrar istifadə olunan statik komparator
   function _sortRenderItems(a, b) {
     return a.y - b.y;
@@ -2488,6 +2520,14 @@
         for (var ftI = 0; ftI < this.floatingTexts.length; ftI++) {
           var txt = this.floatingTexts[ftI];
           var fSize = Math.round((txt.size || 16) * (txt.currentScale || 1.0));
+          if (_EMOJI_RE.test(txt.text)) {
+            var tSpr = _getTextSprite(txt.text, txt.color, fSize, ctx.textBaseline);
+            var prevGA = ctx.globalAlpha;
+            ctx.globalAlpha = prevGA * txt.currentAlpha;
+            ctx.drawImage(tSpr, txt.x - tSpr.width / 2, txt.y - tSpr.height / 2);
+            ctx.globalAlpha = prevGA;
+            continue;
+          }
           ctx.font = 'bold ' + fSize + 'px sans-serif';
 
           // Qara dərin kontur

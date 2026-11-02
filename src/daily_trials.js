@@ -856,10 +856,10 @@
       // ====================================================================
       if (!state.tutorialDone && state.tutorialStep < TUTORIAL_STEPS.length) {
         const curStep = TUTORIAL_STEPS[state.tutorialStep];
-        const cardW = 460;
+        const cardW = Math.min(460, w - 24);
         const cardH = 72;
         const cardX = Math.round((w - cardW) / 2);
-        const cardY = Math.round(h - 190);
+        const cardY = Math.round(h - 232);
 
         // Nəbz parıltısı
         const pulse = Math.sin(state.animTime * 4) * 0.15 + 0.85;

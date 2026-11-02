@@ -1,24 +1,46 @@
-# Autonomous 37-Agent Universal Game & Software Studio - Fast Windows Installer
+# Game Studio installer for Windows: copies the studio's agents, commands, skills and
+# playtest tools into the current directory. Existing files are never overwritten.
+# Claude Code users can install the plugin instead:
+#   /plugin install game-studio --marketplace Muzaqil555/game-for-ai
 $repoUrl = "https://github.com/Muzaqil555/game-for-ai.git"
-$tempPath = Join-Path $env:TEMP ("game-for-ai-" + [System.Guid]::NewGuid().ToString("N"))
+$tempPath = Join-Path $env:TEMP ("game-studio-" + [System.Guid]::NewGuid().ToString("N"))
 
-Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "⚡ Installing Autonomous 37-Agent Studio into current directory..." -ForegroundColor Yellow
-Write-Host "==========================================================" -ForegroundColor Cyan
-
-# Run git clone with complete stderr suppression
-git clone --quiet --depth 1 $repoUrl $tempPath 2>$null
-
-if (Test-Path $tempPath) {
-    Copy-Item -Path "$tempPath\.agents" -Destination ".\" -Recurse -Force
-    Copy-Item -Path "$tempPath\AGENTS.md" -Destination ".\" -Force
-    Copy-Item -Path "$tempPath\CLAUDE.md" -Destination ".\" -Force
-    Copy-Item -Path "$tempPath\.cursorrules" -Destination ".\" -Force
-    Copy-Item -Path "$tempPath\PROMPTS.md" -Destination ".\" -Force
-    Remove-Item -Path $tempPath -Recurse -Force -ErrorAction SilentlyContinue
-
-    Write-Host "✅ Installation complete!" -ForegroundColor Green
-    Write-Host "🚀 Open this folder in Antigravity, Cursor, or Claude Code, pick a prompt from PROMPTS.md, and start building!" -ForegroundColor Cyan
-} else {
-    Write-Host "❌ Failed to clone repository. Please check your internet connection or git installation." -ForegroundColor Red
+Write-Host "Installing Game Studio into $(Get-Location)"
+git clone --quiet --depth 1 $repoUrl $tempPath
+if (-not (Test-Path $tempPath)) {
+    Write-Host "Could not clone $repoUrl. Check your internet connection and that git is installed." -ForegroundColor Red
+    return
 }
+
+try {
+    $paths = @("AGENTS.md", "CLAUDE.md", "PROMPTS.md", ".cursorrules", ".cursor\rules", ".claude\agents",
+               ".claude\commands", ".agents\skills", "tools\playtest.mjs", "tools\check.mjs")
+    foreach ($p in $paths) {
+        $src = Join-Path $tempPath $p
+        $files = if (Test-Path $src -PathType Container) { Get-ChildItem $src -Recurse -File } else { Get-Item $src }
+        foreach ($f in $files) {
+            $rel = $f.FullName.Substring($tempPath.Length + 1)
+            if (Test-Path $rel) { Write-Host "  skip (exists): $rel" -ForegroundColor DarkYellow; continue }
+            $dir = Split-Path $rel -Parent
+            if ($dir) { New-Item -ItemType Directory -Force $dir | Out-Null }
+            Copy-Item $f.FullName $rel
+            Write-Host "  added: $rel"
+        }
+    }
+
+    if (Get-Command node -ErrorAction SilentlyContinue) {
+        if (-not (Test-Path package.json)) {
+            Set-Content -Encoding utf8 package.json ("{ `"name`": `"" + (Split-Path -Leaf (Get-Location)) + "`", `"private`": true }")
+        }
+        node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8').replace(/^﻿/,''));p.scripts={playtest:'node tools/playtest.mjs',check:'node tools/check.mjs',...p.scripts};fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
+        Write-Host "  package.json: added playtest and check scripts (existing scripts kept)"
+    }
+} finally {
+    Remove-Item -Path $tempPath -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+Write-Host ""
+Write-Host "Done. Next:" -ForegroundColor Green
+Write-Host "  npm install --save-dev playwright; npx playwright install chromium"
+Write-Host "  Open this folder in Claude Code and run: /new-game <your idea>"
+Write-Host "  (Codex, Cursor, Antigravity: ask them to follow AGENTS.md)"

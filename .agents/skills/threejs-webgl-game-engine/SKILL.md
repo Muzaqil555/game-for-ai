@@ -1,21 +1,21 @@
 ---
 name: threejs-webgl-game-engine
-description: Ultra-Realistic 3D WebGL Game Engine using Three.js, PBR Shaders, UnrealBloomPass, Dynamic Shadows, and Rigid Body Physics. MANDATORY for all 3D/Action games to eliminate flat/artificial 2D canvas visuals.
+description: Three.js WebGL standard for 3D and action games - PBR materials, UnrealBloomPass post-processing, soft shadows, chase camera, and solid rigid-body collision with no clipping. Use for any 3D game or when a game looks flat or like primitive 2D canvas.
 ---
 
-# 🌐 Three.js WebGL 3D Ultra-Realist Oyun Mühərriki Standartı
+# Three.js WebGL 3D Game Engine Standard
 
-> ### 💎 🔥 DAİMİ VƏ QƏTİ QANUN: Sıfır-Süni & Maksimum Realizm Mandatı
-> **İstifadəçi "süni" və ya "zəif" deməsə belə, bütün agentlər bu standartı AVTOMATİK tətbiq edir:**
-> * ❌ **İbtidai 2D Xətlər Qadağandır:** Sadə Canvas 2D cızma-qaraları, primitiv düzbucaqlılar və uydurma 1980-ci illər raster xətləri QƏTİ QADAĞANDIR (istifadəçi xüsusilə retro 8-bit istəmədikdə).
-> * ✅ **Həqiqi Üçölçülü Məkan (Three.js WebGL):** Hər bir oyun həqiqi 3D səhnə, 3D mesh modelləri, PBR materialları, real kölgələr və Unreal Engine tipli Bloom parıltısı ilə qurulmalıdır!
-> * ✅ **Realist İşıqlandırma & Atmosfer:** ACESFilmic tonemapping, Soft Shadow Maps, nöqtəvi neon işıqları və duman (fog).
+> ### Rule: realistic 3D by default
+> Every agent applies this standard automatically, even if the user does not say the game looks "artificial" or "weak":
+> * **No primitive 2D drawing:** simple Canvas 2D scribbles, bare rectangles and fake 1980s raster lines are not allowed (unless the user specifically asks for retro 8-bit).
+> * **Real 3D space (Three.js WebGL):** every game is built with a real 3D scene, 3D mesh models, PBR materials, real shadows and Unreal Engine-style Bloom glow.
+> * **Realistic lighting and atmosphere:** ACESFilmic tonemapping, soft shadow maps, point-light neon and fog.
 
 ---
 
-## 🚀 1. CDN və Kitabxana Arxitekturası (Zero-Install, Dərhal İcra)
+## 1. CDN and Library Setup (Zero-Install, Runs Immediately)
 
-Bütün brauzerlərdə və mobil cihazlarda sıfır xəta ilə işləmək üçün rəsmi yüksək sürətli CDN-lər:
+Official fast CDNs that work in all browsers and on mobile devices:
 
 ```html
 <!-- Three.js Core (r128) -->
@@ -31,7 +31,7 @@ Bütün brauzerlərdə və mobil cihazlarda sıfır xəta ilə işləmək üçü
 
 ---
 
-## 🎨 2. Standart WebGL Render & Bloom Setup
+## 2. Standard WebGL Render and Bloom Setup
 
 ```javascript
 // 1. Renderer
@@ -44,32 +44,32 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
 document.body.appendChild(renderer.domElement);
 
-// 2. Səhnə və Kamera
+// 2. Scene and camera
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0x060212, 0.0035);
 
 const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1500);
 camera.position.set(0, 5, -12);
 
-// 3. Unreal Bloom Post-Processing
+// 3. Unreal Bloom post-processing
 const composer = new THREE.EffectComposer(renderer);
 composer.addPass(new THREE.RenderPass(scene, camera));
 
 const bloomPass = new THREE.UnrealBloomPass(
   new THREE.Vector2(window.innerWidth, window.innerHeight),
-  1.5,  // Bloom gücü (Glow Intensity)
+  1.5,  // Bloom strength (glow intensity)
   0.4,  // Radius
-  0.82  // Eşik (Threshold)
+  0.82  // Threshold
 );
 composer.addPass(bloomPass);
 ```
 
 ---
 
-## 🏎️ 3. PBR Həqiqi 3D Avtomobil Həndəsəsi
+## 3. PBR 3D Car Geometry
 
 ```javascript
-// Avtomobil Gövdəsi (PBR Metalik Lak)
+// Car body (PBR metallic paint)
 const carBodyMat = new THREE.MeshStandardMaterial({
   color: 0x00f5ff,
   metalness: 0.85,
@@ -79,23 +79,23 @@ const carBodyMat = new THREE.MeshStandardMaterial({
 
 const carGroup = new THREE.Group();
 
-// Şassi
+// Chassis
 const chassisGeo = new THREE.BoxGeometry(2.1, 0.65, 4.6);
 const chassis = new THREE.Mesh(chassisGeo, carBodyMat);
 chassis.castShadow = true;
 chassis.receiveShadow = true;
 carGroup.add(chassis);
 
-// Təkərlər (Fırlanan 4 ədəd 3D silindr)
+// Wheels (4 rotating 3D cylinders)
 const wheelGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.35, 24);
 const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
 const wheels = [];
 
 const wheelPositions = [
-  [-1.15, -0.25, 1.4],  // Ön Sol
-  [ 1.15, -0.25, 1.4],  // Ön Sağ
-  [-1.15, -0.25, -1.4], // Arxa Sol
-  [ 1.15, -0.25, -1.4]  // Arxa Sağ
+  [-1.15, -0.25, 1.4],  // Front left
+  [ 1.15, -0.25, 1.4],  // Front right
+  [-1.15, -0.25, -1.4], // Rear left
+  [ 1.15, -0.25, -1.4]  // Rear right
 ];
 
 wheelPositions.forEach(pos => {
@@ -112,23 +112,23 @@ scene.add(carGroup);
 
 ---
 
-## 🎥 4. Kinematoqrafik Təqib Kamerası & FOV Punch
+## 4. Cinematic Chase Camera and FOV Punch
 
 ```javascript
 function updateCamera(playerCar, dt, isNitro, cameraShake) {
-  // Avtomobilin arxasında yumşaq təqib (Lerp)
+  // Smooth follow behind the car (lerp)
   const targetCamPos = playerCar.position.clone()
     .add(new THREE.Vector3(0, 3.8, -9.5));
 
   camera.position.lerp(targetCamPos, 0.14);
   camera.lookAt(playerCar.position.clone().add(new THREE.Vector3(0, 1.2, 5)));
 
-  // Nitro zamanı FOV genişlənməsi (Warp effekti)
+  // FOV widening during nitro (warp effect)
   const targetFOV = isNitro ? 85 : 65;
   camera.fov += (targetFOV - camera.fov) * 0.1;
   camera.updateProjectionMatrix();
 
-  // Zərbə silkələnməsi
+  // Impact shake
   if (cameraShake > 0) {
     camera.position.x += (Math.random() - 0.5) * cameraShake;
     camera.position.y += (Math.random() - 0.5) * cameraShake;
@@ -138,12 +138,12 @@ function updateCamera(playerCar, dt, isNitro, cameraShake) {
 
 ---
 
-## 🛑 6. Sıfır-Keçmə (Anti-Clipping) və Bərk Cisimlər (Rigid Body Solid Collision) Qaydası
+## 5. Zero-Clipping (Anti-Clipping) and Solid Rigid-Body Collision Rule
 
-Heç bir 3D mesh digər bir obyektin (digər maşınlar, divarlar, baryerlər) içindən keçə bilməz! Bütün toqquşmalar dəqiq fiziki qanunlarla idarə olunur:
+No 3D mesh may pass through another object (other cars, walls, barriers). All collisions follow explicit physical rules:
 
 ```javascript
-// 1. Minimum Translation Vector (MTV) ilə Həndəsi Ayırma (Zero-Clipping)
+// 1. Geometric separation with the Minimum Translation Vector (MTV) (zero-clipping)
 function resolveSolidVehicleCollision(carA, carB, massA, massB) {
   const dx = carA.position.x - carB.position.x;
   const dz = carA.position.z - carB.position.z;
@@ -155,7 +155,7 @@ function resolveSolidVehicleCollision(carA, carB, massA, massB) {
   const penZ = halfL - Math.abs(dz);
   
   if (penX > 0 && penZ > 0) {
-    // Toqquşma baş verib: ən kiçik nüfuz oxu üzrə aralama (MTV)
+    // Collision occurred: separate along the axis of least penetration (MTV)
     const totalMass = massA + massB;
     const ratioA = massB / totalMass;
     const ratioB = massA / totalMass;
@@ -165,7 +165,7 @@ function resolveSolidVehicleCollision(carA, carB, massA, massB) {
       carA.position.x += signX * penX * ratioA;
       carB.position.x -= signX * penX * ratioB;
       
-      // Lateral Nyuton impulsu və elastik sıçrayış
+      // Lateral Newtonian impulse and elastic bounce
       const relVx = carA.vx - carB.vx;
       const impulse = relVx * 0.45;
       carA.vx -= impulse * ratioA;
@@ -175,27 +175,27 @@ function resolveSolidVehicleCollision(carA, carB, massA, massB) {
       carA.position.z += signZ * penZ * ratioA;
       carB.position.z -= signZ * penZ * ratioB;
       
-      // Boyuna sürət ötürülməsi
+      // Longitudinal velocity transfer
       const relVz = carA.vz - carB.vz;
       const impulse = relVz * 0.5;
       carA.vz -= impulse * ratioA;
       carB.vz += impulse * ratioB;
     }
     
-    // Təmas nöqtəsində dinamik 3D metal qığılcım yağışı
+    // Dynamic 3D metal spark shower at the contact point
     emit3DSparks((carA.position.x + carB.position.x) * 0.5, 0.4, (carA.position.z + carB.position.z) * 0.5, 25);
     return true;
   }
   return false;
 }
 
-// 2. Polad Guardrail / Baryer Toxunması (Hard Bounce & Spark Shower)
+// 2. Steel guardrail / barrier contact (hard bounce and spark shower)
 function resolveGuardrailCollision(playerCar, barrierX, restitution = 0.5) {
   const carHalfW = 1.05;
   if (playerCar.position.x + carHalfW >= barrierX) {
     playerCar.position.x = barrierX - carHalfW;
     playerCar.velocityLat = -Math.abs(playerCar.velocityLat) * restitution;
-    playerCar.velocityLong *= 0.94; // Sürtünmə itkisi
+    playerCar.velocityLong *= 0.94; // Friction loss
     emit3DSparks(barrierX, 0.45, playerCar.position.z, 20);
     playMetalScrapeSound();
   } else if (playerCar.position.x - carHalfW <= -barrierX) {
@@ -210,10 +210,10 @@ function resolveGuardrailCollision(playerCar, barrierX, restitution = 0.5) {
 
 ---
 
-## 🌟 5. Bütün 37 Agent Üçün Tətbiq Qaydası
+## 6. How Each Agent Applies This Standard
 
-* **`game-architect`:** `GAME_SPEC.md` hazırlayarkən mütləq `Render Engine: Three.js WebGL 3D (with UnrealBloomPass)` qeyd edir.
-* **`game-engine-developer`:** Core loop-u Three.js `composer.render()` ilə idarə edir.
-* **`art-director`:** Mesh-ləri, PBR materiallarını, parlayan emissive neon xətləri və zərrəcikləri 3D koordinatlarda qurur.
-* **`physics-game-feel-engineer`:** Avtomobilin 2-DOF asqısını birbaşa 3D avtomobil mesh-inin `rotation.z` (roll) və `rotation.x` (pitch) bucaqlarına tətbiq edir.
-* **`skill-scout`:** Ekosistemi daima ən yeni Three.js modul və resursları ilə zəngin saxlayır.
+* **`game-architect`:** always writes `Render Engine: Three.js WebGL 3D (with UnrealBloomPass)` in `GAME_SPEC.md`.
+* **`game-engine-developer`:** drives the core loop with Three.js `composer.render()`.
+* **`art-director`:** builds meshes, PBR materials, glowing emissive neon lines and particles in 3D coordinates.
+* **`physics-game-feel-engineer`:** applies the car's 2-DOF suspension directly to the 3D car mesh's `rotation.z` (roll) and `rotation.x` (pitch) angles.
+* **`skill-scout`:** keeps the studio current with the latest Three.js modules and resources.
