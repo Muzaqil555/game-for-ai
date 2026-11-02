@@ -80,6 +80,13 @@ Hər hansı oyun və ya funksiya hazır olduqda onu işlədib **nəyi bəyəndik
 > * ✅ **Həqiqi Dinamika:** Real asqı yaylanması, kütlə ətaləti, 3D zərbə və toqquşma reaksiyaları.
 > * ✅ **Agent 37-nin Daimi Nəzarəti:** Hər layihə başlamazdan əvvəl Agent 37 ekosistemi ən son alət və skkill-lərlə təchiz edir!
 
+> ### 🛑 💥 QƏTİ VƏ ƏBƏDİ QANUN: Sıfır-Keçmə (Anti-Clipping) və Bərk Cisimlər (Rigid Body Collision) Qanunu
+> **Heç bir obyekt (oyunçu avtomobili, polis kreyserləri, SWAT Rhino zirehli maşınları, yol kənarındakı polad qoruyucular və beton baryerlər) bir-birinin içindən keçə (clip/ghost) BİLMƏZ!**
+> * 🚫 **İçindən Keçmə Qadağası (Zero Interpenetration):** Bütün 3D modellər real həcmli bərk cisimdir (Rigid Body). Toqquşma baş verdikdə dərhal MTV (Minimum Translation Vector) ilə modellər həndəsi olaraq bir-birindən aralanmalıdır (`penX = 0`, `penZ = 0`).
+> * 🛡️ **Polad Baryer və Çəpər Toxunması (Guardrail Bounce & Grind):** Yol kənarına toxunduqda avtomobil baryerin içindən keçmir; əksinə yan sürət elastikliklə əks olunur (`velocityLat = -velocityLat * 0.5`), boyuna sürət sürtünmə ilə azalır, şassi silkələnir və təmas nöqtəsindən sıx 3D metal qığılcım yağışı fışqırır!
+> * 💥 **Avtomobillərarası Nyuton İmpulsu (Momentum Exchange & Takedown):** Arxadan və ya cinahdan toqquşduqda avtomobillər kütlə nisbətinə uyğun itələnir. Takedown zamanı vurulan düşmən maşını fırlanaraq və yuvarlanaraq kənara uçur, amma əsla oyunçunun içinə girmir!
+> * ✨ **Dinamik 3D Qığılcım & Debris Sistemi:** Hər bir təmas və sürtünmədə real emissiv parlaq 3D qığılcımlar sıçrayır və səs effekti (metal sürtünməsi / zərbə) dərhal işə düşür!
+
 İstifadəçi hansı oyunu istəyirsə istəsin, CEO **bu 5 mərhələni qətiyyətlə icra edir**:
 
 1. **Mərhələ 1 — Dəqiq Memarlıq Müqaviləsi (`GAME_SPEC.md`):**

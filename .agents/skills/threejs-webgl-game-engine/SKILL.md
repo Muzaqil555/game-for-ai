@@ -138,6 +138,78 @@ function updateCamera(playerCar, dt, isNitro, cameraShake) {
 
 ---
 
+## 🛑 6. Sıfır-Keçmə (Anti-Clipping) və Bərk Cisimlər (Rigid Body Solid Collision) Qaydası
+
+Heç bir 3D mesh digər bir obyektin (digər maşınlar, divarlar, baryerlər) içindən keçə bilməz! Bütün toqquşmalar dəqiq fiziki qanunlarla idarə olunur:
+
+```javascript
+// 1. Minimum Translation Vector (MTV) ilə Həndəsi Ayırma (Zero-Clipping)
+function resolveSolidVehicleCollision(carA, carB, massA, massB) {
+  const dx = carA.position.x - carB.position.x;
+  const dz = carA.position.z - carB.position.z;
+  
+  const halfW = (carA.boxHalfW + carB.boxHalfW);
+  const halfL = (carA.boxHalfL + carB.boxHalfL);
+  
+  const penX = halfW - Math.abs(dx);
+  const penZ = halfL - Math.abs(dz);
+  
+  if (penX > 0 && penZ > 0) {
+    // Toqquşma baş verib: ən kiçik nüfuz oxu üzrə aralama (MTV)
+    const totalMass = massA + massB;
+    const ratioA = massB / totalMass;
+    const ratioB = massA / totalMass;
+    
+    if (penX < penZ) {
+      const signX = Math.sign(dx) || 1;
+      carA.position.x += signX * penX * ratioA;
+      carB.position.x -= signX * penX * ratioB;
+      
+      // Lateral Nyuton impulsu və elastik sıçrayış
+      const relVx = carA.vx - carB.vx;
+      const impulse = relVx * 0.45;
+      carA.vx -= impulse * ratioA;
+      carB.vx += impulse * ratioB;
+    } else {
+      const signZ = Math.sign(dz) || 1;
+      carA.position.z += signZ * penZ * ratioA;
+      carB.position.z -= signZ * penZ * ratioB;
+      
+      // Boyuna sürət ötürülməsi
+      const relVz = carA.vz - carB.vz;
+      const impulse = relVz * 0.5;
+      carA.vz -= impulse * ratioA;
+      carB.vz += impulse * ratioB;
+    }
+    
+    // Təmas nöqtəsində dinamik 3D metal qığılcım yağışı
+    emit3DSparks((carA.position.x + carB.position.x) * 0.5, 0.4, (carA.position.z + carB.position.z) * 0.5, 25);
+    return true;
+  }
+  return false;
+}
+
+// 2. Polad Guardrail / Baryer Toxunması (Hard Bounce & Spark Shower)
+function resolveGuardrailCollision(playerCar, barrierX, restitution = 0.5) {
+  const carHalfW = 1.05;
+  if (playerCar.position.x + carHalfW >= barrierX) {
+    playerCar.position.x = barrierX - carHalfW;
+    playerCar.velocityLat = -Math.abs(playerCar.velocityLat) * restitution;
+    playerCar.velocityLong *= 0.94; // Sürtünmə itkisi
+    emit3DSparks(barrierX, 0.45, playerCar.position.z, 20);
+    playMetalScrapeSound();
+  } else if (playerCar.position.x - carHalfW <= -barrierX) {
+    playerCar.position.x = -barrierX + carHalfW;
+    playerCar.velocityLat = Math.abs(playerCar.velocityLat) * restitution;
+    playerCar.velocityLong *= 0.94;
+    emit3DSparks(-barrierX, 0.45, playerCar.position.z, 20);
+    playMetalScrapeSound();
+  }
+}
+```
+
+---
+
 ## 🌟 5. Bütün 37 Agent Üçün Tətbiq Qaydası
 
 * **Agent 26 (Baş Memar):** `GAME_SPEC.md` hazırlayarkən mütləq `Render Engine: Three.js WebGL 3D (with UnrealBloomPass)` qeyd edir.

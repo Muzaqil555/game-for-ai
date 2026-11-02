@@ -15,6 +15,7 @@ Bu bacarıq (**Skill**) 36 agentli studiyaya **istənilən janrda və istənilə
 2. **60–120 FPS Standartı:** Obyekt hovuzları (Object Pooling), minimum garbage collection və `requestAnimationFrame` delta-time (`dt`) inteqrasiyası.
 3. **Mükəmməl "Game Feel" (Juice):** İstənilən janrda ekran sarsıntısı (Screen Shake), zərbə anında mikroskopik dondurma (Hit-Stop), zərrəcik partlayışları (Particles) və dinamik rənglər.
 4. **Hər Cihazda İşləmə:** Həm klaviatura/siçan, həm də toxunma (Touch/Mobil virtual joystik) dəstəyi.
+5. **Sıfır-Keçmə və Bərk Cisimlər (Zero-Clipping Rigid Body Collisions):** Heç bir fiziki obyekt, düşmən və ya baryer bir-birinin içindən keçə bilməz. Bütün toqquşmalarda MTV (Minimum Translation Vector) ayırması, Nyuton impulsu, çəpər sıçrayışı və təmas nöqtəsindən qığılcım/zibil püskürməsi məcburidir.
 
 ---
 
