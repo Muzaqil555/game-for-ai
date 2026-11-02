@@ -1993,6 +1993,14 @@
         this.updatePoliceSirens(state.policeCars);
       }
     }
+
+    updateEngineRPM(rpm, gear, throttle, isNitro) {
+      this.updateEngine({ rpm, gear, throttle, isNitro });
+    }
+
+    updatePoliceSirenField(cruisers = []) {
+      this.updatePoliceSirens(cruisers);
+    }
   }
 
   return NeonVelocityAudio;

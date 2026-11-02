@@ -1,22 +1,28 @@
 /* ============================================================================
-   NEON VELOCITY — CYBERPUNK COCKPIT & HUD STYLESHEET (src/racer_hud.css)
+   NEON VELOCITY — MODERN PERFORMANCE COCKPIT & DIGITAL CLUSTER (src/racer_hud.css)
    Author: Agent 3 — Frontend Specialist (UI/UX)
-   Theme: OutRun / Cyberpunk 1984 Synthwave Neon Aesthetic
+   Aesthetic: OEM High-Performance Automotive (Porsche / BMW M / Audi Sport Virtual Cockpit)
+   Palette: Smoked Glass, Technical Slate, Crisp Polar White, Warning Amber, Crimson Redline
    ============================================================================ */
 
 :root {
-  --neon-cyan: #00f5ff;
-  --neon-magenta: #ff007f;
-  --neon-yellow: #ffe600;
-  --neon-purple: #9d00ff;
-  --neon-red: #ff1e27;
-  --neon-blue: #0084ff;
-  --neon-amber: #ff9100;
-  --hud-bg-glass: rgba(10, 5, 25, 0.72);
-  --hud-border: rgba(0, 245, 255, 0.45);
-  --hud-glow-cyan: 0 0 15px rgba(0, 245, 255, 0.65), 0 0 35px rgba(0, 245, 255, 0.25);
-  --hud-glow-magenta: 0 0 15px rgba(255, 0, 127, 0.75), 0 0 35px rgba(255, 0, 127, 0.3);
-  --hud-glow-red: 0 0 18px rgba(255, 30, 39, 0.85), 0 0 40px rgba(255, 30, 39, 0.4);
+  --hud-white: #f8fafc;
+  --hud-slate: #94a3b8;
+  --hud-slate-dark: #475569;
+  --hud-slate-darker: #1e293b;
+  --hud-amber: #f59e0b;
+  --hud-red: #ef4444;
+  --hud-blue: #38bdf8;
+  --hud-emerald: #10b981;
+  
+  --hud-glass-bg: rgba(13, 17, 23, 0.85);
+  --hud-glass-bg-subtle: rgba(15, 23, 42, 0.65);
+  --hud-glass-border: rgba(255, 255, 255, 0.12);
+  --hud-glass-border-focus: rgba(255, 255, 255, 0.28);
+  
+  --hud-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.4);
+  --hud-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --hud-font-mono: 'DIN Alternate', 'Rajdhani', 'Roboto Mono', monospace;
 }
 
 * {
@@ -32,12 +38,12 @@ body, html {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background-color: #050014;
-  font-family: 'Courier New', 'Consolas', 'Rajdhani', monospace, sans-serif;
-  color: #fff;
+  background-color: #0a0d12;
+  font-family: var(--hud-font-sans);
+  color: var(--hud-white);
 }
 
-/* CRT Scanline & Chromatic Overlay */
+/* Subtle Optical Windshield Vignette */
 .cockpit-crt-overlay {
   position: absolute;
   top: 0;
@@ -46,39 +52,31 @@ body, html {
   height: 100%;
   pointer-events: none;
   z-index: 50;
-  background: linear-gradient(
-    rgba(18, 16, 16, 0) 50%, 
-    rgba(0, 0, 0, 0.35) 50%
-  ), linear-gradient(
-    90deg,
-    rgba(255, 0, 0, 0.03),
-    rgba(0, 255, 0, 0.01),
-    rgba(0, 0, 255, 0.03)
-  );
-  background-size: 100% 3px, 6px 100%;
-  opacity: 0.65;
+  background: radial-gradient(circle at center, transparent 65%, rgba(0, 0, 0, 0.55) 100%);
+  opacity: 0.8;
 }
 
 /* Master HUD Layer */
 #neon-velocity-hud {
   position: absolute;
-  top: 0;
+  top: 44px;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: calc(100% - 44px);
   pointer-events: none;
   z-index: 40;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 14px 18px;
+  padding: 12px 20px;
   overflow: hidden;
 }
 
 /* Interactive elements inside HUD must accept pointer events */
 #neon-velocity-hud button,
 #neon-velocity-hud .interactive,
-.mobile-touch-layer {
+.mobile-touch-layer,
+.mobile-touch-layer * {
   pointer-events: auto;
 }
 
@@ -98,20 +96,17 @@ body, html {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  background: var(--hud-bg-glass);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--hud-border);
-  border-left: 4px solid var(--neon-magenta);
-  padding: 8px 14px;
-  border-radius: 4px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5), inset 0 0 15px rgba(255,0,127,0.15);
-  min-width: 210px;
-  transform: skewX(-10deg);
-  transition: all 0.3s ease;
-}
-
-.hud-heat-panel > * {
-  transform: skewX(10deg);
+  background: var(--hud-glass-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--hud-glass-border);
+  border-left: 3px solid var(--hud-amber);
+  padding: 10px 16px;
+  border-radius: 8px;
+  box-shadow: var(--hud-shadow);
+  min-width: 270px;
+  max-width: 320px;
+  transition: border-color 0.3s ease;
 }
 
 .heat-header {
@@ -122,24 +117,25 @@ body, html {
 
 .heat-label {
   font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 2px;
-  color: var(--neon-magenta);
-  text-shadow: 0 0 8px var(--neon-magenta);
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--hud-white);
   text-transform: uppercase;
 }
 
 .heat-val-tag {
   font-size: 10px;
-  background: rgba(255, 0, 127, 0.25);
-  border: 1px solid var(--neon-magenta);
-  padding: 1px 6px;
-  border-radius: 2px;
-  color: #fff;
-  font-weight: bold;
+  font-family: var(--hud-font-mono);
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid var(--hud-amber);
+  padding: 1px 7px;
+  border-radius: 4px;
+  color: var(--hud-amber);
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
-/* 5 Neon Wanted Stars */
+/* Wanted Stars */
 .heat-stars-row {
   display: flex;
   gap: 6px;
@@ -147,645 +143,499 @@ body, html {
 }
 
 .heat-star {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  fill: #222233;
-  filter: grayscale(1) opacity(0.35);
-  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  fill: #334155;
+  filter: grayscale(1) opacity(0.3);
+  transition: all 0.25s ease;
 }
 
 .heat-star.active {
-  fill: var(--neon-yellow);
-  filter: drop-shadow(0 0 8px var(--neon-yellow)) opacity(1);
-  transform: scale(1.15);
-  animation: starPulse 1.2s infinite alternate;
+  fill: var(--hud-amber);
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.6)) opacity(1);
+  transform: scale(1.1);
 }
 
 .heat-star.active.danger {
-  fill: var(--neon-red);
-  filter: drop-shadow(0 0 10px var(--neon-red)) opacity(1);
-  animation: starPulseRed 0.6s infinite alternate;
-}
-
-@keyframes starPulse {
-  0% { transform: scale(1.1); filter: drop-shadow(0 0 5px var(--neon-yellow)); }
-  100% { transform: scale(1.25); filter: drop-shadow(0 0 12px var(--neon-amber)); }
-}
-
-@keyframes starPulseRed {
-  0% { transform: scale(1.15); filter: drop-shadow(0 0 6px var(--neon-red)); }
-  100% { transform: scale(1.35); filter: drop-shadow(0 0 16px #ff0044); }
+  fill: var(--hud-red);
+  filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.7)) opacity(1);
+  transform: scale(1.15);
 }
 
 .heat-meter-track {
   width: 100%;
   height: 4px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 2px;
   overflow: hidden;
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .heat-meter-fill {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, var(--neon-yellow), var(--neon-magenta), var(--neon-red));
-  box-shadow: 0 0 10px var(--neon-magenta);
+  background: linear-gradient(90deg, var(--hud-amber), var(--hud-red));
+  border-radius: 2px;
   transition: width 0.2s linear;
 }
 
 .police-dispatch-feed {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 10px;
-  font-family: monospace;
-  color: #ff99bb;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 220px;
+  color: var(--hud-slate);
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.dispatch-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--hud-amber);
+  animation: radarBlip 1.4s infinite ease-out;
+}
+
+@keyframes radarBlip {
+  0% { transform: scale(0.9); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.4; }
+  100% { transform: scale(0.9); opacity: 1; }
 }
 
 /* ----------------------------------------------------------------------------
-   CENTER: CYBERPUNK REARVIEW MIRROR (Dikbaxış Güzgüsü)
+   CENTER: AUTO-DIMMING REARVIEW MIRROR RIG
    ---------------------------------------------------------------------------- */
 .rearview-mirror-rig {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  position: relative;
-  z-index: 45;
 }
 
-.mirror-mount-stem {
-  width: 10px;
-  height: 12px;
-  background: linear-gradient(180deg, #111, #333);
-  border: 1px solid #444;
-  margin-top: -14px;
+.rearview-mount-arm {
+  width: 12px;
+  height: 14px;
+  background: linear-gradient(180deg, #1e293b, #0f172a);
+  border-radius: 2px 2px 0 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: none;
 }
 
 .rearview-frame {
   position: relative;
   width: 280px;
-  height: 72px;
-  background: #000;
-  border-radius: 8px 8px 18px 18px;
-  padding: 3px;
-  border: 2px solid #2a2a40;
-  box-shadow: 0 4px 25px rgba(0,0,0,0.85), 0 0 15px rgba(0, 245, 255, 0.2);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  height: 74px;
+  background: #0b0f15;
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.8), inset 0 0 10px rgba(0, 0, 0, 0.85);
   overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.rearview-canvas {
+.rearview-frame.siren-strobe-active-red {
+  border-color: rgba(239, 68, 68, 0.8);
+  box-shadow: 0 0 24px rgba(239, 68, 68, 0.5);
+}
+
+.rearview-frame.siren-strobe-active-blue {
+  border-color: rgba(56, 189, 248, 0.8);
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.5);
+}
+
+#rearview-canvas {
   width: 100%;
   height: 100%;
-  border-radius: 6px 6px 14px 14px;
-  background: #060212;
   display: block;
 }
 
-/* Glass reflection shine on mirror */
-.mirror-tint-reflection {
+.mirror-glass-glare {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
-  background: linear-gradient(
-    135deg, 
-    rgba(255,255,255,0.2) 0%, 
-    rgba(255,255,255,0.05) 30%, 
-    transparent 55%
-  );
-  border-radius: 6px 6px 14px 14px;
-}
-
-/* Cop Siren Flashing Glow on Mirror Housing */
-.siren-strobe-left,
-.siren-strobe-right {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 35%;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.08s ease;
-}
-
-.siren-strobe-left {
-  left: 0;
-  background: radial-gradient(circle at 10% 50%, rgba(255, 0, 50, 0.8), transparent 75%);
-}
-
-.siren-strobe-right {
-  right: 0;
-  background: radial-gradient(circle at 90% 50%, rgba(0, 132, 255, 0.85), transparent 75%);
-}
-
-.siren-strobe-active-red .siren-strobe-left {
-  opacity: 1;
-}
-
-.siren-strobe-active-blue .siren-strobe-right {
-  opacity: 1;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, transparent 45%);
 }
 
 .mirror-hud-status {
   position: absolute;
   bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
   font-size: 9px;
-  letter-spacing: 1.5px;
-  color: var(--neon-cyan);
-  text-shadow: 0 0 5px var(--neon-cyan);
-  font-family: monospace;
-  background: rgba(0, 0, 0, 0.6);
-  padding: 1px 6px;
-  border-radius: 2px;
+  font-family: var(--hud-font-mono);
+  color: var(--hud-slate);
+  letter-spacing: 1px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+  white-space: nowrap;
 }
 
-/* Top Right: Credits & Mission Timer */
+/* ----------------------------------------------------------------------------
+   TOP RIGHT: STATS & CONTROLS PANEL
+   ---------------------------------------------------------------------------- */
 .hud-stats-panel {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-  background: var(--hud-bg-glass);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--hud-border);
-  border-right: 4px solid var(--neon-cyan);
-  padding: 8px 14px;
-  border-radius: 4px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5), inset 0 0 15px rgba(0,245,255,0.15);
-  min-width: 190px;
-  transform: skewX(10deg);
+  align-items: center;
+  gap: 12px;
+  background: var(--hud-glass-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--hud-glass-border);
+  padding: 8px 16px;
+  border-radius: 8px;
+  box-shadow: var(--hud-shadow);
 }
 
-.hud-stats-panel > * {
-  transform: skewX(-10deg);
+.btn-audio-toggle {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--hud-glass-border);
+  color: var(--hud-white);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-audio-toggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--hud-glass-border-focus);
 }
 
 .stat-credits-box {
   display: flex;
-  align-items: baseline;
-  gap: 6px;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .stat-credits-label {
-  font-size: 10px;
-  color: #88eeff;
+  font-size: 9px;
+  color: var(--hud-slate);
+  font-weight: 700;
   letter-spacing: 1px;
 }
 
 .stat-credits-val {
-  font-size: 20px;
-  font-weight: 900;
-  color: var(--neon-yellow);
-  text-shadow: 0 0 10px var(--neon-yellow);
-}
-
-.stat-multiplier-badge {
-  font-size: 11px;
-  font-weight: bold;
-  background: rgba(0, 245, 255, 0.2);
-  border: 1px solid var(--neon-cyan);
-  color: var(--neon-cyan);
-  padding: 2px 7px;
-  border-radius: 3px;
-  letter-spacing: 1px;
+  font-size: 15px;
+  font-family: var(--hud-font-mono);
+  color: var(--hud-emerald);
+  font-weight: 800;
 }
 
 /* ----------------------------------------------------------------------------
-   CENTER NOTIFICATIONS & DRIFT SCORE BANNER
+   TAKEDOWN / NOTIFICATION BANNER (Burnout / NFS Style)
    ---------------------------------------------------------------------------- */
-.hud-center-events {
+#hud-takedown-banner {
   position: absolute;
-  top: 24%;
+  top: 105px;
   left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  pointer-events: none;
-}
-
-/* Drift Angle & Multiplier Panel */
-.drift-gauge-cluster {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: rgba(15, 5, 30, 0.85);
-  border: 1px solid var(--neon-magenta);
-  box-shadow: 0 0 25px rgba(255, 0, 127, 0.4);
-  padding: 8px 22px;
-  border-radius: 6px;
-  transform: scale(0.9);
-  opacity: 0;
-  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s ease;
-}
-
-.drift-gauge-cluster.active {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.drift-title {
-  font-size: 12px;
-  letter-spacing: 3px;
-  color: var(--neon-magenta);
-  font-weight: 900;
-  text-shadow: 0 0 10px var(--neon-magenta);
-  margin-bottom: 2px;
-}
-
-.drift-dynamic-row {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-}
-
-.drift-score-counter {
-  font-size: 32px;
-  font-weight: 900;
-  color: #fff;
-  text-shadow: 0 0 12px var(--neon-cyan), 0 0 24px var(--neon-magenta);
-  font-family: 'Rajdhani', 'Impact', sans-serif;
-}
-
-.drift-multiplier-tag {
-  font-size: 20px;
-  font-weight: 900;
-  color: var(--neon-yellow);
-  text-shadow: 0 0 10px var(--neon-yellow);
-  background: rgba(255, 230, 0, 0.2);
-  padding: 2px 8px;
-  border-radius: 4px;
-  border: 1px solid var(--neon-yellow);
-  animation: pulseScale 0.8s infinite alternate;
-}
-
-@keyframes pulseScale {
-  0% { transform: scale(1); }
-  100% { transform: scale(1.12); }
-}
-
-.drift-angle-bar-wrapper {
-  width: 180px;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
-  margin-top: 6px;
-  position: relative;
-  overflow: hidden;
-}
-
-.drift-angle-bar-fill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
-  box-shadow: 0 0 10px var(--neon-magenta);
-  transition: width 0.08s ease-out;
-}
-
-.drift-angle-text {
-  font-size: 11px;
-  color: #ffb3d9;
-  font-family: monospace;
-  margin-top: 2px;
-}
-
-/* Event Banners (Takedowns, EMP, Nitro Burn) */
-.hud-takedown-banner {
-  background: linear-gradient(90deg, transparent, rgba(255, 0, 127, 0.9), rgba(157, 0, 255, 0.9), transparent);
-  padding: 10px 45px;
-  border-top: 2px solid var(--neon-yellow);
-  border-bottom: 2px solid var(--neon-cyan);
-  text-align: center;
-  transform: scale(0.7) rotate(-2deg);
-  opacity: 0;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.hud-takedown-banner.show {
-  transform: scale(1) rotate(0deg);
-  opacity: 1;
-}
-
-.takedown-text {
-  font-size: 26px;
-  font-weight: 900;
-  letter-spacing: 4px;
-  color: #fff;
-  text-shadow: 0 0 15px var(--neon-yellow), 0 0 30px var(--neon-red);
-}
-
-.takedown-subtext {
-  font-size: 14px;
-  color: var(--neon-cyan);
-  letter-spacing: 2px;
-  font-weight: bold;
-}
-
-/* ----------------------------------------------------------------------------
-   BOTTOM COCKPIT INSTRUMENTATION: TACHOMETER, SPEEDOMETER, RADAR
-   ---------------------------------------------------------------------------- */
-.hud-bottom-cockpit {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  width: 100%;
-  position: relative;
-  gap: 15px;
-}
-
-/* Left Bottom: Mini-Map / Nav Radar */
-.radar-cluster {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: relative;
-}
-
-.radar-bezel {
-  width: 170px;
-  height: 170px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(10, 2, 25, 0.9) 40%, rgba(20, 5, 45, 0.95) 100%);
-  border: 2px solid var(--neon-cyan);
-  box-shadow: 0 0 20px rgba(0, 245, 255, 0.3), inset 0 0 20px rgba(0, 245, 255, 0.2);
-  padding: 4px;
-  position: relative;
-  overflow: hidden;
-}
-
-.radar-canvas {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  display: block;
-}
-
-.radar-crosshair-ring {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 65%;
-  height: 65%;
-  border: 1px dashed rgba(0, 245, 255, 0.3);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.radar-warning-ticker {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 9px;
-  color: var(--neon-yellow);
-  font-weight: bold;
-  letter-spacing: 1px;
-  text-shadow: 0 0 6px var(--neon-yellow);
-  white-space: nowrap;
-}
-
-.radar-legend {
-  display: flex;
-  gap: 10px;
-  margin-top: 6px;
-  font-size: 9px;
-  color: #88eeff;
-  letter-spacing: 1px;
-  background: var(--hud-bg-glass);
-  padding: 3px 8px;
-  border-radius: 3px;
-  border: 1px solid rgba(0, 245, 255, 0.25);
-}
-
-.legend-cop {
-  color: var(--neon-red);
-}
-.legend-hazard {
-  color: var(--neon-yellow);
-}
-
-/* Center Bottom: Gear Indicator & Nitro Tube */
-.center-telemetry-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-/* Gear Box Display */
-.gear-display-pod {
-  background: var(--hud-bg-glass);
-  border: 2px solid var(--neon-magenta);
-  box-shadow: 0 0 20px rgba(255, 0, 127, 0.4), inset 0 0 15px rgba(255, 0, 127, 0.2);
-  border-radius: 8px;
-  width: 74px;
-  height: 82px;
+  transform: translateX(-50%) scale(0.9);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  position: relative;
-  transform: skewX(-6deg);
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--hud-glass-border);
+  border-top: 3px solid var(--hud-amber);
+  border-bottom: 3px solid var(--hud-amber);
+  padding: 12px 32px;
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 60;
 }
 
-.gear-label {
-  font-size: 9px;
-  letter-spacing: 2px;
-  color: #ff99bb;
-  font-weight: bold;
+#hud-takedown-banner.active {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
 }
 
-.gear-number {
-  font-size: 42px;
+.takedown-title {
+  font-size: 20px;
   font-weight: 900;
-  line-height: 1;
-  color: #fff;
-  text-shadow: 0 0 15px var(--neon-cyan), 0 0 30px var(--neon-magenta);
-  font-family: 'Rajdhani', 'Impact', sans-serif;
-  transition: transform 0.1s ease;
+  letter-spacing: 2px;
+  color: var(--hud-white);
+  text-transform: uppercase;
+  margin-bottom: 2px;
 }
 
-.gear-shift-pop {
-  animation: gearPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+.takedown-subtitle {
+  font-size: 11px;
+  font-family: var(--hud-font-mono);
+  color: var(--hud-amber);
+  letter-spacing: 1.5px;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
-@keyframes gearPop {
-  0% { transform: scale(0.85); filter: brightness(1.8); }
-  50% { transform: scale(1.35); filter: brightness(2.5); color: var(--neon-yellow); }
-  100% { transform: scale(1); filter: brightness(1); }
+/* ----------------------------------------------------------------------------
+   BOTTOM CLUSTER: DIGITAL COCKPIT INSTRUMENTATION
+   ---------------------------------------------------------------------------- */
+.hud-bottom-cluster {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  width: 100%;
 }
 
-/* Nitro Bar / NOS Boost Gauge */
-.nitro-gauge-wrap {
+/* Left Pod: Tactical Radar / Minimap */
+.hud-nav-pod {
+  background: var(--hud-glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--hud-glass-border);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: var(--hud-shadow);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  width: 140px;
+}
+
+.radar-bezel {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: rgba(11, 15, 22, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.9);
+  overflow: hidden;
+}
+
+#radar-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.radar-warning-ticker {
+  font-size: 9px;
+  font-family: var(--hud-font-mono);
+  color: var(--hud-slate);
+  letter-spacing: 1px;
+  margin-top: 6px;
+  font-weight: 700;
+}
+
+/* Center Pod: Drift Dynamics & Score */
+.hud-drift-dynamics {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--hud-glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--hud-glass-border);
+  border-radius: 10px;
+  padding: 8px 24px;
+  box-shadow: var(--hud-shadow);
+  opacity: 0.92;
+  margin-bottom: 4px;
+}
+
+.drift-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.drift-badge {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  color: var(--hud-white);
+}
+
+.drift-mult-tag {
+  font-size: 10px;
+  font-family: var(--hud-font-mono);
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid var(--hud-amber);
+  color: var(--hud-amber);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.drift-score-val {
+  font-size: 22px;
+  font-family: var(--hud-font-mono);
+  color: var(--hud-white);
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.drift-angle-tag {
+  font-size: 10px;
+  font-family: var(--hud-font-mono);
+  color: var(--hud-slate);
+  letter-spacing: 0.5px;
+}
+
+/* Right Pod: Performance Tachometer & Digital Speedometer */
+.hud-telemetry-pod {
+  background: var(--hud-glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--hud-glass-border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  box-shadow: var(--hud-shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 240px;
+}
+
+.dial-pod-container {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#gauge-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Center Digital Speedometer Readout */
+.dial-digital-readout {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.gear-indicator-pill {
+  font-size: 14px;
+  font-weight: 900;
+  font-family: var(--hud-font-mono);
+  color: var(--hud-white);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
+}
+
+.digital-speed-val {
+  font-size: 46px;
+  font-weight: 900;
+  font-family: var(--hud-font-mono);
+  color: var(--hud-white);
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.digital-speed-unit {
+  font-size: 10px;
+  color: var(--hud-slate);
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.digital-rpm-val {
+  font-size: 10px;
+  font-family: var(--hud-font-mono);
+  color: var(--hud-slate);
+  margin-top: 4px;
+}
+
+.redline-flasher {
+  position: absolute;
+  top: 14px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: var(--hud-red);
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid var(--hud-red);
+  padding: 2px 8px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+
+.redline-flasher.active {
+  opacity: 1;
+  animation: redlinePulse 0.25s infinite alternate;
+}
+
+@keyframes redlinePulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  100% { transform: scale(1.05); opacity: 1; }
+}
+
+/* Nitro Boost Charge Bar */
+.nitro-cluster-box {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
 }
 
 .nitro-header {
   display: flex;
   justify-content: space-between;
-  width: 100%;
+  align-items: center;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 800;
   letter-spacing: 1px;
+  color: var(--hud-slate);
 }
 
-.nitro-label {
-  color: var(--neon-cyan);
-  text-shadow: 0 0 6px var(--neon-cyan);
-}
-
-.nitro-percent-val {
-  color: #fff;
-}
-
-.nitro-pill-track {
+.nitro-bar-track {
   width: 100%;
-  height: 10px;
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 5px;
-  border: 1px solid rgba(0, 245, 255, 0.4);
-  padding: 1px;
-  position: relative;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
   overflow: hidden;
 }
 
-.nitro-pill-fill {
+.nitro-bar-fill {
   height: 100%;
   width: 100%;
-  background: linear-gradient(90deg, #0084ff, var(--neon-cyan), #ffffff);
-  border-radius: 4px;
-  box-shadow: 0 0 12px var(--neon-cyan);
-  transition: width 0.15s ease-out;
-}
-
-.nitro-pulsing {
-  animation: nitroPulse 0.4s infinite alternate;
-}
-
-@keyframes nitroPulse {
-  0% { filter: brightness(1) drop-shadow(0 0 6px var(--neon-cyan)); }
-  100% { filter: brightness(1.7) drop-shadow(0 0 18px #fff); }
-}
-
-/* ----------------------------------------------------------------------------
-   RIGHT BOTTOM: ANALOG/DIGITAL TACHOMETER & SPEEDOMETER
-   ---------------------------------------------------------------------------- */
-.telemetry-cluster {
-  display: flex;
-  align-items: flex-end;
-  gap: 14px;
-  position: relative;
-}
-
-/* Circular Dual Dial (Tachometer & Speedometer) */
-.dial-pod-container {
-  width: 250px;
-  height: 250px;
-  position: relative;
-  background: radial-gradient(circle, rgba(12, 4, 30, 0.92) 50%, rgba(25, 8, 55, 0.98) 100%);
-  border-radius: 50%;
-  border: 2px solid var(--neon-magenta);
-  box-shadow: 0 0 30px rgba(255, 0, 127, 0.35), inset 0 0 25px rgba(0, 245, 255, 0.2);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.gauge-canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-  border-radius: 50%;
-}
-
-/* Digital Speedometer Center Overlay in Gauge */
-.dial-center-digital {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  pointer-events: none;
-  z-index: 5;
-}
-
-.digital-speed-val {
-  font-size: 52px;
-  font-weight: 900;
-  line-height: 0.9;
-  color: #fff;
-  text-shadow: 0 0 18px var(--neon-cyan), 0 0 35px var(--neon-magenta);
-  font-family: 'Rajdhani', 'Impact', sans-serif;
-  letter-spacing: -1px;
-}
-
-.digital-speed-unit {
-  font-size: 13px;
-  font-weight: 900;
-  letter-spacing: 2px;
-  color: var(--neon-cyan);
-  text-shadow: 0 0 8px var(--neon-cyan);
-  margin-top: 2px;
-}
-
-.digital-rpm-val {
-  font-size: 11px;
-  font-family: monospace;
-  color: #ff99bb;
-  margin-top: 3px;
-  letter-spacing: 1px;
-}
-
-/* Redline Alert Flash */
-.redline-flasher {
-  position: absolute;
-  top: 14%;
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 2px;
-  color: var(--neon-red);
-  background: rgba(255, 30, 39, 0.2);
-  border: 1px solid var(--neon-red);
-  padding: 1px 7px;
+  background: linear-gradient(90deg, #0284c7, #38bdf8);
   border-radius: 3px;
-  opacity: 0;
-  transition: opacity 0.1s ease;
-  text-transform: uppercase;
-}
-
-.redline-flasher.flashing {
-  opacity: 1;
-  animation: redlineBlink 0.16s infinite alternate;
-}
-
-@keyframes redlineBlink {
-  0% { transform: scale(1); filter: brightness(1) drop-shadow(0 0 4px var(--neon-red)); }
-  100% { transform: scale(1.08); filter: brightness(2) drop-shadow(0 0 12px var(--neon-red)); background: rgba(255, 30, 39, 0.5); }
+  transition: width 0.1s linear;
 }
 
 /* ----------------------------------------------------------------------------
-   MOBILE ON-SCREEN CONTROLS (Virtual Gas, Brake, Handbrake, Steer, Nitro)
+   MOBILE & TOUCH ON-SCREEN CONTROLS
+   High-Grade Brushed Metal & Tactical Pedals
    ---------------------------------------------------------------------------- */
 .mobile-touch-layer {
   position: absolute;
@@ -795,7 +645,7 @@ body, html {
   height: 100%;
   pointer-events: none;
   z-index: 60;
-  display: none; /* Enabled on touch-capable viewports or touch detection */
+  display: none;
 }
 
 .mobile-touch-layer.active {
@@ -805,8 +655,8 @@ body, html {
 /* Left Steer Buttons */
 .mobile-steering-zone {
   position: absolute;
-  bottom: 24px;
-  left: 20px;
+  bottom: 26px;
+  left: 24px;
   display: flex;
   gap: 16px;
   pointer-events: auto;
@@ -816,10 +666,11 @@ body, html {
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: rgba(10, 5, 25, 0.75);
-  border: 2px solid var(--neon-cyan);
-  box-shadow: 0 0 15px rgba(0, 245, 255, 0.4);
-  color: var(--neon-cyan);
+  background: rgba(15, 23, 42, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  color: var(--hud-white);
   font-size: 26px;
   font-weight: 900;
   display: flex;
@@ -828,22 +679,23 @@ body, html {
   cursor: pointer;
   touch-action: none;
   outline: none;
-  transition: transform 0.08s, background-color 0.08s;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  transition: transform 0.08s, background-color 0.08s, border-color 0.08s;
 }
 
 .mobile-steer-btn:active,
 .mobile-steer-btn.pressed {
-  background: rgba(0, 245, 255, 0.4);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.25);
+  border-color: var(--hud-white);
   transform: scale(0.92);
-  box-shadow: 0 0 25px var(--neon-cyan);
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.3);
 }
 
 /* Right Pedal Controls (Gas, Brake, E-Brake, Nitro) */
 .mobile-pedals-zone {
   position: absolute;
   bottom: 24px;
-  right: 20px;
+  right: 24px;
   display: flex;
   align-items: flex-end;
   gap: 14px;
@@ -855,11 +707,13 @@ body, html {
   width: 66px;
   height: 66px;
   border-radius: 50%;
-  background: rgba(30, 5, 15, 0.85);
-  border: 2px solid var(--neon-magenta);
-  box-shadow: 0 0 15px rgba(255, 0, 127, 0.45);
-  color: var(--neon-magenta);
-  font-size: 11px;
+  background: rgba(30, 20, 20, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 2px solid rgba(239, 68, 68, 0.45);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  color: var(--hud-red);
+  font-size: 10px;
   font-weight: 900;
   letter-spacing: 1px;
   display: flex;
@@ -873,22 +727,25 @@ body, html {
 
 .mobile-ebrake-btn:active,
 .mobile-ebrake-btn.pressed {
-  background: rgba(255, 0, 127, 0.45);
+  background: rgba(239, 68, 68, 0.35);
   color: #fff;
+  border-color: var(--hud-red);
   transform: scale(0.92);
-  box-shadow: 0 0 28px var(--neon-magenta);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
 }
 
-/* Nitro Button */
+/* Nitro NOS Button */
 .mobile-nitro-btn {
   width: 62px;
   height: 62px;
   border-radius: 50%;
-  background: rgba(0, 20, 40, 0.85);
-  border: 2px solid var(--neon-yellow);
-  box-shadow: 0 0 15px rgba(255, 230, 0, 0.4);
-  color: var(--neon-yellow);
-  font-size: 12px;
+  background: rgba(14, 30, 48, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 2px solid rgba(56, 189, 248, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  color: var(--hud-blue);
+  font-size: 11px;
   font-weight: 900;
   letter-spacing: 1px;
   display: flex;
@@ -896,92 +753,94 @@ body, html {
   justify-content: center;
   cursor: pointer;
   touch-action: none;
-  margin-bottom: 74px;
-  margin-right: -45px;
-  transition: transform 0.08s;
+  margin-bottom: 70px;
+  margin-right: -42px;
+  transition: transform 0.08s, background-color 0.08s;
 }
 
 .mobile-nitro-btn:active,
 .mobile-nitro-btn.pressed {
-  background: rgba(255, 230, 0, 0.45);
+  background: rgba(56, 189, 248, 0.4);
   color: #fff;
+  border-color: var(--hud-blue);
   transform: scale(0.92);
-  box-shadow: 0 0 26px var(--neon-yellow);
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.7);
 }
 
-/* Brake Pedal (Slightly shorter) */
+/* Brake Pedal */
 .mobile-pedal-brake {
-  width: 65px;
-  height: 105px;
+  width: 68px;
+  height: 110px;
   border-radius: 8px;
-  background: linear-gradient(180deg, rgba(40, 10, 15, 0.85), rgba(80, 10, 20, 0.95));
-  border: 2px solid var(--neon-red);
-  box-shadow: 0 0 16px rgba(255, 30, 39, 0.4);
+  background: linear-gradient(180deg, #1e2430, #131720);
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #ff9999;
+  color: var(--hud-slate);
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 1px;
   cursor: pointer;
   touch-action: none;
-  transition: transform 0.08s;
+  transition: transform 0.08s, background-color 0.08s, border-color 0.08s;
 }
 
 .mobile-pedal-brake:active,
 .mobile-pedal-brake.pressed {
-  background: var(--neon-red);
+  background: linear-gradient(180deg, #374151, #1f2937);
+  border-color: var(--hud-red);
   color: #fff;
   transform: translateY(6px);
-  box-shadow: 0 0 28px var(--neon-red);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
 }
 
-/* Gas (Throttle) Pedal (Taller, Cyber Texture) */
+/* Gas (Throttle) Pedal */
 .mobile-pedal-gas {
-  width: 70px;
-  height: 135px;
+  width: 74px;
+  height: 140px;
   border-radius: 8px;
-  background: linear-gradient(180deg, rgba(10, 30, 35, 0.85), rgba(10, 60, 70, 0.95));
-  border: 2px solid var(--neon-cyan);
-  box-shadow: 0 0 20px rgba(0, 245, 255, 0.4);
+  background: linear-gradient(180deg, #1e293b, #0f172a);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #cceeff;
-  font-size: 13px;
+  color: var(--hud-white);
+  font-size: 12px;
   font-weight: 900;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   cursor: pointer;
   touch-action: none;
-  transition: transform 0.08s;
   position: relative;
+  transition: transform 0.08s, background-color 0.08s, border-color 0.08s;
 }
 
 .pedal-ribs {
   position: absolute;
-  width: 70%;
+  width: 65%;
   height: 60%;
-  border-top: 2px solid rgba(255, 255, 255, 0.3);
-  border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid rgba(255, 255, 255, 0.18);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.18);
   background: repeating-linear-gradient(
     180deg,
     transparent,
     transparent 8px,
-    rgba(255, 255, 255, 0.25) 8px,
-    rgba(255, 255, 255, 0.25) 10px
+    rgba(255, 255, 255, 0.12) 8px,
+    rgba(255, 255, 255, 0.12) 10px
   );
   pointer-events: none;
 }
 
 .mobile-pedal-gas:active,
 .mobile-pedal-gas.pressed {
-  background: var(--neon-cyan);
-  color: #000;
+  background: linear-gradient(180deg, #334155, #1e293b);
+  border-color: var(--hud-white);
   transform: translateY(8px);
-  box-shadow: 0 0 35px var(--neon-cyan);
+  box-shadow: 0 0 22px rgba(255, 255, 255, 0.35);
 }
 
 /* ----------------------------------------------------------------------------
@@ -992,56 +851,62 @@ body, html {
     display: block !important;
   }
   .dial-pod-container {
-    width: 190px;
-    height: 190px;
+    width: 180px;
+    height: 180px;
   }
   .digital-speed-val {
     font-size: 38px;
   }
   .radar-bezel {
-    width: 130px;
-    height: 130px;
+    width: 125px;
+    height: 125px;
   }
   .rearview-frame {
     width: 210px;
-    height: 54px;
+    height: 58px;
   }
-  .hud-heat-panel, .hud-stats-panel {
-    min-width: 140px;
+  .hud-heat-panel {
+    min-width: 170px;
     padding: 6px 10px;
-  }
-  .drift-score-counter {
-    font-size: 24px;
   }
 }
 
-@media (max-width: 650px) {
-  #neon-velocity-hud {
-    padding: 8px;
+@media (max-width: 600px) {
+  .hud-drift-dynamics {
+    display: none;
   }
-  .rearview-frame {
-    width: 170px;
-    height: 48px;
+  .rearview-mirror-rig {
+    transform: translateX(-50%) scale(0.85);
+    top: -6px;
   }
   .dial-pod-container {
-    width: 165px;
-    height: 165px;
+    width: 150px;
+    height: 150px;
   }
   .digital-speed-val {
-    font-size: 32px;
+    font-size: 30px;
   }
-  .radar-bezel {
-    width: 110px;
+  .mobile-steer-btn {
+    width: 58px;
+    height: 58px;
+    font-size: 20px;
+  }
+  .mobile-pedal-gas {
+    width: 58px;
     height: 110px;
   }
-  .gear-display-pod {
-    width: 58px;
-    height: 66px;
+  .mobile-pedal-brake {
+    width: 54px;
+    height: 90px;
   }
-  .gear-number {
-    font-size: 32px;
+  .mobile-ebrake-btn {
+    width: 54px;
+    height: 54px;
   }
-  .mobile-touch-layer {
-    display: block; /* Auto show on small mobile displays */
+  .mobile-nitro-btn {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 54px;
+    margin-right: -32px;
   }
 }

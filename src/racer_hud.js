@@ -1,9 +1,10 @@
 /**
  * ============================================================================
- * NEON VELOCITY — CYBERPUNK COCKPIT & HUD CONTROLLER (src/racer_hud.js)
+ * NEON VELOCITY — MODERN PERFORMANCE COCKPIT & DIGITAL CLUSTER (src/racer_hud.js)
  * Author: Agent 3 — Frontend Specialist (UI/UX)
  * Supervision: Agent 4 (CEO) & Agent 26 (Architect)
  * Target: 60-120 FPS High-Performance Canvas & DOM Hybrid Rendering
+ * Aesthetic: Clean Porsche / BMW M Sport Virtual Cockpit
  * ============================================================================
  */
 
@@ -11,17 +12,19 @@
   'use strict';
 
   // --------------------------------------------------------------------------
-  // CONSTANTS & PALETTE
+  // CONSTANTS & PERFORMANCE PALETTE (No Cliché Neons)
   // --------------------------------------------------------------------------
   const PALETTE = {
-    cyan: '#00f5ff',
-    magenta: '#ff007f',
-    yellow: '#ffe600',
-    purple: '#9d00ff',
-    red: '#ff1e27',
-    blue: '#0084ff',
-    darkBg: '#080318',
-    gridLine: 'rgba(0, 245, 255, 0.25)'
+    white: '#f8fafc',
+    slate: '#94a3b8',
+    slateDark: '#475569',
+    amber: '#f59e0b',
+    red: '#ef4444',
+    blue: '#38bdf8',
+    emerald: '#10b981',
+    darkBg: '#0b0f15',
+    glassBorder: 'rgba(255, 255, 255, 0.12)',
+    gridLine: 'rgba(148, 163, 184, 0.16)'
   };
 
   const REDLINE_RPM = 7500;
@@ -32,7 +35,7 @@
   // --------------------------------------------------------------------------
   const NeonHUD = {
     initialized: false,
-    isExternalControl: false, // Set to true when core game engine takes over
+    isExternalControl: true, // Default to true so game engine controls telemetry
     elements: {},
     gaugeCtx: null,
     mirrorCtx: null,
@@ -51,17 +54,14 @@
       driftScore: 0,
       driftMult: 1.0,
       credits: 14500,
-      statusMessage: 'PATROL FREQUENCY MONITOR ACTIVE',
+      statusMessage: 'HIGHWAY PATROL FREQUENCY MONITOR ACTIVE',
       rearviewData: {
-        cops: [
-          { dist: 130, lane: -0.35, flashing: true },
-          { dist: 210, lane: 0.40, flashing: true }
-        ]
+        cops: []
       },
       radarData: {
-        curvesAhead: [{ dist: 80, curve: 1.8, label: 'S-CURVE' }],
-        roadblocks: [{ dist: 130, lane: 0 }],
-        copsAhead: [{ dist: 160, lane: 0.6 }]
+        curvesAhead: [],
+        roadblocks: [],
+        copsAhead: []
       }
     },
 
@@ -79,7 +79,6 @@
     mirrorSirenPhase: 0,
     lastFrameTime: performance.now(),
     lastGear: 'N',
-    demoInterval: null,
 
     /**
      * DOM Strukturlarını Keşləyir və Canvas Kontekstlərini başladır
@@ -88,20 +87,17 @@
       if (this.initialized) return;
 
       this.options = options || {};
-      if (this.options.externalControl) {
-        this.isExternalControl = true;
-      }
+      this.isExternalControl = true;
 
       this._cacheDOMElements();
       this._initCanvases();
       this._bindTouchControls();
-      this._bindKeyboardForDemo();
 
       this.initialized = true;
 
       // Start internal 60-120 FPS render loop for gauges & mirrors
       requestAnimationFrame(this._renderTick.bind(this));
-      console.log('⚡ [NeonHUD] Cyberpunk Cockpit & HUD initialized successfully.');
+      console.log('⚡ [NeonHUD] Performance Digital Cockpit initialized.');
     },
 
     /**
@@ -133,34 +129,31 @@
 
         // Telemetry & Gauges
         gaugeCanvas: document.getElementById('gauge-canvas'),
-        digitalSpeed: document.getElementById('digital-speed-val'),
-        digitalSpeedUnit: document.getElementById('digital-speed-unit'),
-        digitalRpm: document.getElementById('digital-rpm-val'),
+        digitalSpeedVal: document.getElementById('digital-speed-val'),
+        digitalRpmVal: document.getElementById('digital-rpm-val'),
+        gearIndicator: document.getElementById('gear-indicator'),
         redlineFlasher: document.getElementById('redline-flasher'),
-        gearNumber: document.getElementById('gear-number'),
-        gearPod: document.getElementById('gear-display-pod'),
-        nitroPillFill: document.getElementById('nitro-pill-fill'),
-        nitroPercentVal: document.getElementById('nitro-percent-val'),
+        nitroBarFill: document.getElementById('nitro-bar-fill'),
 
-        // Drift Panel
-        driftCluster: document.getElementById('drift-gauge-cluster'),
-        driftScoreCounter: document.getElementById('drift-score-counter'),
-        driftMultiplierTag: document.getElementById('drift-multiplier-tag'),
-        driftAngleBarFill: document.getElementById('drift-angle-bar-fill'),
-        driftAngleText: document.getElementById('drift-angle-text'),
-
-        // Radar
+        // Radar / Navigation Pod
         radarCanvas: document.getElementById('radar-canvas'),
         radarWarningTicker: document.getElementById('radar-warning-ticker'),
 
-        // Credits & Stats
-        creditsVal: document.getElementById('stat-credits-val'),
-        multiplierBadge: document.getElementById('stat-multiplier-badge'),
+        // Drift Dynamics & Scoring
+        driftContainer: document.getElementById('hud-drift-dynamics'),
+        driftMultTag: document.getElementById('drift-mult-tag'),
+        driftScoreVal: document.getElementById('drift-score-val'),
+        driftAngleTag: document.getElementById('drift-angle-tag'),
+
+        // Top Right Stats
+        statCreditsVal: document.getElementById('stat-credits-val'),
+        btnAudioToggle: document.getElementById('btn-audio-toggle'),
+        btnCamToggle: document.getElementById('btn-cam-toggle'),
 
         // Takedown Banner
         takedownBanner: document.getElementById('hud-takedown-banner'),
-        takedownTitle: document.getElementById('takedown-text'),
-        takedownSubtitle: document.getElementById('takedown-subtext'),
+        takedownTitle: document.getElementById('takedown-title'),
+        takedownSubtitle: document.getElementById('takedown-subtitle'),
 
         // Mobile Touch Overlay
         mobileLayer: document.getElementById('mobile-touch-layer'),
@@ -174,137 +167,142 @@
     },
 
     /**
-     * Canvas ölçülərini Retina / HiDPI ekranlara uyğunlaşdırır
+     * Canvas Kontekstlərinin HiDPI Ölçüləndirilməsi
      */
     _initCanvases: function () {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-      // 1. Dual Dial Gauge Canvas (Tachometer & Speedometer)
-      if (this.elements.gaugeCanvas) {
-        const rect = this.elements.gaugeCanvas.getBoundingClientRect();
-        const size = rect.width > 0 ? rect.width : 250;
-        this.elements.gaugeCanvas.width = size * dpr;
-        this.elements.gaugeCanvas.height = size * dpr;
-        this.gaugeCtx = this.elements.gaugeCanvas.getContext('2d');
+      // 1. Tachometer Gauge Canvas
+      const gCanvas = this.elements.gaugeCanvas;
+      if (gCanvas) {
+        const rect = gCanvas.getBoundingClientRect();
+        const size = Math.max(rect.width, 220);
+        gCanvas.width = size * dpr;
+        gCanvas.height = size * dpr;
+        this.gaugeCtx = gCanvas.getContext('2d');
         this.gaugeCtx.scale(dpr, dpr);
         this.gaugeSize = size;
       }
 
       // 2. Rearview Mirror Canvas
-      if (this.elements.rearviewCanvas) {
-        const rect = this.elements.rearviewCanvas.getBoundingClientRect();
-        const w = rect.width > 0 ? rect.width : 280;
-        const h = rect.height > 0 ? rect.height : 72;
-        this.elements.rearviewCanvas.width = w * dpr;
-        this.elements.rearviewCanvas.height = h * dpr;
-        this.mirrorCtx = this.elements.rearviewCanvas.getContext('2d');
+      const mCanvas = this.elements.rearviewCanvas;
+      if (mCanvas) {
+        const rect = mCanvas.getBoundingClientRect();
+        const w = Math.max(rect.width, 280);
+        const h = Math.max(rect.height, 74);
+        mCanvas.width = w * dpr;
+        mCanvas.height = h * dpr;
+        this.mirrorCtx = mCanvas.getContext('2d');
         this.mirrorCtx.scale(dpr, dpr);
         this.mirrorWidth = w;
         this.mirrorHeight = h;
       }
 
-      // 3. Mini-Map Radar Canvas
-      if (this.elements.radarCanvas) {
-        const rect = this.elements.radarCanvas.getBoundingClientRect();
-        const size = rect.width > 0 ? rect.width : 170;
-        this.elements.radarCanvas.width = size * dpr;
-        this.elements.radarCanvas.height = size * dpr;
-        this.radarCtx = this.elements.radarCanvas.getContext('2d');
+      // 3. Tactical Radar Canvas
+      const rCanvas = this.elements.radarCanvas;
+      if (rCanvas) {
+        const rect = rCanvas.getBoundingClientRect();
+        const size = Math.max(rect.width, 160);
+        rCanvas.width = size * dpr;
+        rCanvas.height = size * dpr;
+        this.radarCtx = rCanvas.getContext('2d');
         this.radarCtx.scale(dpr, dpr);
         this.radarSize = size;
       }
-
-      // Resize listener
-      window.addEventListener('resize', () => {
-        this._initCanvases();
-      });
-    },
-
-    // ------------------------------------------------------------------------
-    // API UPDATE METHOD (Called by external game engine at 60-120 FPS)
-    // ------------------------------------------------------------------------
-    update: function (data) {
-      if (!data) return;
-
-      // Update state numbers
-      if (data.speed !== undefined) this.state.speed = data.speed;
-      if (data.rpm !== undefined) this.state.rpm = data.rpm;
-      if (data.gear !== undefined) this.state.gear = data.gear;
-      if (data.nitro !== undefined) this.state.nitro = Math.max(0, Math.min(1, data.nitro));
-      if (data.heatLevel !== undefined) this.state.heatLevel = data.heatLevel;
-      if (data.heatPercent !== undefined) this.state.heatPercent = data.heatPercent;
-      if (data.isDrifting !== undefined) this.state.isDrifting = data.isDrifting;
-      if (data.driftAngle !== undefined) this.state.driftAngle = data.driftAngle;
-      if (data.driftScore !== undefined) this.state.driftScore = data.driftScore;
-      if (data.driftMult !== undefined) this.state.driftMult = data.driftMult;
-      if (data.credits !== undefined) this.state.credits = data.credits;
-      if (data.statusMessage !== undefined) this.state.statusMessage = data.statusMessage;
-
-      // Object data caches
-      if (data.rearview) this.state.rearviewData = data.rearview;
-      if (data.radar) this.state.radarData = data.radar;
-
-      // Synchronize DOM elements
-      this._updateDOM();
     },
 
     /**
-     * DOM Mətnlərini və Bar Göstəricilərini Yeniləyir
+     * Xarici Mühərrikdən Telemetriya Məlumatlarını Qəbul Edir
      */
-    _updateDOM: function () {
+    update: function (data) {
+      if (!data) return;
+
       const s = this.state;
+      if (data.speed !== undefined) s.speed = data.speed;
+      if (data.rpm !== undefined) s.rpm = data.rpm;
+      if (data.gear !== undefined) s.gear = data.gear;
+      if (data.nitro !== undefined) s.nitro = Math.max(0, Math.min(1, data.nitro));
+      if (data.heatLevel !== undefined) s.heatLevel = data.heatLevel;
+      if (data.heatPercent !== undefined) s.heatPercent = data.heatPercent;
+      if (data.isDrifting !== undefined) s.isDrifting = data.isDrifting;
+      if (data.driftAngle !== undefined) s.driftAngle = data.driftAngle;
+      if (data.driftScore !== undefined) s.driftScore = data.driftScore;
+      if (data.driftMult !== undefined) s.driftMult = data.driftMult;
+      if (data.credits !== undefined) s.credits = data.credits;
+      if (data.statusMessage !== undefined) s.statusMessage = data.statusMessage;
+      if (data.rearview !== undefined) s.rearviewData = data.rearview;
+      if (data.radar !== undefined) s.radarData = data.radar;
+    },
+
+    /**
+     * Əsas 60-120 FPS Render Dövrü
+     */
+    _renderTick: function (now) {
+      const dt = Math.min((now - this.lastFrameTime) / 1000, 0.05);
+      this.lastFrameTime = now;
+
+      this.radarSweepAngle += dt * 3.2;
+      if (this.radarSweepAngle > Math.PI * 2) this.radarSweepAngle -= Math.PI * 2;
+
+      this.mirrorSirenPhase += dt * (this.state.heatLevel >= 3 ? 16.0 : 8.0);
+
+      this._updateDOMTelemetry();
+      if (this.gaugeCtx) this._drawTachometer();
+      if (this.mirrorCtx) this._drawRearviewMirror(dt);
+      if (this.radarCtx) this._drawRadar(dt);
+
+      requestAnimationFrame(this._renderTick.bind(this));
+    },
+
+    /**
+     * DOM Telemetriya Mətnlərinin və Barlarının Yenilənməsi
+     */
+    _updateDOMTelemetry: function () {
       const el = this.elements;
+      const s = this.state;
 
-      // Digital Speed
-      if (el.digitalSpeed) {
-        el.digitalSpeed.textContent = Math.round(s.speed);
-      }
-      if (el.digitalRpm) {
-        el.digitalRpm.textContent = `${Math.round(s.rpm)} RPM`;
+      // 1. Digital Speedometer
+      if (el.digitalSpeedVal) {
+        el.digitalSpeedVal.textContent = Math.round(s.speed).toString();
       }
 
-      // Redline Alert
+      // 2. RPM Text
+      if (el.digitalRpmVal) {
+        el.digitalRpmVal.textContent = Math.round(s.rpm).toLocaleString() + ' RPM';
+      }
+
+      // 3. Gear Indicator
+      if (el.gearIndicator && s.gear !== this.lastGear) {
+        el.gearIndicator.textContent = s.gear;
+        this.lastGear = s.gear;
+      }
+
+      // 4. Redline Warning Flasher
       if (el.redlineFlasher) {
         if (s.rpm >= REDLINE_RPM) {
-          el.redlineFlasher.classList.add('flashing');
+          el.redlineFlasher.classList.add('active');
         } else {
-          el.redlineFlasher.classList.remove('flashing');
+          el.redlineFlasher.classList.remove('active');
         }
       }
 
-      // Gear Indicator with Shift Kinetic Pop
-      if (el.gearNumber && this.lastGear !== s.gear) {
-        this.lastGear = s.gear;
-        el.gearNumber.textContent = s.gear;
-        el.gearNumber.classList.remove('gear-shift-pop');
-        void el.gearNumber.offsetWidth; // Trigger reflow
-        el.gearNumber.classList.add('gear-shift-pop');
+      // 5. Nitro Bar
+      if (el.nitroBarFill) {
+        el.nitroBarFill.style.width = (s.nitro * 100).toFixed(1) + '%';
       }
 
-      // Nitro Bar
-      if (el.nitroPillFill) {
-        const pct = Math.round(s.nitro * 100);
-        el.nitroPillFill.style.width = `${pct}%`;
-        if (el.nitroPercentVal) el.nitroPercentVal.textContent = `${pct}%`;
-
-        if (pct > 90) {
-          el.nitroPillFill.classList.add('nitro-pulsing');
-        } else {
-          el.nitroPillFill.classList.remove('nitro-pulsing');
-        }
+      // 6. Heat Level & Stars
+      if (el.heatValTag) {
+        el.heatValTag.textContent = 'HEAT ' + s.heatLevel;
       }
-
-      // Heat Level & Stars
-      if (el.heatStars) {
-        const activeLevel = Math.max(0, Math.min(5, s.heatLevel));
-        if (el.heatValTag) el.heatValTag.textContent = `LEVEL ${activeLevel}`;
-        if (el.heatMeterFill) el.heatMeterFill.style.width = `${s.heatPercent}%`;
-
-        el.heatStars.forEach((star, index) => {
-          const starNum = index + 1;
-          if (starNum <= activeLevel) {
+      if (el.heatMeterFill) {
+        el.heatMeterFill.style.width = (s.heatPercent || (s.heatLevel * 20)).toFixed(1) + '%';
+      }
+      if (el.heatStars && el.heatStars.length > 0) {
+        el.heatStars.forEach((star, idx) => {
+          if (idx < s.heatLevel) {
             star.classList.add('active');
-            if (activeLevel >= 4) {
+            if (s.heatLevel >= 4) {
               star.classList.add('danger');
             } else {
               star.classList.remove('danger');
@@ -315,97 +313,67 @@
         });
       }
 
-      // Dispatch feed text
-      if (el.policeDispatch && s.statusMessage) {
-        el.policeDispatch.textContent = s.statusMessage;
-      }
-
-      // Drift HUD Panel
-      if (el.driftCluster) {
-        if (s.isDrifting || Math.abs(s.driftAngle) > 5) {
-          el.driftCluster.classList.add('active');
-          if (el.driftScoreCounter) {
-            el.driftScoreCounter.textContent = `+${Math.round(s.driftScore).toLocaleString()}`;
-          }
-          if (el.driftMultiplierTag) {
-            el.driftMultiplierTag.textContent = `x${s.driftMult.toFixed(1)} DRIFT`;
-          }
-          if (el.driftAngleBarFill) {
-            const angleClamped = Math.min(80, Math.abs(s.driftAngle));
-            const fillWidth = (angleClamped / 80) * 100;
-            el.driftAngleBarFill.style.width = `${fillWidth}%`;
-          }
-          if (el.driftAngleText) {
-            el.driftAngleText.textContent = `${Math.round(Math.abs(s.driftAngle))}° SLIP ANGLE`;
-          }
-        } else {
-          el.driftCluster.classList.remove('active');
+      // 7. Police Dispatch Text
+      if (el.policeDispatch) {
+        const textNode = el.policeDispatch.querySelector('.dispatch-text') || el.policeDispatch.children[1];
+        if (textNode) {
+          textNode.textContent = s.statusMessage;
         }
       }
 
-      // Credits & Multiplier
-      if (el.creditsVal) {
-        el.creditsVal.textContent = `$${Math.round(s.credits).toLocaleString()}`;
+      // 8. Drift Dynamics & Score
+      if (el.driftContainer) {
+        if (s.isDrifting || s.driftScore > 0) {
+          el.driftContainer.style.opacity = '1';
+          if (el.driftMultTag) el.driftMultTag.textContent = s.driftMult.toFixed(1) + 'x';
+          if (el.driftScoreVal) el.driftScoreVal.textContent = Math.round(s.driftScore).toLocaleString();
+          if (el.driftAngleTag) el.driftAngleTag.textContent = Math.abs(Math.round(s.driftAngle)) + '° SLIP';
+        } else {
+          el.driftContainer.style.opacity = '0.35';
+        }
       }
-      if (el.multiplierBadge) {
-        el.multiplierBadge.textContent = s.isDrifting ? `DRIFT x${s.driftMult.toFixed(1)}` : 'CRUISE 1.0x';
+
+      // 9. Career Credits
+      if (el.statCreditsVal) {
+        el.statCreditsVal.textContent = '$' + (s.credits || 0).toLocaleString();
       }
     },
 
-    // ------------------------------------------------------------------------
-    // HIGH-PERFORMANCE RENDER LOOP (Canvas Gauges, Mirror, Radar)
-    // ------------------------------------------------------------------------
-    _renderTick: function (now) {
-      const dt = Math.min(0.1, (now - this.lastFrameTime) / 1000);
-      this.lastFrameTime = now;
-
-      this.radarSweepAngle = (this.radarSweepAngle + dt * 2.8) % (Math.PI * 2);
-      this.mirrorSirenPhase = (this.mirrorSirenPhase + dt * 6.0) % (Math.PI * 2);
-
-      // Render Gauges
-      if (this.gaugeCtx) this._drawTachometerAndSpeedGauge();
-      if (this.mirrorCtx) this._drawRearviewMirror(dt);
-      if (this.radarCtx) this._drawRadar(dt);
-
-      requestAnimationFrame(this._renderTick.bind(this));
-    },
-
-    // ------------------------------------------------------------------------
-    // 1. TACHOMETER & SPEEDOMETER CANVAS DRAWING (0-9000 RPM, 7500 Redline)
-    // ------------------------------------------------------------------------
-    _drawTachometerAndSpeedGauge: function () {
+    /**
+     * 1. MODERN PERFORMANCE TACHOMETER CANVAS (Porsche / BMW Virtual Cockpit)
+     */
+    _drawTachometer: function () {
       const ctx = this.gaugeCtx;
-      const size = this.gaugeSize || 250;
+      const size = this.gaugeSize || 220;
       const cx = size / 2;
       const cy = size / 2;
       const radius = size * 0.44;
 
       ctx.clearRect(0, 0, size, size);
 
-      // Angular ranges: from 135 deg to 405 deg (270 degree sweep)
       const startAngle = 0.75 * Math.PI; // 135 deg
       const endAngle = 2.25 * Math.PI;   // 405 deg
       const totalSweep = endAngle - startAngle;
 
-      // 1. Outer Background Arc
+      // 1. Subtle Outer Track Ring
       ctx.beginPath();
       ctx.arc(cx, cy, radius, startAngle, endAngle);
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-      ctx.lineWidth = 14;
+      ctx.lineWidth = 10;
       ctx.lineCap = 'round';
       ctx.stroke();
 
-      // 2. Redline Zone Arc (from 7500 to 9000 RPM)
+      // 2. Redline Zone Arc (7500 to 9000 RPM)
       const redlineStartRatio = REDLINE_RPM / MAX_RPM;
       const redlineAngle = startAngle + totalSweep * redlineStartRatio;
 
       ctx.beginPath();
       ctx.arc(cx, cy, radius, redlineAngle, endAngle);
-      ctx.strokeStyle = 'rgba(255, 30, 39, 0.45)';
-      ctx.lineWidth = 14;
+      ctx.strokeStyle = 'rgba(239, 68, 68, 0.35)';
+      ctx.lineWidth = 10;
       ctx.stroke();
 
-      // 3. Dynamic RPM Level Glow Arc
+      // 3. Dynamic Active RPM Arc
       const currentRpmRatio = Math.max(0, Math.min(1, this.state.rpm / MAX_RPM));
       const currentRpmAngle = startAngle + totalSweep * currentRpmRatio;
 
@@ -413,31 +381,39 @@
         ctx.save();
         ctx.beginPath();
         ctx.arc(cx, cy, radius, startAngle, currentRpmAngle);
-        
-        // Gradient for RPM bar (Cyan -> Magenta -> Neon Red)
-        const grad = ctx.createLinearGradient(0, cy, size, cy);
-        grad.addColorStop(0, PALETTE.cyan);
-        grad.addColorStop(0.65, PALETTE.magenta);
-        grad.addColorStop(0.85, PALETTE.red);
 
-        ctx.strokeStyle = grad;
-        ctx.lineWidth = 14;
+        const isRed = this.state.rpm >= REDLINE_RPM;
+        const isAmber = this.state.rpm >= 6200 && !isRed;
+
+        if (isRed) {
+          ctx.strokeStyle = PALETTE.red;
+          ctx.shadowColor = 'rgba(239, 68, 68, 0.6)';
+          ctx.shadowBlur = 12;
+        } else if (isAmber) {
+          ctx.strokeStyle = PALETTE.amber;
+          ctx.shadowColor = 'rgba(245, 158, 11, 0.4)';
+          ctx.shadowBlur = 8;
+        } else {
+          ctx.strokeStyle = PALETTE.white;
+          ctx.shadowColor = 'rgba(255, 255, 255, 0.3)';
+          ctx.shadowBlur = 6;
+        }
+
+        ctx.lineWidth = 10;
         ctx.lineCap = 'round';
-        ctx.shadowColor = this.state.rpm >= REDLINE_RPM ? PALETTE.red : PALETTE.magenta;
-        ctx.shadowBlur = this.state.rpm >= REDLINE_RPM ? 22 : 12;
         ctx.stroke();
         ctx.restore();
       }
 
-      // 4. Tick Marks & Numbers (0 to 9 x1000 RPM)
+      // 4. Tick Marks & Digits (0-9 x1000 RPM)
       const numTicks = 9;
       for (let i = 0; i <= numTicks; i++) {
         const tickRatio = i / numTicks;
         const tickAngle = startAngle + totalSweep * tickRatio;
         const isRedZone = (i * 1000) >= REDLINE_RPM;
 
-        const innerR = radius - 16;
-        const outerR = radius - 8;
+        const innerR = radius - 14;
+        const outerR = radius - 6;
         const x1 = cx + Math.cos(tickAngle) * innerR;
         const y1 = cy + Math.sin(tickAngle) * innerR;
         const x2 = cx + Math.cos(tickAngle) * outerR;
@@ -446,93 +422,84 @@
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
-        ctx.strokeStyle = isRedZone ? PALETTE.red : 'rgba(0, 245, 255, 0.6)';
-        ctx.lineWidth = (i % 2 === 0) ? 3 : 1.5;
+        ctx.strokeStyle = isRedZone ? PALETTE.red : 'rgba(255, 255, 255, 0.35)';
+        ctx.lineWidth = (i % 2 === 0) ? 2.5 : 1.2;
         ctx.stroke();
 
-        // Major tick label (1, 2, 3...)
+        // Major tick label (0, 2, 4, 6, 8)
         if (i % 2 === 0 || i === numTicks) {
-          const textR = radius - 26;
+          const textR = radius - 24;
           const tx = cx + Math.cos(tickAngle) * textR;
           const ty = cy + Math.sin(tickAngle) * textR + 4;
-          ctx.font = 'bold 11px Rajdhani, monospace';
-          ctx.fillStyle = isRedZone ? PALETTE.red : '#99eeff';
+          ctx.font = 'bold 10px Inter, sans-serif';
+          ctx.fillStyle = isRedZone ? PALETTE.red : PALETTE.slate;
           ctx.textAlign = 'center';
           ctx.fillText(i.toString(), tx, ty);
         }
       }
 
-      // 5. Animated Neon Needle (Əqrəb)
+      // 5. Precision Razor Needle
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(currentRpmAngle);
 
-      // Needle Shadow Glow
-      ctx.shadowColor = this.state.rpm >= REDLINE_RPM ? '#ff0033' : PALETTE.cyan;
-      ctx.shadowBlur = 18;
-
-      // Needle Body
       ctx.beginPath();
-      ctx.moveTo(-10, 0);
-      ctx.lineTo(0, -3);
-      ctx.lineTo(radius - 8, 0);
-      ctx.lineTo(0, 3);
+      ctx.moveTo(-12, 0);
+      ctx.lineTo(0, -2.5);
+      ctx.lineTo(radius - 6, 0);
+      ctx.lineTo(0, 2.5);
       ctx.closePath();
-      ctx.fillStyle = this.state.rpm >= REDLINE_RPM ? '#ffffff' : PALETTE.cyan;
-      ctx.fill();
 
-      // Needle core laser line
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(radius - 5, 0);
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      const needleColor = this.state.rpm >= REDLINE_RPM ? PALETTE.red : PALETTE.white;
+      ctx.fillStyle = needleColor;
+      ctx.shadowColor = needleColor;
+      ctx.shadowBlur = 8;
+      ctx.fill();
 
       ctx.restore();
 
-      // 6. Central Hub Cap
+      // 6. Center Metal Hub Cap
       ctx.beginPath();
-      ctx.arc(cx, cy, 24, 0, Math.PI * 2);
-      ctx.fillStyle = '#060214';
+      ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+      ctx.fillStyle = '#1e293b';
       ctx.fill();
-      ctx.strokeStyle = this.state.rpm >= REDLINE_RPM ? PALETTE.red : PALETTE.magenta;
-      ctx.lineWidth = 2.5;
-      ctx.shadowColor = PALETTE.magenta;
-      ctx.shadowBlur = 10;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.lineWidth = 1.5;
       ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#64748b';
+      ctx.fill();
     },
 
-    // ------------------------------------------------------------------------
-    // 2. REARVIEW MIRROR DRAWING (Dikbaxış Güzgüsü: OutRun road + Police Cruisers)
-    // ------------------------------------------------------------------------
-    _drawRearviewMirror: function (dt) {
+    /**
+     * 2. AUTO-DIMMING REARVIEW MIRROR CANVAS
+     */
+    _drawRearviewMirror: function () {
       const ctx = this.mirrorCtx;
       const w = this.mirrorWidth || 280;
-      const h = this.mirrorHeight || 72;
+      const h = this.mirrorHeight || 74;
       const cx = w / 2;
       const horizonY = h * 0.42;
 
       ctx.clearRect(0, 0, w, h);
 
-      // Dark Synthwave Night Sky & Grid Ground
-      ctx.fillStyle = '#0a021c';
+      // Night Highway Sky
+      ctx.fillStyle = '#080c12';
       ctx.fillRect(0, 0, w, horizonY);
 
-      ctx.fillStyle = '#050110';
-      ctx.fillRect(0, horizonY, w, h - horizonY);
-
-      // Horizon Neon Dividing Line
-      ctx.strokeStyle = 'rgba(157, 0, 255, 0.4)';
+      // Distant Horizon Line
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(0, horizonY);
       ctx.lineTo(w, horizonY);
       ctx.stroke();
 
-      // Vanishing Road Lines (Perspective retreating into distance)
-      const roadW_top = 22;
-      const roadW_bottom = w * 0.92;
+      // Road Surface
+      const roadW_top = 26;
+      const roadW_bottom = w * 0.94;
 
       ctx.beginPath();
       ctx.moveTo(cx - roadW_top / 2, horizonY);
@@ -540,29 +507,27 @@
       ctx.lineTo(cx + roadW_bottom / 2, h);
       ctx.lineTo(cx + roadW_top / 2, horizonY);
       ctx.closePath();
-      ctx.fillStyle = '#10032b';
+      ctx.fillStyle = '#14171d';
       ctx.fill();
 
-      // Lane dividers (moving backward based on speed)
-      const animOffset = (performance.now() * (this.state.speed * 0.003)) % 1;
-      ctx.strokeStyle = 'rgba(0, 245, 255, 0.45)';
+      // Dashed White Lane Divider
+      const animOffset = (performance.now() * (Math.max(15, this.state.speed) * 0.003)) % 1;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
       ctx.lineWidth = 1.5;
-      ctx.setLineDash([6, 12]);
-      ctx.lineDashOffset = -animOffset * 18;
+      ctx.setLineDash([5, 10]);
+      ctx.lineDashOffset = -animOffset * 15;
 
       ctx.beginPath();
       ctx.moveTo(cx, horizonY);
       ctx.lineTo(cx, h);
       ctx.stroke();
-      ctx.setLineDash([]); // Reset dash
+      ctx.setLineDash([]);
 
-      // Cop Cruiser Siren Strobe Calculations
+      // Siren Strobe Calculations
       const isRedCycle = Math.sin(this.mirrorSirenPhase) > 0;
-      const isBlueCycle = !isRedCycle;
 
-      // Update mirror housing strobe glows
       if (this.elements.mirrorHousing) {
-        if (this.state.heatLevel >= 1) {
+        if (this.state.heatLevel >= 1 && (this.state.rearviewData.cops || []).length > 0) {
           if (isRedCycle) {
             this.elements.mirrorHousing.classList.add('siren-strobe-active-red');
             this.elements.mirrorHousing.classList.remove('siren-strobe-active-blue');
@@ -578,88 +543,82 @@
       // Draw Rear Police Cruisers
       const cops = (this.state.rearviewData && this.state.rearviewData.cops) || [];
 
-      // Draw each cop car sorted by distance
       cops.forEach((cop) => {
-        // Distance mapping: dist 40 (closest) to 300 (far)
-        const normDist = Math.max(0.1, Math.min(1.0, cop.dist / 300));
+        const normDist = Math.max(0.12, Math.min(1.0, cop.dist / 220));
         const carY = horizonY + (h - horizonY) * (1 - normDist);
-        const carScale = (1 - normDist); // 0 (far) to 1 (near)
-        const carW = 16 + carScale * 42;
-        const carH = 8 + carScale * 22;
+        const carScale = (1 - normDist);
+        const carW = 14 + carScale * 38;
+        const carH = 7 + carScale * 18;
 
-        const laneOffset = cop.lane * ((roadW_bottom - roadW_top) * 0.45 * carScale);
+        const laneOffset = cop.lane * ((roadW_bottom - roadW_top) * 0.42 * carScale);
         const carX = cx + laneOffset;
 
         // Cop Car Silhouette
-        ctx.fillStyle = '#0e0e18';
+        ctx.fillStyle = '#11141a';
         ctx.beginPath();
-        ctx.roundRect(carX - carW / 2, carY - carH, carW, carH, 3);
+        if (ctx.roundRect) {
+          ctx.roundRect(carX - carW / 2, carY - carH, carW, carH, 2);
+        } else {
+          ctx.rect(carX - carW / 2, carY - carH, carW, carH);
+        }
         ctx.fill();
-        ctx.strokeStyle = '#2d2d48';
-        ctx.lineWidth = 1;
-        ctx.stroke();
 
-        // Headlights (High-beam yellow glow)
+        // Crisp White Doors
+        ctx.fillStyle = '#f1f5f9';
+        ctx.fillRect(carX - carW * 0.45, carY - carH * 0.75, carW * 0.9, carH * 0.5);
+
+        // Headlights
         const lightSpread = carW * 0.35;
-        ctx.fillStyle = '#fff9cc';
+        ctx.fillStyle = '#fef08a';
         ctx.fillRect(carX - lightSpread - 2, carY - carH * 0.4, 4, 3);
         ctx.fillRect(carX + lightSpread - 2, carY - carH * 0.4, 4, 3);
 
-        // Flashing Emergency Lightbar on Roof
+        // Emergency Lightbar on Roof (Split Red/Blue)
         const lightbarW = carW * 0.45;
         const lightbarY = carY - carH - 2;
 
-        if (cop.flashing && this.state.heatLevel >= 1) {
-          // Left LED (Red)
-          ctx.fillStyle = isRedCycle ? '#ff0033' : '#440011';
-          ctx.shadowColor = '#ff0033';
-          ctx.shadowBlur = isRedCycle ? 15 : 0;
-          ctx.fillRect(carX - lightbarW / 2, lightbarY, lightbarW / 2 - 1, 3);
+        ctx.fillStyle = isRedCycle ? PALETTE.red : '#1e293b';
+        ctx.fillRect(carX - lightbarW / 2, lightbarY, lightbarW / 2 - 1, 3);
 
-          // Right LED (Blue)
-          ctx.fillStyle = isBlueCycle ? '#0099ff' : '#001144';
-          ctx.shadowColor = '#0099ff';
-          ctx.shadowBlur = isBlueCycle ? 15 : 0;
-          ctx.fillRect(carX + 1, lightbarY, lightbarW / 2 - 1, 3);
-
-          ctx.shadowBlur = 0; // Reset blur
-        }
+        ctx.fillStyle = !isRedCycle ? PALETTE.blue : '#1e293b';
+        ctx.fillRect(carX + 1, lightbarY, lightbarW / 2 - 1, 3);
       });
 
-      // Update Mirror Status Tag
+      // Update Mirror Status Text
       if (this.elements.mirrorStatus) {
-        if (this.state.heatLevel > 0 && cops.length > 0) {
-          this.elements.mirrorStatus.textContent = `REAR PURSUIT: ${cops.length} CRUISERS LOCKED`;
-          this.elements.mirrorStatus.style.color = isRedCycle ? PALETTE.red : PALETTE.cyan;
+        if (cops.length > 0) {
+          const nearest = Math.round(cops[0].dist);
+          this.elements.mirrorStatus.textContent = `ALERT // PATROL PURSUIT CLOSING [${nearest}m]`;
+          this.elements.mirrorStatus.style.color = isRedCycle ? PALETTE.red : PALETTE.blue;
         } else {
-          this.elements.mirrorStatus.textContent = 'REAR TRAFFIC CLEAR';
-          this.elements.mirrorStatus.style.color = PALETTE.cyan;
+          this.elements.mirrorStatus.textContent = 'AUTO-DIM ACTIVE // REAR SECTOR CLEAR';
+          this.elements.mirrorStatus.style.color = PALETTE.slate;
         }
       }
     },
 
-    // ------------------------------------------------------------------------
-    // 3. MINI-MAP / NAV RADAR CANVAS (Ahead Curves, Roadblocks & Spikes)
-    // ------------------------------------------------------------------------
-    _drawRadar: function (dt) {
+    /**
+     * 3. TACTICAL GPS / RADAR CANVAS
+     */
+    _drawRadar: function () {
       const ctx = this.radarCtx;
-      const size = this.radarSize || 170;
+      const size = this.radarSize || 160;
       const cx = size / 2;
       const cy = size / 2;
       const radius = size * 0.46;
 
       ctx.clearRect(0, 0, size, size);
 
-      // Radar Grid Rings
-      ctx.strokeStyle = 'rgba(0, 245, 255, 0.2)';
+      // Radar Range Concentric Rings
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
       ctx.lineWidth = 1;
 
       ctx.beginPath();
-      ctx.arc(cx, cy, radius * 0.33, 0, Math.PI * 2);
+      ctx.arc(cx, cy, radius * 0.35, 0, Math.PI * 2);
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.arc(cx, cy, radius * 0.66, 0, Math.PI * 2);
+      ctx.arc(cx, cy, radius * 0.70, 0, Math.PI * 2);
       ctx.stroke();
 
       ctx.beginPath();
@@ -674,304 +633,194 @@
       ctx.lineTo(cx + radius, cy);
       ctx.stroke();
 
-      // Rotating Scanner Radar Beam Sweep
+      // Rotating Scanner Beam
       ctx.save();
       ctx.beginPath();
       ctx.moveTo(cx, cy);
-      ctx.arc(cx, cy, radius, this.radarSweepAngle, this.radarSweepAngle + 0.55);
+      ctx.arc(cx, cy, radius, this.radarSweepAngle, this.radarSweepAngle + 0.4);
       ctx.closePath();
 
       const sweepGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
-      sweepGrad.addColorStop(0, 'rgba(0, 245, 255, 0.35)');
-      sweepGrad.addColorStop(1, 'rgba(0, 245, 255, 0.0)');
+      sweepGrad.addColorStop(0, 'rgba(148, 163, 184, 0.25)');
+      sweepGrad.addColorStop(1, 'rgba(148, 163, 184, 0.0)');
       ctx.fillStyle = sweepGrad;
       ctx.fill();
       ctx.restore();
 
-      // Draw Upcoming Road Path (Curve prediction line)
-      const radarData = this.state.radarData || {};
-
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-
-      let curX = cx;
-      let curY = cy;
-      const pathSegments = 12;
-      const curveWeight = radarData.curvesAhead && radarData.curvesAhead[0] ? radarData.curvesAhead[0].curve : 0;
-
-      for (let s = 1; s <= pathSegments; s++) {
-        const segDist = (s / pathSegments) * (radius * 0.85);
-        const curveOffset = Math.sin((s / pathSegments) * Math.PI * 0.7) * (curveWeight * 14);
-        curX = cx + curveOffset;
-        curY = cy - segDist;
-        ctx.lineTo(curX, curY);
-      }
-      ctx.strokeStyle = PALETTE.cyan;
-      ctx.lineWidth = 2.5;
-      ctx.shadowColor = PALETTE.cyan;
-      ctx.shadowBlur = 8;
-      ctx.stroke();
-      ctx.restore();
-
-      // Draw Ahead Obstacles / Roadblocks / Spikes
-      if (radarData.roadblocks) {
-        radarData.roadblocks.forEach(rb => {
-          const normDist = Math.min(1, rb.dist / 200);
-          const rY = cy - normDist * (radius * 0.8);
-          const rX = cx + rb.lane * 25;
-
-          // Hazard Icon / Diamond Warning
-          ctx.fillStyle = PALETTE.yellow;
-          ctx.beginPath();
-          ctx.arc(rX, rY, 4, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = '#fff';
-          ctx.lineWidth = 1;
-          ctx.stroke();
-        });
-      }
-
-      // Draw Ahead Cops
-      if (radarData.copsAhead) {
-        radarData.copsAhead.forEach(cop => {
-          const normDist = Math.min(1, cop.dist / 200);
-          const cY = cy - normDist * (radius * 0.85);
-          const cX = cx + cop.lane * 30;
-
-          // Pulsing Red Cop Blip
-          ctx.fillStyle = PALETTE.red;
-          ctx.shadowColor = PALETTE.red;
-          ctx.shadowBlur = 10;
-          ctx.beginPath();
-          ctx.arc(cX, cY, 4.5, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-        });
-      }
-
-      // Center Player Vehicle Blip (Cyan Triangle pointing Up)
+      // Center Player Arrow (White triangle)
       ctx.save();
       ctx.translate(cx, cy);
       ctx.beginPath();
-      ctx.moveTo(0, -7);
-      ctx.lineTo(5, 6);
+      ctx.moveTo(0, -6);
+      ctx.lineTo(5, 5);
       ctx.lineTo(0, 3);
-      ctx.lineTo(-5, 6);
+      ctx.lineTo(-5, 5);
       ctx.closePath();
-      ctx.fillStyle = '#ffffff';
-      ctx.shadowColor = PALETTE.cyan;
-      ctx.shadowBlur = 12;
+      ctx.fillStyle = PALETTE.white;
       ctx.fill();
       ctx.restore();
+
+      // Draw Ahead Cops / Hazards
+      const radarData = this.state.radarData || {};
+      if (radarData.copsAhead) {
+        radarData.copsAhead.forEach(cop => {
+          const normDist = Math.min(1, (cop.dist || 80) / 180);
+          const cY = cy - normDist * (radius * 0.85);
+          const cX = cx + (cop.lane || 0) * 26;
+
+          ctx.fillStyle = PALETTE.red;
+          ctx.beginPath();
+          ctx.arc(cX, cY, 4, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+
+      if (radarData.roadblocks) {
+        radarData.roadblocks.forEach(rb => {
+          const normDist = Math.min(1, (rb.dist || 100) / 200);
+          const rY = cy - normDist * (radius * 0.85);
+          const rX = cx + (rb.lane || 0) * 26;
+
+          ctx.fillStyle = PALETTE.amber;
+          ctx.beginPath();
+          ctx.arc(rX, rY, 3.5, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
 
       // Radar Warning Ticker
       if (this.elements.radarWarningTicker) {
         if (radarData.roadblocks && radarData.roadblocks.length > 0 && radarData.roadblocks[0].dist < 100) {
-          this.elements.radarWarningTicker.textContent = '⚠️ ROADBLOCK AHEAD';
+          this.elements.radarWarningTicker.textContent = 'ROADBLOCK AHEAD';
           this.elements.radarWarningTicker.style.color = PALETTE.red;
-        } else if (radarData.curvesAhead && Math.abs(curveWeight) > 2.0) {
-          this.elements.radarWarningTicker.textContent = curveWeight > 0 ? '▶ HAIRPIN RIGHT' : '◀ HAIRPIN LEFT';
-          this.elements.radarWarningTicker.style.color = PALETTE.yellow;
         } else {
-          this.elements.radarWarningTicker.textContent = 'SCANNING SECTOR...';
-          this.elements.radarWarningTicker.style.color = PALETTE.cyan;
+          this.elements.radarWarningTicker.textContent = 'TACTICAL GPS // SCANNING';
+          this.elements.radarWarningTicker.style.color = PALETTE.slate;
         }
       }
     },
 
-    // ------------------------------------------------------------------------
-    // NOTIFICATION BANNERS & TAKEDOWNS
-    // ------------------------------------------------------------------------
+    /**
+     * 4. NOTIFICATION BANNERS & TAKEDOWNS
+     */
     triggerTakedownBanner: function (title, subtitle) {
       const banner = this.elements.takedownBanner;
       if (!banner) return;
 
-      if (this.elements.takedownTitle) this.elements.takedownTitle.textContent = title || 'CRUISER TAKEDOWN!';
-      if (this.elements.takedownSubtitle) this.elements.takedownSubtitle.textContent = subtitle || '+$1,500 CREDITS';
+      if (this.elements.takedownTitle) this.elements.takedownTitle.textContent = title || 'CRUISER ELIMINATED';
+      if (this.elements.takedownSubtitle) this.elements.takedownSubtitle.textContent = subtitle || '+$1,500 BOUNTY';
 
-      banner.classList.add('show');
-      if (this.bannerTimeout) clearTimeout(this.bannerTimeout);
-      this.bannerTimeout = setTimeout(() => {
-        banner.classList.remove('show');
-      }, 2400);
+      banner.classList.add('active');
+
+      if (this.bannerTimer) clearTimeout(this.bannerTimer);
+      this.bannerTimer = setTimeout(() => {
+        banner.classList.remove('active');
+      }, 2600);
     },
 
-    // ------------------------------------------------------------------------
-    // 7. MOBILE TOUCH EVENT BINDINGS (Gas, Brake, E-Brake, Steer, Nitro)
-    // ------------------------------------------------------------------------
+    /**
+     * 5. ROBUST POINTER & MULTI-TOUCH CONTROLS (Zero Lag, Pointer Capture)
+     */
     _bindTouchControls: function () {
       const el = this.elements;
       const inputs = this.mobileInputs;
 
-      // Auto-detect touch capability or mobile screen
       const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.innerWidth <= 900;
       if (hasTouch && el.mobileLayer) {
         el.mobileLayer.classList.add('active');
       }
 
-      // Helper for touch press/release
-      const attachPedalEvents = (domElement, onDown, onUp) => {
+      const attachPointerEvents = (domElement, onDown, onUp) => {
         if (!domElement) return;
 
-        const handleStart = (e) => {
+        let active = false;
+
+        const start = (e) => {
           if (e.cancelable) e.preventDefault();
+          if (domElement.setPointerCapture && e.pointerId) {
+            try { domElement.setPointerCapture(e.pointerId); } catch (_) {}
+          }
+          active = true;
           domElement.classList.add('pressed');
           onDown();
         };
 
-        const handleEnd = (e) => {
-          if (e.cancelable) e.preventDefault();
+        const stop = (e) => {
+          if (!active) return;
+          active = false;
+          if (domElement.releasePointerCapture && e && e.pointerId) {
+            try { domElement.releasePointerCapture(e.pointerId); } catch (_) {}
+          }
           domElement.classList.remove('pressed');
           onUp();
         };
 
-        domElement.addEventListener('touchstart', handleStart, { passive: false });
-        domElement.addEventListener('touchend', handleEnd, { passive: false });
-        domElement.addEventListener('touchcancel', handleEnd, { passive: false });
-        domElement.addEventListener('mousedown', handleStart);
-        domElement.addEventListener('mouseup', handleEnd);
-        domElement.addEventListener('mouseleave', handleEnd);
+        domElement.addEventListener('pointerdown', start);
+        domElement.addEventListener('pointerup', stop);
+        domElement.addEventListener('pointercancel', stop);
+        domElement.addEventListener('pointerleave', stop);
+        domElement.addEventListener('lostpointercapture', stop);
+
+        // Fallbacks
+        domElement.addEventListener('touchstart', (e) => {
+          if (e.cancelable) e.preventDefault();
+          domElement.classList.add('pressed');
+          onDown();
+        }, { passive: false });
+
+        domElement.addEventListener('touchend', (e) => {
+          if (e.cancelable) e.preventDefault();
+          domElement.classList.remove('pressed');
+          onUp();
+        }, { passive: false });
+
+        domElement.addEventListener('touchcancel', () => {
+          domElement.classList.remove('pressed');
+          onUp();
+        }, { passive: false });
       };
 
-      // 1. Gas Pedal (Throttle)
-      attachPedalEvents(el.pedalGas, 
-        () => { inputs.throttle = 1.0; }, 
+      // 1. Gas Pedal
+      attachPointerEvents(el.pedalGas,
+        () => { inputs.throttle = 1.0; },
         () => { inputs.throttle = 0; }
       );
 
       // 2. Brake Pedal
-      attachPedalEvents(el.pedalBrake, 
-        () => { inputs.brake = 1.0; }, 
+      attachPointerEvents(el.pedalBrake,
+        () => { inputs.brake = 1.0; },
         () => { inputs.brake = 0; }
       );
 
-      // 3. Handbrake (Drift Trigger)
-      attachPedalEvents(el.btnHandbrake, 
-        () => { inputs.handbrake = true; }, 
+      // 3. Handbrake
+      attachPointerEvents(el.btnHandbrake,
+        () => { inputs.handbrake = true; },
         () => { inputs.handbrake = false; }
       );
 
       // 4. Nitro Boost
-      attachPedalEvents(el.btnNitro, 
-        () => { inputs.nitro = true; }, 
+      attachPointerEvents(el.btnNitro,
+        () => { inputs.nitro = true; },
         () => { inputs.nitro = false; }
       );
 
       // 5. Steering Left & Right
-      attachPedalEvents(el.steerLeftBtn, 
-        () => { inputs.steer = -1.0; }, 
+      attachPointerEvents(el.steerLeftBtn,
+        () => { inputs.steer = -1.0; },
         () => { if (inputs.steer === -1.0) inputs.steer = 0; }
       );
 
-      attachPedalEvents(el.steerRightBtn, 
-        () => { inputs.steer = 1.0; }, 
+      attachPointerEvents(el.steerRightBtn,
+        () => { inputs.steer = 1.0; },
         () => { if (inputs.steer === 1.0) inputs.steer = 0; }
       );
     },
 
     /**
-     * Mühərrik üçün Mobil Girişləri Təqdim edən Getter
+     * Virtual Girişləri Təqdim edən Getter
      */
     getMobileInputs: function () {
       return { ...this.mobileInputs };
-    },
-
-    // ------------------------------------------------------------------------
-    // STANDALONE KEYBOARD & DEMO DRIVER
-    // ------------------------------------------------------------------------
-    _bindKeyboardForDemo: function () {
-      const keys = {};
-      window.addEventListener('keydown', (e) => {
-        keys[e.key.toLowerCase()] = true;
-        if (['w', 's', 'a', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(e.key.toLowerCase())) {
-          e.preventDefault();
-        }
-      });
-      window.addEventListener('keyup', (e) => {
-        keys[e.key.toLowerCase()] = false;
-      });
-
-      // Internal Simulator Loop (Suspends automatic driver if external game engine is active)
-      this.demoInterval = setInterval(() => {
-        if (this.isExternalControl) return;
-
-        const w = keys['w'] || keys['arrowup'] || this.mobileInputs.throttle > 0;
-        const s = keys['s'] || keys['arrowdown'] || this.mobileInputs.brake > 0;
-        const a = keys['a'] || keys['arrowleft'] || this.mobileInputs.steer < 0;
-        const d = keys['d'] || keys['arrowright'] || this.mobileInputs.steer > 0;
-        const space = keys[' '] || this.mobileInputs.handbrake;
-        const shift = keys['shift'] || this.mobileInputs.nitro;
-
-        // Simple realistic speed & RPM integration
-        let currentSpeed = this.state.speed;
-        let nitro = this.state.nitro;
-
-        if (w) {
-          const accel = (shift && nitro > 0.05) ? 2.4 : 1.2;
-          currentSpeed = Math.min(248, currentSpeed + accel);
-          if (shift && nitro > 0.05) nitro -= 0.006;
-        } else if (s) {
-          currentSpeed = Math.max(0, currentSpeed - 2.5);
-        } else {
-          currentSpeed = Math.max(0, currentSpeed - 0.35);
-        }
-
-        // Automatic Gear Mapping based on speed
-        let gear = 'N';
-        let gearRatio = 1;
-        if (currentSpeed < 4) { gear = '1'; gearRatio = 0.15; }
-        else if (currentSpeed < 45) { gear = '1'; gearRatio = currentSpeed / 45; }
-        else if (currentSpeed < 85) { gear = '2'; gearRatio = (currentSpeed - 40) / 45; }
-        else if (currentSpeed < 130) { gear = '3'; gearRatio = (currentSpeed - 80) / 50; }
-        else if (currentSpeed < 175) { gear = '4'; gearRatio = (currentSpeed - 125) / 50; }
-        else if (currentSpeed < 215) { gear = '5'; gearRatio = (currentSpeed - 170) / 45; }
-        else { gear = '6'; gearRatio = Math.min(1, (currentSpeed - 210) / 38); }
-
-        const currentRpm = 1000 + gearRatio * 7600;
-
-        // Drift state simulation
-        const isDrift = (space || (s && (a || d))) && currentSpeed > 40;
-        let driftAngle = isDrift ? (a ? -44 : (d ? 46 : 34)) : 0;
-        let driftScore = this.state.driftScore;
-        let driftMult = this.state.driftMult;
-
-        if (isDrift) {
-          driftScore += 24 * driftMult;
-          driftMult = Math.min(4.0, driftMult + 0.02);
-        } else {
-          driftMult = 1.0;
-        }
-
-        // Heat Level dynamic demo
-        let heat = 1;
-        if (currentSpeed > 210) heat = 5;
-        else if (currentSpeed > 170) heat = 4;
-        else if (currentSpeed > 120) heat = 3;
-        else if (currentSpeed > 70) heat = 2;
-
-        let statusMsg = 'PATROL FREQUENCY ACTIVE';
-        if (heat === 5) statusMsg = 'AIR SUPPORT & EMP STRIKE AUTHORIZED';
-        else if (heat === 4) statusMsg = 'SWAT RHINO RAMMING UNITS INBOUND';
-        else if (heat === 3) statusMsg = 'SPIKE STRIPS DEPLOYED ON HIGHWAY';
-        else if (heat === 2) statusMsg = 'TACTICAL INTERCEPTORS FLANKING';
-
-        // Update HUD
-        this.update({
-          speed: currentSpeed,
-          rpm: currentRpm,
-          gear: gear,
-          nitro: Math.max(0, nitro),
-          isDrifting: isDrift,
-          driftAngle: driftAngle,
-          driftScore: driftScore,
-          driftMult: driftMult,
-          heatLevel: heat,
-          heatPercent: Math.min(100, (currentSpeed / 240) * 100),
-          statusMessage: statusMsg,
-          credits: 14500 + Math.floor(driftScore * 0.1)
-        });
-      }, 30);
     }
   };
 
