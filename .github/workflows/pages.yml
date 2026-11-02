@@ -1,0 +1,41 @@
+name: deploy-pages
+
+# Publishes the three demo games to GitHub Pages on every push to main,
+# so the live demo always matches the code in the repository.
+on:
+  push:
+    branches: [main]
+    paths: ['index.html', 'racer.html', 'shooter.html', 'src/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Collect the game files
+        run: |
+          mkdir _site
+          cp index.html racer.html shooter.html _site/
+          cp -r src _site/
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
