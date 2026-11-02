@@ -342,7 +342,7 @@
         <div id="radar-warning-ticker" class="radar-warning-ticker">TACTICAL GPS // SCANNING</div>
       </div>
 
-      <!-- Center Pod: Drift Dynamics & Multiplier -->
+      <!-- Center Pod: Drift Dynamics & Multiplier & Live G-Force Telemetry -->
       <div id="hud-drift-dynamics" class="hud-drift-dynamics">
         <div class="drift-badge-row">
           <span class="drift-badge">SLIP-ANGLE DRIFT</span>
@@ -350,6 +350,8 @@
         </div>
         <div id="drift-score-val" class="drift-score-val">0</div>
         <div id="drift-angle-tag" class="drift-angle-tag">0° SLIP</div>
+        <div id="g-force-tag" class="g-force-tag" style="font-family: 'JetBrains Mono', monospace, sans-serif; font-size: 11px; font-weight: 700; color: #38bdf8; letter-spacing: 0.8px; margin-top: 5px; text-shadow: 0 0 10px rgba(56,189,248,0.7);">+0.00G LAT • +0.00G LONG</div>
+        <div id="chassis-attitude-tag" class="chassis-attitude-tag" style="font-family: 'JetBrains Mono', monospace, sans-serif; font-size: 9.5px; font-weight: 600; color: #94a3b8; letter-spacing: 0.5px; margin-top: 2px;">ROLL: +0.0° • PITCH: +0.0°</div>
       </div>
 
       <!-- Right Pod: Performance Tachometer & Digital Speedometer -->
@@ -1399,7 +1401,13 @@
               continue;
             }
 
-            // Solid Rigid Body Separation (Zero-Clipping)
+            // Solid Rigid Body Separation & Newtonian Contact Impulse (Zero-Clipping)
+            const rx = (dx >= 0 ? 1 : -1) * 1.05;
+            const rz = Math.max(-2.2, Math.min(2.2, -relZ));
+            const mEff = (playerMass * copMass) / totalMass;
+            const e = 0.38;
+            const mu = 0.65;
+
             if (penX < penZ) {
               // Lateral collision (sideswipe / door-to-door ramming)
               const signX = dx >= 0 ? 1 : -1;
@@ -1407,13 +1415,23 @@
               playerLaneX += signX * penX * pRatio;
               u.x -= (signX * penX * cRatio) / (ROAD_WIDTH / 2);
 
-              // Lateral Newtonian impulse
-              physics.velocityLat += signX * 4.8;
-              physics.velocityLong = Math.max(5.0, physics.velocityLong - 8.0 * dt);
+              // Real-World Newtonian Impulse & Rotational Torque (tau = r x J)
+              const vn = Math.abs(physics.velocityLat) + 1.5;
+              const vt = (speedMs - (u.vz ? u.vz / 3.6 : 50));
+              const jn = (1 + e) * vn * mEff;
+              const jt = Math.max(-mu * jn, Math.min(mu * jn, -vt * mEff * 0.4));
 
-              if (playerChassis) playerChassis.rotation.z += signX * 0.14;
+              const dissipatedEnergy = physics.applyContactImpulse ? 
+                physics.applyContactImpulse(rx, rz, signX * jn, jt) : 
+                (0.5 * mEff * vn * vn);
+
+              // Angular torque spin transferred to cop
+              const copTorque = (rx * jt) - (rz * signX * jn);
+              u.wreckSpinSpeed = Math.max(-14, Math.min(14, (u.wreckSpinSpeed || 0) - (copTorque / 1800)));
+
+              const sparkCount = Math.min(60, Math.max(14, Math.round(dissipatedEnergy / 450)));
               cameraShake = Math.max(cameraShake, 12);
-              emit3DSparks((playerLaneX + copX) * 0.5, 0.5, relZ * 0.5, 22, signX, 0.6, -0.2);
+              emit3DSparks((playerLaneX + copX) * 0.5, 0.5, relZ * 0.5, sparkCount, signX, 0.6, -0.2);
 
               if (window.RacerAudio && Math.random() < 0.4) {
                 window.RacerAudio.playMetalScrape(0.5);
@@ -1424,10 +1442,18 @@
                 // Player rear-ended vehicle ahead
                 u.z += penZ * 18.0 * 0.85; // Launched forward
                 u.vz = Math.max(u.vz || 180, (speedMs * 3.6) + 35);
-                physics.velocityLong = Math.max(5.0, physics.velocityLong * 0.74);
-                if (playerChassis) playerChassis.rotation.x -= 0.16; // Front nose dive
+
+                const vn = Math.max(2.0, Math.abs(speedMs - (u.vz ? u.vz / 3.6 : 50)));
+                const jn = (1 + e) * vn * mEff;
+                if (physics.applyContactImpulse) {
+                  physics.applyContactImpulse(0, 2.3, 0, -jn);
+                } else {
+                  physics.velocityLong = Math.max(5.0, physics.velocityLong * 0.74);
+                }
+                
+                const sparkCount = Math.min(65, Math.max(18, Math.round(vn * 12)));
                 cameraShake = Math.max(cameraShake, 18);
-                emit3DSparks(playerLaneX, 0.5, 2.3, 30, (Math.random() - 0.5) * 2, 0.7, -1.0);
+                emit3DSparks(playerLaneX, 0.5, 2.3, sparkCount, (Math.random() - 0.5) * 2, 0.7, -1.0);
                 if (window.RacerAudio) window.RacerAudio.playCrash(0.7);
               } else {
                 // Enemy behind or oncoming
@@ -1440,15 +1466,23 @@
                     playerChassis.rotation.x -= 0.22;
                     playerChassis.rotation.z += (dx >= 0 ? 0.2 : -0.2);
                   }
+                  if (physics.applyContactImpulse) {
+                    physics.applyContactImpulse(dx >= 0 ? 1.05 : -1.05, 1.5, (dx >= 0 ? 4000 : -4000), -8000);
+                  }
                   emit3DSparks((playerLaneX + copX) * 0.5, 0.9, 0, 75, (Math.random() - 0.5) * 2, 1.2, -0.5);
                   if (window.RacerAudio) window.RacerAudio.playCrash(1.5);
                   if (window.NeonHUD) window.NeonHUD.triggerTakedownBanner('SWAT IMPACT', 'HEAVY VEHICLE HEAD-ON CRASH');
                 } else {
                   // Cruiser rammed player from behind
-                  physics.velocityLong += 4.5;
+                  const vn = Math.max(2.0, Math.abs((u.vz ? u.vz / 3.6 : 50) - speedMs));
+                  const jn = (1 + e) * vn * mEff;
                   u.z -= penZ * 18.0 * 0.85;
+                  if (physics.applyContactImpulse) {
+                    physics.applyContactImpulse(0, -2.3, 0, jn);
+                  } else {
+                    physics.velocityLong += 4.5;
+                  }
                   cameraShake = Math.max(cameraShake, 11);
-                  if (playerChassis) playerChassis.rotation.x += 0.12; // Rear squat
                   emit3DSparks(playerLaneX, 0.5, -2.3, 20, (Math.random() - 0.5) * 2, 0.6, 1.0);
                   if (window.RacerAudio) window.RacerAudio.playCrash(0.5);
                 }
@@ -1502,25 +1536,33 @@
         const BARRIER_LIMIT = (ROAD_WIDTH / 2) - 1.55; // 14.45m
         if (playerLaneX >= BARRIER_LIMIT) {
           playerLaneX = BARRIER_LIMIT;
-          if (physics.velocityLat > 0) {
-            physics.velocityLat = -physics.velocityLat * 0.55 - 2.5; // Solid restitution bounce
+          const normalV = Math.max(2.5, Math.abs(physics.velocityLat));
+          const jn = (1 + 0.38) * normalV * 1500;
+          const jt = -0.65 * jn;
+          if (physics.applyContactImpulse) {
+            physics.applyContactImpulse(1.05, 0, -jn, jt);
+          } else {
+            if (physics.velocityLat > 0) physics.velocityLat = -physics.velocityLat * 0.55 - 2.5;
+            physics.velocityLong = Math.max(5.0, physics.velocityLong - 26.0 * dt);
           }
-          physics.velocityLong = Math.max(5.0, physics.velocityLong - 26.0 * dt); // Scraping friction penalty
           cameraShake = Math.max(cameraShake, 14);
-          if (playerChassis) playerChassis.rotation.z -= 0.09;
-          emit3DSparks(BARRIER_LIMIT, 0.45, 0, 16, -1.0, 0.5, -0.2);
+          emit3DSparks(BARRIER_LIMIT, 0.45, 0, 18, -1.0, 0.5, -0.2);
           if (window.RacerAudio && Math.random() < 0.3) {
             window.RacerAudio.playMetalScrape(0.5);
           }
         } else if (playerLaneX <= -BARRIER_LIMIT) {
           playerLaneX = -BARRIER_LIMIT;
-          if (physics.velocityLat < 0) {
-            physics.velocityLat = -physics.velocityLat * 0.55 + 2.5; // Solid restitution bounce
+          const normalV = Math.max(2.5, Math.abs(physics.velocityLat));
+          const jn = (1 + 0.38) * normalV * 1500;
+          const jt = -0.65 * jn;
+          if (physics.applyContactImpulse) {
+            physics.applyContactImpulse(-1.05, 0, jn, jt);
+          } else {
+            if (physics.velocityLat < 0) physics.velocityLat = -physics.velocityLat * 0.55 + 2.5;
+            physics.velocityLong = Math.max(5.0, physics.velocityLong - 26.0 * dt);
           }
-          physics.velocityLong = Math.max(5.0, physics.velocityLong - 26.0 * dt);
           cameraShake = Math.max(cameraShake, 14);
-          if (playerChassis) playerChassis.rotation.z += 0.09;
-          emit3DSparks(-BARRIER_LIMIT, 0.45, 0, 16, 1.0, 0.5, -0.2);
+          emit3DSparks(-BARRIER_LIMIT, 0.45, 0, 18, 1.0, 0.5, -0.2);
           if (window.RacerAudio && Math.random() < 0.3) {
             window.RacerAudio.playMetalScrape(0.5);
           }
@@ -1672,10 +1714,14 @@
             heatLevel: pursuitAI.heatLevel,
             heatPercent: pursuitAI.heatPercent,
             isDrifting: tel.isDrifting,
-            driftAngle: tel.driftAngle,
+            driftAngle: tel.driftAngleDeg !== undefined ? tel.driftAngleDeg : (tel.driftAngle || 0),
             driftScore: score,
             driftMult: tel.isDrifting ? (selectedCarModel === 'cyber_drifter' ? 3.5 : 2.0) : 1.0,
             credits: careerCredits,
+            lateralG: tel.lateralG,
+            longitudinalG: tel.longitudinalG,
+            rollDeg: tel.rollDeg,
+            pitchDeg: tel.pitchDeg,
             rearview: { cops: rearviewCops },
             radar: {
               copsAhead: (pursuitAI.policeUnits || []).filter(u => u.z >= playerZ).map(u => ({
