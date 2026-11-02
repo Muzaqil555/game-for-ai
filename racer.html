@@ -1161,6 +1161,11 @@
       let hitStopRemaining = 0;
       let cameraShake = 0;
 
+      function triggerCameraShake(intensity) {
+        // Controlled, visceral screen shake (capped at 12.0 to prevent visual tearing or nausea)
+        cameraShake = Math.min(12.0, Math.max(cameraShake, intensity));
+      }
+
       // Consolidated Keyboard Controls
       const keys = {
         throttle: false,
@@ -1237,7 +1242,7 @@
           roadWidth: ROAD_WIDTH * 35,
           onTakedown: (event) => {
             hitStopRemaining = 0.080;
-            cameraShake = 22;
+            triggerCameraShake(8.5);
             nitroAmount = 100;
             careerCredits += event.bounty || 1500;
             localStorage.setItem('neon_velocity_credits', careerCredits);
@@ -1252,7 +1257,7 @@
             }
           },
           onSpikeBlowout: () => {
-            cameraShake = 16;
+            triggerCameraShake(5.0);
             if (window.NeonHUD) {
               window.NeonHUD.triggerTakedownBanner('TIRE BLOWOUT', 'SPEED CAPPED AT 75 KM/H');
             }
@@ -1301,7 +1306,6 @@
         if (isPlaying) {
           if (hitStopRemaining > 0) {
             hitStopRemaining -= dt;
-            if (cameraShake > 0) cameraShake = Math.max(0, cameraShake - 40 * dt);
           } else {
             updatePhysicsAndWorld(dt);
           }
@@ -1315,8 +1319,8 @@
         // Update 3D Spark Particle System
         update3DSparks(dt);
 
-        // Camera Update
-        updateCamera();
+        // Camera Update with frame time for guaranteed continuous smooth decay
+        updateCamera(dt, now);
 
         // Render Scene
         if (composer) {
@@ -1369,8 +1373,15 @@
             const isDriftRam = physics.isDrifting && Math.abs(physics.overallSlipAngle || 0) > 0.12;
             const isWallPin = Math.abs(copX) >= 12.2;
 
+            // If cop vehicle is already wrecked from an earlier frame, gently separate and don't re-trigger violent impact
+            if (u.isWrecked) {
+              playerLaneX += (dx >= 0 ? 1 : -1) * penX * 0.25;
+              u.x -= (dx >= 0 ? 1 : -1) * penX * 0.35 / (ROAD_WIDTH / 2);
+              continue;
+            }
+
             // Burnout Takedown Check
-            if (!u.isWrecked && !isRhino && (isNitro || isDriftRam || relKmh > 38 || isWallPin)) {
+            if (!isRhino && (isNitro || isDriftRam || relKmh > 38 || isWallPin)) {
               u.isWrecked = true;
               const pushSide = dx >= 0 ? -1 : 1;
               u.x += pushSide * 0.35; // Shove towards outer barrier
@@ -1379,7 +1390,7 @@
               u.vz = (speedMs * 3.6) * 0.3;
 
               hitStopRemaining = 0.080; // 80ms freeze-frame
-              cameraShake = 26;
+              triggerCameraShake(8.5);
               nitroAmount = 100;
               careerCredits += u.takedownValue || 1500;
               score += 2500;
@@ -1430,7 +1441,7 @@
               u.wreckSpinSpeed = Math.max(-14, Math.min(14, (u.wreckSpinSpeed || 0) - (copTorque / 1800)));
 
               const sparkCount = Math.min(60, Math.max(14, Math.round(dissipatedEnergy / 450)));
-              cameraShake = Math.max(cameraShake, 12);
+              triggerCameraShake(Math.min(4.5, vn * 1.2));
               emit3DSparks((playerLaneX + copX) * 0.5, 0.5, relZ * 0.5, sparkCount, signX, 0.6, -0.2);
 
               if (window.RacerAudio && Math.random() < 0.4) {
@@ -1452,7 +1463,7 @@
                 }
                 
                 const sparkCount = Math.min(65, Math.max(18, Math.round(vn * 12)));
-                cameraShake = Math.max(cameraShake, 18);
+                triggerCameraShake(Math.min(7.0, vn * 1.5));
                 emit3DSparks(playerLaneX, 0.5, 2.3, sparkCount, (Math.random() - 0.5) * 2, 0.7, -1.0);
                 if (window.RacerAudio) window.RacerAudio.playCrash(0.7);
               } else {
@@ -1461,7 +1472,7 @@
                   // SWAT Rhino Head-On Impact
                   physics.velocityLong = Math.max(0, physics.velocityLong * 0.22);
                   playerLaneX += (dx >= 0 ? 2.8 : -2.8);
-                  cameraShake = 38;
+                  triggerCameraShake(11.0);
                   if (playerChassis) {
                     playerChassis.rotation.x -= 0.22;
                     playerChassis.rotation.z += (dx >= 0 ? 0.2 : -0.2);
@@ -1482,7 +1493,7 @@
                   } else {
                     physics.velocityLong += 4.5;
                   }
-                  cameraShake = Math.max(cameraShake, 11);
+                  triggerCameraShake(4.0);
                   emit3DSparks(playerLaneX, 0.5, -2.3, 20, (Math.random() - 0.5) * 2, 0.6, 1.0);
                   if (window.RacerAudio) window.RacerAudio.playCrash(0.5);
                 }
@@ -1545,7 +1556,7 @@
             if (physics.velocityLat > 0) physics.velocityLat = -physics.velocityLat * 0.55 - 2.5;
             physics.velocityLong = Math.max(5.0, physics.velocityLong - 26.0 * dt);
           }
-          cameraShake = Math.max(cameraShake, 14);
+          triggerCameraShake(2.5);
           emit3DSparks(BARRIER_LIMIT, 0.45, 0, 18, -1.0, 0.5, -0.2);
           if (window.RacerAudio && Math.random() < 0.3) {
             window.RacerAudio.playMetalScrape(0.5);
@@ -1561,7 +1572,7 @@
             if (physics.velocityLat < 0) physics.velocityLat = -physics.velocityLat * 0.55 + 2.5;
             physics.velocityLong = Math.max(5.0, physics.velocityLong - 26.0 * dt);
           }
-          cameraShake = Math.max(cameraShake, 14);
+          triggerCameraShake(2.5);
           emit3DSparks(-BARRIER_LIMIT, 0.45, 0, 18, 1.0, 0.5, -0.2);
           if (window.RacerAudio && Math.random() < 0.3) {
             window.RacerAudio.playMetalScrape(0.5);
@@ -1737,7 +1748,7 @@
         }
       }
 
-      function updateCamera() {
+      function updateCamera(dt, now) {
         let targetCamX = 0;
         let targetCamY = 3.8;
         let targetCamZ = -9.8;
@@ -1773,10 +1784,20 @@
         camera.position.y += (targetCamY - camera.position.y) * 0.16;
         camera.position.z = targetCamZ;
 
-        // Camera Shake
+        // Realistic Directional Camera Shake with guaranteed frame-by-frame smooth decay
         if (cameraShake > 0) {
-          camera.position.x += (Math.random() - 0.5) * (cameraShake * 0.05);
-          camera.position.y += (Math.random() - 0.5) * (cameraShake * 0.05);
+          // Fast exponential & linear damping guarantees camera stops shaking within 0.25 - 0.30s
+          cameraShake = Math.max(0, cameraShake - (cameraShake * 8.5 + 18.0) * (dt || 0.016));
+          if (cameraShake < 0.04) cameraShake = 0;
+
+          // Controlled physical displacement amplitude (max 0.16m, preventing visual disorientation)
+          const shakeMag = cameraShake * 0.015;
+          const time = (now || performance.now()) * 0.045;
+          const shakeX = (Math.sin(time * 2.7) * 0.7 + (Math.random() - 0.5) * 0.6) * shakeMag;
+          const shakeY = (Math.cos(time * 3.4) * 0.7 + (Math.random() - 0.5) * 0.6) * shakeMag;
+
+          camera.position.x += shakeX;
+          camera.position.y += shakeY;
         }
 
         // Dynamic FOV Punch
