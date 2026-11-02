@@ -31,6 +31,7 @@
   // --- Riyazi Sabitlər & Köməkçi Funksiyalar ---
   const TWO_PI = Math.PI * 2;
   const SPEED_OF_SOUND = 340; // m/s (Doppler effekti üçün fiziki sabit)
+  const SETTINGS_KEY = 'apex_pursuit_audio_settings';
 
   function clamp(val, min, max) {
     return Math.max(min, Math.min(max, val));
@@ -149,9 +150,7 @@
       // 4. Nitro Boost Dövrü
       this.nitro = {
         isPlaying: false,
-        noiseSource: null,
-        filter: null,
-        whineOsc: null,
+        session: null,
         gainNode: null
       };
 
@@ -191,8 +190,53 @@
       // Xarici hadisə dinləyicisi (Particle effektləri və Visual FX üçün)
       this.onBackfire = null; // callback(intensity, count)
 
+      // Engine auto-start bookkeeping (see startEngine / updateEngine)
+      this._engineStoppedByUser = false;
+      // Heat tracking for escalation vs de-escalation cue
+      this._lastHeat = 0;
+      // Console warnings are logged once per key
+      this._warned = new Set();
+
+      // Restore persisted mixer settings (master volume + mute)
+      this._loadSettings();
+
       // Brauzerin audio siyasətini açmaq (Autoplay unlock)
       this._setupAutoplayUnlock();
+    }
+
+    /** console.warn once per key so failures are visible but never spam the frame loop. */
+    _warnOnce(key, err) {
+      if (this._warned.has(key)) return;
+      this._warned.add(key);
+      console.warn('[RacerAudio] ' + key + ':', err && err.message ? err.message : err);
+    }
+
+    /** Disconnect every node in the list; never throws. */
+    _disconnectAll(nodes) {
+      for (const n of nodes) {
+        if (!n || typeof n.disconnect !== 'function') continue;
+        try { n.disconnect(); } catch (e) { this._warnOnce('disconnect', e); }
+      }
+    }
+
+    _loadSettings() {
+      try {
+        const raw = localStorage.getItem(SETTINGS_KEY);
+        if (!raw) return;
+        const s = JSON.parse(raw);
+        if (typeof s.masterVolume === 'number' && isFinite(s.masterVolume)) this.masterVolume = clamp(s.masterVolume, 0, 1);
+        if (typeof s.muted === 'boolean') this.isMuted = s.muted;
+      } catch (e) {
+        this._warnOnce('settings-load', e);
+      }
+    }
+
+    _saveSettings() {
+      try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify({ masterVolume: this.masterVolume, muted: this.isMuted }));
+      } catch (e) {
+        this._warnOnce('settings-save', e);
+      }
     }
 
     /**
@@ -204,7 +248,7 @@
         if (!this.ctx) {
           this.init();
         } else if (this.ctx.state === 'suspended') {
-          this.ctx.resume().catch(() => {});
+          this.ctx.resume().catch((e) => this._warnOnce('resume-unlock', e));
         }
       };
       unlockEvents.forEach(evt => {
@@ -220,7 +264,7 @@
     init() {
       if (this.isInitialized && this.ctx) {
         if (this.ctx.state === 'suspended') {
-          this.ctx.resume().catch(() => {});
+          this.ctx.resume().catch((e) => this._warnOnce('resume-init', e));
         }
         return this;
       }
@@ -417,7 +461,12 @@
      */
     startEngine() {
       if (!this.isInitialized) this.init();
-      if (!this.ctx) return;
+      if (!this.ctx || !this.engine.gainNode) return this;
+      this._engineStoppedByUser = false;
+      if (this.engine.isRunning) return this; // idempotent: no second starter sound
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume().catch((e) => this._warnOnce('resume-engine', e));
+      }
 
       const now = this.ctx.currentTime;
       this.engine.isRunning = true;
@@ -426,6 +475,7 @@
 
       // Starter səsi (İlkin alışma küyü)
       this._playStarterImpulse();
+      return this;
     }
 
     /**
@@ -449,12 +499,14 @@
 
       osc.start(now);
       osc.stop(now + 0.36);
+      osc.onended = () => this._disconnectAll([osc, gain]);
     }
 
     /**
      * Mühərriki söndürür
      */
     stopEngine() {
+      this._engineStoppedByUser = true; // blocks auto-start until startEngine() is called again
       if (!this.ctx || !this.engine.isRunning) return;
       const now = this.ctx.currentTime;
       this.engine.isRunning = false;
@@ -467,7 +519,12 @@
      * @param {Object} telemetry - { rpm, throttle, gear, speed, maxSpeed, isNitro }
      */
     updateEngine(telemetry = {}) {
-      if (!this.ctx || !this.engine.isRunning) return;
+      if (!this.ctx) return;
+      // Auto-start on the first telemetry frame once the context is running, unless stopEngine() was called.
+      if (!this.engine.isRunning) {
+        if (this._engineStoppedByUser || this.ctx.state !== 'running') return;
+        this.startEngine();
+      }
 
       const now = this.ctx.currentTime;
       const eng = this.engine;
@@ -707,7 +764,7 @@
       if (typeof this.onBackfire === 'function') {
         try {
           this.onBackfire({ intensity: baseIntensity, count: totalPops });
-        } catch (_) {}
+        } catch (e) { this._warnOnce('onBackfire-callback', e); }
       }
     }
 
@@ -791,11 +848,22 @@
 
         // 1. Doppler Tezlik Əmsalı
         // f_apparent = f0 * (SPEED_OF_SOUND / (SPEED_OF_SOUND - relSpeed))
-        const vr = clamp(c.relSpeed || 0, -120, 120);
+        const dist = Math.max(2, c.distance || 30);
+
+        // relSpeed: use the caller's value, else derive the closing speed from the distance change.
+        let relSpeed = c.relSpeed;
+        if (typeof relSpeed !== 'number' || !isFinite(relSpeed)) {
+          relSpeed = 0;
+          if (sirenNode.lastDist !== undefined && now > sirenNode.lastT) {
+            relSpeed = (sirenNode.lastDist - dist) / Math.max(0.016, now - sirenNode.lastT);
+          }
+        }
+        sirenNode.lastDist = dist;
+        sirenNode.lastT = now;
+        const vr = clamp(relSpeed, -120, 120);
         const dopplerMultiplier = clamp(SPEED_OF_SOUND / (SPEED_OF_SOUND - vr), 0.72, 1.45);
 
         // 2. Məsafəyə görə Səs Zəifləməsi (Distance Attenuation)
-        const dist = Math.max(2, c.distance || 30);
         const volumeFactor = 1.0 / (1.0 + dist * 0.016); // Məsafə artdıqca yumşaq sönmə
         const targetVol = clamp(volumeFactor * 0.9, 0.0, 1.0);
 
@@ -803,7 +871,9 @@
         const cutoff = clamp(12000 - dist * 35, 900, 12000);
 
         // 4. Stereo Panning (-1.0 sol, +1.0 sağ)
-        const pan = clamp(c.side !== undefined ? c.side : 0, -1, 1);
+        // side: use c.side, else derive from c.xOffset (metres, + = right of the player)
+        const sideRaw = c.side !== undefined ? c.side : (typeof c.xOffset === 'number' ? c.xOffset / 12 : 0);
+        const pan = clamp(sideRaw, -1, 1);
 
         // Node Parametrlərini Yenilə
         sirenNode.filter.frequency.setTargetAtTime(cutoff, now, 0.08);
@@ -818,23 +888,35 @@
         }
 
         // Doppler modulyasiyası
-        sirenNode.dopplerGain.gain.setTargetAtTime(dopplerMultiplier, now, 0.06);
+        // Pitch shift (cents) is what the ear hears as Doppler; the gain swell adds the pass-by loudness bump.
+        sirenNode.osc.detune.setTargetAtTime(1200 * Math.log2(dopplerMultiplier), now, 0.06);
+        sirenNode.dopplerGain.gain.setTargetAtTime(1 + (dopplerMultiplier - 1) * 0.5, now, 0.06);
       });
 
-      // Aktiv olmayan köhnə patrulların səsini söndür və təmizlə
+      // Departed cruisers: remove from the map at once (so no per-frame re-scheduling), fade, then free nodes.
       for (const [id, sirenNode] of this.sirens.entries()) {
         if (!activeIds.has(id)) {
-          sirenNode.gain.gain.setTargetAtTime(0.0001, now, 0.3);
-          setTimeout(() => {
-            try {
-              sirenNode.osc.stop();
-              sirenNode.lfo.stop();
-              sirenNode.gain.disconnect();
-            } catch (_) {}
-            this.sirens.delete(id);
-          }, 350);
+          this.sirens.delete(id);
+          this._retireSiren(sirenNode, 0.35);
         }
       }
+    }
+
+    /**
+     * Fade a siren out, schedule oscillator stops, and disconnect every node after the fade (one timeout).
+     */
+    _retireSiren(s, fadeSec) {
+      const now = this.ctx ? this.ctx.currentTime : 0;
+      const stopAt = now + fadeSec + 0.05;
+      try {
+        s.gain.gain.cancelScheduledValues(now);
+        s.gain.gain.setTargetAtTime(0.0001, now, fadeSec / 4);
+        s.osc.stop(stopAt);
+        s.lfo.stop(stopAt);
+      } catch (e) { this._warnOnce('siren-stop', e); }
+      setTimeout(() => {
+        this._disconnectAll([s.osc, s.lfo, s.lfoDepth, s.dopplerGain, s.filter, s.panner, s.gain]);
+      }, Math.round((fadeSec + 0.1) * 1000));
     }
 
     /**
@@ -862,7 +944,7 @@
       filter.frequency.setValueAtTime(8000, now);
 
       // Stereo Panner
-      const panner = this.ctx.createStereoPanner ? this.ctx.createStereoPanner() : { pan: { setTargetAtTime: () => {} }, connect: (dest) => dest };
+      const panner = this.ctx.createStereoPanner ? this.ctx.createStereoPanner() : { pan: { setTargetAtTime: () => {} }, connect: (dest) => dest, disconnect: () => {} };
 
       // Gain
       const gain = this.ctx.createGain();
@@ -885,20 +967,21 @@
       lfo.connect(lfoDepth);
       lfoDepth.connect(osc.frequency);
 
-      // osc -> filter -> panner -> gain -> sirenMasterGain
+      // osc -> filter -> panner -> dopplerGain -> gain -> sirenMasterGain
       osc.connect(filter);
       if (this.ctx.createStereoPanner) {
         filter.connect(panner);
-        panner.connect(gain);
+        panner.connect(dopplerGain);
       } else {
-        filter.connect(gain);
+        filter.connect(dopplerGain);
       }
+      dopplerGain.connect(gain);
       gain.connect(this.sirenMasterGain);
 
       osc.start(now);
       lfo.start(now);
 
-      return { osc, lfo, lfoDepth, dopplerGain, filter, panner, gain, mode };
+      return { osc, lfo, lfoDepth, dopplerGain, filter, panner, gain, mode, lastDist: undefined, lastT: now };
     }
 
     /**
@@ -922,9 +1005,9 @@
      * Bütün aktiv patrulların sirenlərini dayandırır
      */
     stopAllSirens() {
-      const now = this.ctx ? this.ctx.currentTime : 0;
-      for (const [, sirenNode] of this.sirens.entries()) {
-        if (sirenNode.gain) sirenNode.gain.setTargetAtTime(0.0001, now, 0.2);
+      if (!this.ctx) { this.sirens.clear(); return; }
+      for (const sirenNode of this.sirens.values()) {
+        this._retireSiren(sirenNode, 0.12);
       }
       this.sirens.clear();
     }
@@ -1413,53 +1496,67 @@
         if (n.isPlaying) return;
         n.isPlaying = true;
 
-        n.gainNode = this.ctx.createGain();
-        n.gainNode.gain.setValueAtTime(0.001, now);
-        n.gainNode.gain.linearRampToValueAtTime(0.85, now + 0.15);
-        n.gainNode.connect(this.sfxMasterGain);
+        // All nodes of this loop live in one session object; stop() captures it before nulling.
+        const sess = { gain: this.ctx.createGain(), noise: null, filter: null, whine: null, whineGain: null };
+        sess.gain.gain.setValueAtTime(0.001, now);
+        sess.gain.gain.linearRampToValueAtTime(0.85, now + 0.15);
+        sess.gain.connect(this.sfxMasterGain);
 
         // Turbin fışıltısı (Jet Hiss)
         if (this.pinkNoiseBuffer) {
-          n.noiseSource = this.ctx.createBufferSource();
-          n.noiseSource.buffer = this.pinkNoiseBuffer;
-          n.noiseSource.loop = true;
+          sess.noise = this.ctx.createBufferSource();
+          sess.noise.buffer = this.pinkNoiseBuffer;
+          sess.noise.loop = true;
 
-          n.filter = this.ctx.createBiquadFilter();
-          n.filter.type = 'bandpass';
-          n.filter.frequency.setValueAtTime(1800, now);
-          n.filter.Q.setValueAtTime(3.0, now);
+          sess.filter = this.ctx.createBiquadFilter();
+          sess.filter.type = 'bandpass';
+          sess.filter.frequency.setValueAtTime(1800, now);
+          sess.filter.Q.setValueAtTime(3.0, now);
 
-          n.noiseSource.connect(n.filter);
-          n.filter.connect(n.gainNode);
-          n.noiseSource.start(now);
+          sess.noise.connect(sess.filter);
+          sess.filter.connect(sess.gain);
+          sess.noise.start(now);
         }
 
         // Yüksələn reaktiv tonu (High-pitch Afterburner Whine)
-        n.whineOsc = this.ctx.createOscillator();
-        n.whineOsc.type = 'sawtooth';
-        n.whineOsc.frequency.setValueAtTime(420, now);
-        n.whineOsc.frequency.exponentialRampToValueAtTime(1450, now + 1.2);
+        sess.whine = this.ctx.createOscillator();
+        sess.whine.type = 'sawtooth';
+        sess.whine.frequency.setValueAtTime(420, now);
+        sess.whine.frequency.exponentialRampToValueAtTime(1450, now + 1.2);
 
-        const whineGain = this.ctx.createGain();
-        whineGain.gain.setValueAtTime(0.18, now);
-        n.whineOsc.connect(whineGain);
-        whineGain.connect(n.gainNode);
-        n.whineOsc.start(now);
+        sess.whineGain = this.ctx.createGain();
+        sess.whineGain.gain.setValueAtTime(0.18, now);
+        sess.whine.connect(sess.whineGain);
+        sess.whineGain.connect(sess.gain);
+        sess.whine.start(now);
+
+        n.session = sess;
+        n.gainNode = sess.gain; // kept for backwards compatibility
       } else {
         if (!n.isPlaying) return;
         n.isPlaying = false;
-        if (n.gainNode) {
-          n.gainNode.gain.cancelScheduledValues(now);
-          n.gainNode.gain.setTargetAtTime(0.0001, now, 0.15);
-        }
+        const sess = n.session; // local ref: a quick re-press creates a NEW session, this one is freed
+        n.session = null;
+        n.gainNode = null;
+        if (!sess) return;
+        const stopAt = now + 0.6;
+        try {
+          sess.gain.gain.cancelScheduledValues(now);
+          sess.gain.gain.setTargetAtTime(0.0001, now, 0.15);
+          if (sess.noise) sess.noise.stop(stopAt);
+          sess.whine.stop(stopAt);
+        } catch (e) { this._warnOnce('nitro-stop', e); }
         setTimeout(() => {
-          try {
-            if (n.noiseSource) n.noiseSource.stop();
-            if (n.whineOsc) n.whineOsc.stop();
-          } catch (_) {}
-        }, 200);
+          this._disconnectAll([sess.noise, sess.filter, sess.whine, sess.whineGain, sess.gain]);
+        }, 700);
       }
     }
+
+    /** Start the nitro loop (idempotent). Call when the player begins boosting. */
+    startNitro() { this.playNitro(true); }
+
+    /** Stop the nitro loop with a short fade (idempotent). Call when boost ends or the run ends. */
+    stopNitro() { this.playNitro(false); }
 
     /**
      * Toqquşma / Qəza Səsi (Heavy Metallic Impact & Glass Crumble)
@@ -1862,6 +1959,55 @@
       lfo.stop(now + 1.85);
     }
 
+    /** One-shot tone helper: oscillator -> gain -> sfx bus, auto-disconnected on end. */
+    _tone(type, f0, f1, t0, dur, vol) {
+      if (!this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(f0, t0);
+      if (f1 !== f0) osc.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.linearRampToValueAtTime(vol, t0 + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      osc.connect(g);
+      g.connect(this.sfxMasterGain);
+      osc.start(t0);
+      osc.stop(t0 + dur + 0.02);
+      osc.onended = () => this._disconnectAll([osc, g]);
+    }
+
+    /** Heat went DOWN: soft falling two-note relief (distinct from the rising EMP of escalation). */
+    playHeatDown() {
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      this._tone('triangle', 660, 520, now, 0.22, 0.4);
+      this._tone('triangle', 440, 330, now + 0.14, 0.32, 0.4);
+    }
+
+    /** Pursuit evaded: rising major arpeggio fanfare. */
+    playPursuitEvaded() {
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      [62, 66, 69, 74].forEach((m, i) => {
+        const f = midiToFreq(m);
+        this._tone('square', f, f, now + i * 0.09, 0.4, 0.22);
+      });
+      this.playCash();
+    }
+
+    /** Busted: descending minor drop plus a low thud. */
+    playBusted() {
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      [69, 65, 62, 57].forEach((m, i) => {
+        const f = midiToFreq(m);
+        this._tone('sawtooth', f, f * 0.97, now + i * 0.16, 0.5, 0.28);
+      });
+      this._tone('sine', 120, 28, now, 0.9, 0.7);
+      this._playRhinoHorn();
+    }
+
     /**
      * Agent 1-in Pursuit AI Hadisələrini Audio Cues ilə Birləşdirir
      * @param {string} cue - AI hadisə növü
@@ -1887,9 +2033,35 @@
         case 'spike_evasion':
           this.playNearMiss();
           break;
-        case 'heat_escalation':
-          this.setMusicIntensity((data.heatLevel || 1) >= 4 ? 3 : 2);
-          this.playEMP();
+        case 'heat_escalation': {
+          // racer.html routes every onHeatChange here; detect a drop and play the de-escalation cue instead.
+          const heat = data.heatLevel || 1;
+          const down = data.direction === 'down' || (this._lastHeat > 0 && heat < this._lastHeat);
+          this._lastHeat = heat;
+          if (down) {
+            this.setMusicIntensity(heat >= 4 ? 3 : (heat >= 2 ? 2 : 1));
+            this.playHeatDown();
+          } else {
+            this.setMusicIntensity(heat >= 4 ? 3 : 2);
+            this.playEMP();
+          }
+          break;
+        }
+        case 'heat_deescalation':
+          if (data.heatLevel) this._lastHeat = data.heatLevel;
+          this.setMusicIntensity((data.heatLevel || 1) >= 4 ? 3 : ((data.heatLevel || 1) >= 2 ? 2 : 1));
+          this.playHeatDown();
+          break;
+        case 'pursuit_evaded':
+          this._lastHeat = 0;
+          this.setMusicIntensity(1);
+          this.playPursuitEvaded();
+          break;
+        case 'busted':
+          this.playBusted();
+          break;
+        case 'spike_hit':
+          this.playSpikeStrip();
           break;
         case 'rhino_horn':
           this._playRhinoHorn();
@@ -1931,7 +2103,26 @@
      * Master Səs Həcmi (0.0 ilə 1.0 arası)
      */
     setMasterVolume(val) {
-      this.masterVolume = clamp(val, 0, 1);
+      this.masterVolume = clamp(Number(val) || 0, 0, 1);
+      this._applyMaster();
+      this._saveSettings();
+    }
+
+    /** Alias of setMasterVolume. */
+    setVolume(val) { this.setMasterVolume(val); }
+
+    /** Explicit mute control (persisted). Returns the new muted state. */
+    setMuted(flag) {
+      this.isMuted = !!flag;
+      this._applyMaster();
+      this._saveSettings();
+      return this.isMuted;
+    }
+
+    getVolume() { return this.masterVolume; }
+    isMutedNow() { return this.isMuted; }
+
+    _applyMaster() {
       if (this.ctx && this.masterGain) {
         this.masterGain.gain.setTargetAtTime(this.isMuted ? 0 : this.masterVolume, this.ctx.currentTime, 0.05);
       }
@@ -1971,11 +2162,7 @@
      * Səsi Tam Susdur / Bərpa Et (Mute Toggle)
      */
     toggleMute() {
-      this.isMuted = !this.isMuted;
-      if (this.ctx && this.masterGain) {
-        this.masterGain.gain.setTargetAtTime(this.isMuted ? 0 : this.masterVolume, this.ctx.currentTime, 0.05);
-      }
-      return this.isMuted;
+      return this.setMuted(!this.isMuted);
     }
 
     /**

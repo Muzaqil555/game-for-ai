@@ -271,7 +271,7 @@ body, html {
   bottom: 4px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 9px;
+  font-size: 11px;
   font-family: var(--hud-font-mono);
   color: var(--hud-slate);
   letter-spacing: 1px;
@@ -634,11 +634,232 @@ body, html {
 }
 
 /* ----------------------------------------------------------------------------
-   MOBILE & TOUCH ON-SCREEN CONTROLS
-   High-Grade Brushed Metal & Tactical Pedals
+   ALERT STACK: banner (major lane) above toast (minor lane). Flow layout, so
+   the two lanes can never overlap and nothing shifts when they appear.
    ---------------------------------------------------------------------------- */
-.mobile-touch-layer {
+.hud-alert-stack {
   position: absolute;
+  top: var(--alert-top, 105px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  pointer-events: none;
+  z-index: 60;
+}
+
+#hud-alert-stack #hud-takedown-banner {
+  position: relative;
+  top: auto;
+  left: auto;
+  transform: scale(0.92);
+  max-width: 100%;
+  text-align: center;
+  min-height: 70px;
+}
+
+#hud-alert-stack #hud-takedown-banner.active {
+  transform: scale(1);
+}
+
+.takedown-subtitle[hidden] { display: none; }
+
+#hud-takedown-banner[data-kind="busted"]    { border-top-color: var(--hud-red); border-bottom-color: var(--hud-red); }
+#hud-takedown-banner[data-kind="busted"] .takedown-subtitle { color: #fca5a5; }
+#hud-takedown-banner[data-kind="takedown"]  { border-top-color: var(--hud-amber); border-bottom-color: var(--hud-amber); }
+#hud-takedown-banner[data-kind="heat-up"]   { border-top-color: var(--hud-red); border-bottom-color: var(--hud-amber); }
+#hud-takedown-banner[data-kind="heat-down"] { border-top-color: var(--hud-blue); border-bottom-color: var(--hud-blue); }
+#hud-takedown-banner[data-kind="heat-down"] .takedown-subtitle { color: var(--hud-blue); }
+#hud-takedown-banner[data-kind="evaded"]    { border-top-color: var(--hud-emerald); border-bottom-color: var(--hud-emerald); }
+#hud-takedown-banner[data-kind="evaded"] .takedown-subtitle { color: #6ee7b7; }
+#hud-takedown-banner[data-kind="chopper"]   { border-top-color: var(--hud-red); border-bottom-color: var(--hud-red); }
+#hud-takedown-banner[data-kind="chopper"] .takedown-subtitle { color: #fca5a5; }
+
+.hud-toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 17px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid var(--hud-glass-border);
+  border-left: 3px solid var(--hud-blue);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.6);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--hud-white);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.hud-toast.active { opacity: 1; transform: translateY(0); }
+.hud-toast[data-kind="near-miss"] { border-left-color: var(--hud-emerald); }
+.hud-toast[data-kind="spike"]     { border-left-color: var(--hud-red); }
+.hud-toast-amt { font-family: var(--hud-font-mono); color: var(--hud-emerald); }
+.hud-toast-amt:empty { display: none; }
+
+/* Heat: continuous meter */
+.heat-meter-track { height: 6px; border-radius: 3px; }
+.heat-meter-fill { border-radius: 3px; }
+.heat-val-tag { font-size: 11px; white-space: nowrap; }
+.hud-heat-panel[data-heat="4"], .hud-heat-panel[data-heat="5"] { border-left-color: var(--hud-red); }
+.dispatch-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mirror-hud-status {
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 4px;
+  background: rgba(8, 12, 18, 0.7);
+}
+.radar-warning-ticker { font-size: 10px; }
+
+/* ----------------------------------------------------------------------------
+   OVERLAYS: pause menu and run summary
+   ---------------------------------------------------------------------------- */
+.hud-overlay {
+  position: fixed;
+  top: 44px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: rgba(5, 8, 12, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  overflow-y: auto;
+}
+.hud-overlay[hidden] { display: none; }
+
+.hud-card {
+  width: min(100%, 420px);
+  margin: auto;
+  padding: 22px 22px 20px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.97);
+  border: 1px solid var(--hud-glass-border-focus);
+  border-top: 3px solid var(--hud-amber);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8);
+  text-align: center;
+}
+.hud-summary[data-reason="busted"] .hud-card { border-top-color: var(--hud-red); }
+.hud-summary[data-reason="busted"] .hud-card-title { color: #fca5a5; }
+
+.hud-card-title {
+  margin: 0 0 4px;
+  font-size: clamp(26px, 7vw, 36px);
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: var(--hud-white);
+}
+.hud-card-sub {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--hud-slate);
+  letter-spacing: 0.5px;
+}
+.hud-card-sub:empty { display: none; }
+
+.hud-summary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+.hud-summary-row {
+  padding: 8px 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--hud-glass-border);
+}
+.hud-summary-row dt {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--hud-slate);
+}
+.hud-summary-row dd {
+  margin: 2px 0 0;
+  font-family: var(--hud-font-mono);
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--hud-white);
+}
+.hud-summary-row:nth-child(5) dd { color: var(--hud-emerald); }
+.hud-summary-newbest {
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--hud-amber);
+}
+.hud-summary-newbest[hidden] { display: none; }
+
+.hud-card-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.hud-btn {
+  flex: 1 1 110px;
+  min-height: 48px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--hud-glass-border-focus);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--hud-white);
+  font: 800 14px/1 var(--hud-font-sans);
+  letter-spacing: 1px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.hud-btn:hover { background: rgba(255, 255, 255, 0.16); }
+.hud-btn-primary {
+  background: var(--hud-amber);
+  border-color: var(--hud-amber);
+  color: #111827;
+}
+.hud-btn-primary:hover { background: #fbbf24; }
+
+/* Visible keyboard focus everywhere in the HUD */
+.hud-btn:focus-visible,
+.hud-pause-btn:focus-visible,
+.btn-audio-toggle:focus-visible,
+.mobile-touch-layer button:focus-visible {
+  outline: 3px solid var(--hud-blue);
+  outline-offset: 2px;
+}
+
+/* ----------------------------------------------------------------------------
+   MOBILE & TOUCH ON-SCREEN CONTROLS
+   Two separate zones (steering bottom-left, 2x2 pedal grid bottom-right).
+   Grid layout: every button owns its own cell, nothing is pulled over a
+   neighbour with negative margins.
+   ---------------------------------------------------------------------------- */
+:root {
+  --steer: 68px;
+  --round: 60px;
+  --pedal-w: 72px;
+  --gas-h: 120px;
+  --brake-h: 96px;
+  --tc-gap: 10px;
+  --ctl-h: 208px;
+}
+
+.mobile-touch-layer {
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
@@ -647,29 +868,33 @@ body, html {
   z-index: 60;
   display: none;
 }
+.mobile-touch-layer.active { display: block; }
 
-.mobile-touch-layer.active {
-  display: block;
+#three-canvas { touch-action: none; }
+
+/* Keep the instrument cluster above the controls */
+#neon-velocity-hud:has(~ .mobile-touch-layer.active) {
+  padding-bottom: calc(var(--ctl-h) + env(safe-area-inset-bottom));
 }
 
-/* Left Steer Buttons */
 .mobile-steering-zone {
   position: absolute;
-  bottom: 26px;
-  left: 24px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  left: max(12px, env(safe-area-inset-left));
   display: flex;
-  gap: 16px;
-  pointer-events: auto;
+  gap: var(--tc-gap);
+  pointer-events: none;
 }
 
 .mobile-steer-btn {
-  width: 72px;
-  height: 72px;
+  width: var(--steer);
+  height: var(--steer);
+  flex: 0 0 auto;
   border-radius: 50%;
   background: rgba(15, 23, 42, 0.82);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 2px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.28);
   color: var(--hud-white);
   font-size: 26px;
   font-weight: 900;
@@ -678,7 +903,6 @@ body, html {
   justify-content: center;
   cursor: pointer;
   touch-action: none;
-  outline: none;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
   transition: transform 0.08s, background-color 0.08s, border-color 0.08s;
 }
@@ -687,226 +911,312 @@ body, html {
 .mobile-steer-btn.pressed {
   background: rgba(255, 255, 255, 0.25);
   border-color: var(--hud-white);
-  transform: scale(0.92);
-  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.3);
+  transform: scale(0.94);
 }
 
-/* Right Pedal Controls (Gas, Brake, E-Brake, Nitro) */
 .mobile-pedals-zone {
   position: absolute;
-  bottom: 24px;
-  right: 24px;
-  display: flex;
-  align-items: flex-end;
-  gap: 14px;
-  pointer-events: auto;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  right: max(12px, env(safe-area-inset-right));
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-areas:
+    "nos ebrake"
+    "brake gas";
+  gap: var(--tc-gap);
+  align-items: end;
+  justify-items: center;
+  pointer-events: none;
 }
 
-/* Handbrake (E-Brake) Round Trigger */
-.mobile-ebrake-btn {
-  width: 66px;
-  height: 66px;
+.mobile-nitro-btn,
+.mobile-ebrake-btn,
+.mobile-pedal-brake,
+.mobile-pedal-gas {
+  margin: 0;
+  touch-action: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-nitro-btn { grid-area: nos; }
+.mobile-ebrake-btn { grid-area: ebrake; }
+.mobile-pedal-brake { grid-area: brake; }
+.mobile-pedal-gas { grid-area: gas; }
+
+.mobile-ebrake-btn,
+.mobile-nitro-btn {
+  width: var(--round);
+  height: var(--round);
   border-radius: 50%;
-  background: rgba(30, 20, 20, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 2px solid rgba(239, 68, 68, 0.45);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-  color: var(--hud-red);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 900;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  touch-action: none;
   transition: transform 0.08s, background-color 0.08s;
 }
 
+.mobile-ebrake-btn {
+  background: rgba(40, 20, 20, 0.88);
+  border: 2px solid rgba(239, 68, 68, 0.6);
+  color: #fca5a5;
+}
 .mobile-ebrake-btn:active,
 .mobile-ebrake-btn.pressed {
-  background: rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.4);
   color: #fff;
   border-color: var(--hud-red);
-  transform: scale(0.92);
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+  transform: scale(0.94);
 }
 
-/* Nitro NOS Button */
 .mobile-nitro-btn {
-  width: 62px;
-  height: 62px;
-  border-radius: 50%;
-  background: rgba(14, 30, 48, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 2px solid rgba(56, 189, 248, 0.5);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  background: rgba(14, 30, 48, 0.88);
+  border: 2px solid rgba(56, 189, 248, 0.65);
   color: var(--hud-blue);
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 1px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  touch-action: none;
-  margin-bottom: 70px;
-  margin-right: -42px;
-  transition: transform 0.08s, background-color 0.08s;
 }
-
 .mobile-nitro-btn:active,
 .mobile-nitro-btn.pressed {
   background: rgba(56, 189, 248, 0.4);
   color: #fff;
   border-color: var(--hud-blue);
-  transform: scale(0.92);
-  box-shadow: 0 0 24px rgba(56, 189, 248, 0.7);
+  transform: scale(0.94);
 }
 
-/* Brake Pedal */
-.mobile-pedal-brake {
-  width: 68px;
-  height: 110px;
-  border-radius: 8px;
-  background: linear-gradient(180deg, #1e2430, #131720);
-  border: 2px solid rgba(255, 255, 255, 0.18);
+.mobile-pedal-brake,
+.mobile-pedal-gas {
+  width: var(--pedal-w);
+  border-radius: 10px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--hud-slate);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: 1px;
-  cursor: pointer;
-  touch-action: none;
+  position: relative;
   transition: transform 0.08s, background-color 0.08s, border-color 0.08s;
 }
 
+.mobile-pedal-brake {
+  height: var(--brake-h);
+  background: linear-gradient(180deg, #1e2430, #131720);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  color: #cbd5e1;
+}
 .mobile-pedal-brake:active,
 .mobile-pedal-brake.pressed {
   background: linear-gradient(180deg, #374151, #1f2937);
   border-color: var(--hud-red);
   color: #fff;
-  transform: translateY(6px);
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+  transform: translateY(4px);
 }
 
-/* Gas (Throttle) Pedal */
 .mobile-pedal-gas {
-  width: 74px;
-  height: 140px;
-  border-radius: 8px;
+  height: var(--gas-h);
   background: linear-gradient(180deg, #1e293b, #0f172a);
-  border: 2px solid rgba(255, 255, 255, 0.22);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  border: 2px solid rgba(255, 255, 255, 0.3);
   color: var(--hud-white);
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 1.5px;
-  cursor: pointer;
-  touch-action: none;
-  position: relative;
-  transition: transform 0.08s, background-color 0.08s, border-color 0.08s;
 }
-
-.pedal-ribs {
-  position: absolute;
-  width: 65%;
-  height: 60%;
-  border-top: 2px solid rgba(255, 255, 255, 0.18);
-  border-bottom: 2px solid rgba(255, 255, 255, 0.18);
-  background: repeating-linear-gradient(
-    180deg,
-    transparent,
-    transparent 8px,
-    rgba(255, 255, 255, 0.12) 8px,
-    rgba(255, 255, 255, 0.12) 10px
-  );
-  pointer-events: none;
-}
-
 .mobile-pedal-gas:active,
 .mobile-pedal-gas.pressed {
   background: linear-gradient(180deg, #334155, #1e293b);
   border-color: var(--hud-white);
-  transform: translateY(8px);
-  box-shadow: 0 0 22px rgba(255, 255, 255, 0.35);
+  transform: translateY(4px);
 }
+
+.pedal-ribs {
+  position: absolute;
+  top: 8px;
+  width: 65%;
+  height: 38%;
+  border-top: 2px solid rgba(255, 255, 255, 0.18);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.18);
+  background: repeating-linear-gradient(180deg, transparent, transparent 8px, rgba(255, 255, 255, 0.12) 8px, rgba(255, 255, 255, 0.12) 10px);
+  pointer-events: none !important;
+}
+.mobile-pedal-gas span { position: relative; margin-top: 28px; }
+
+/* Pause: bottom centre, between the two zones */
+.hud-pause-btn {
+  position: absolute;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.85);
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  color: var(--hud-white);
+  font: 900 18px/1 var(--hud-font-sans);
+  letter-spacing: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+.hud-pause-btn:active { background: rgba(255, 255, 255, 0.25); }
+.mobile-touch-layer:not(.active) .hud-pause-btn { display: none; }
 
 /* ----------------------------------------------------------------------------
    RESPONSIVE DESIGN RULES
    ---------------------------------------------------------------------------- */
 @media (max-width: 900px) {
-  .mobile-touch-layer {
-    display: block !important;
+  .mobile-touch-layer { display: block !important; }
+  #neon-velocity-hud { padding-bottom: calc(var(--ctl-h) + env(safe-area-inset-bottom)); }
+
+  /* Header: always a single line */
+  body #arcade-bar { flex-wrap: nowrap; padding: 0 10px; gap: 8px; }
+  body .arcade-title {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    letter-spacing: 0.8px;
   }
-  .dial-pod-container {
-    width: 180px;
-    height: 180px;
-  }
-  .digital-speed-val {
-    font-size: 38px;
-  }
-  .radar-bezel {
-    width: 125px;
-    height: 125px;
-  }
-  .rearview-frame {
-    width: 210px;
-    height: 58px;
-  }
-  .hud-heat-panel {
-    min-width: 170px;
-    padding: 6px 10px;
-  }
+  body .arcade-links { flex: 0 0 auto; gap: 6px; }
+  body .arcade-btn { white-space: nowrap; }
+  body .arcade-links .arcade-btn:not(.active) { display: none; }
+
+  .dial-pod-container { width: 180px; height: 180px; }
+  .digital-speed-val { font-size: 38px; }
+  .radar-bezel { width: 125px; height: 125px; }
+  .rearview-frame { width: 210px; height: 58px; }
+  .hud-heat-panel { min-width: 170px; padding: 6px 10px; }
+  .nitro-header span:last-child { display: none; }
+  .hud-telemetry-pod { min-width: 0; }
+}
+
+@media (max-width: 700px) {
+  body .arcade-links { display: none; }
 }
 
 @media (max-width: 600px) {
-  .hud-drift-dynamics {
-    display: none;
+  :root {
+    --steer: 58px;
+    --round: 56px;
+    --pedal-w: 64px;
+    --gas-h: 108px;
+    --brake-h: 86px;
+    --tc-gap: 8px;
+    --ctl-h: 188px;
+    --alert-top: 172px;
+  }
+
+  #neon-velocity-hud { padding: 8px 8px 0; padding-bottom: calc(var(--ctl-h) + env(safe-area-inset-bottom)); }
+
+  /* Top: heat (left) + credits/buttons (right), mirror on its own row below */
+  .hud-top-bar { flex-wrap: wrap; gap: 6px; }
+  .hud-heat-panel { flex: 1 1 0; min-width: 0; max-width: none; gap: 4px; }
+  .hud-stats-panel {
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+    width: 156px;
+    padding: 6px 8px;
+  }
+  .stat-credits-box { order: -1; flex: 0 0 100%; flex-direction: row; justify-content: space-between; align-items: baseline; }
+  .stat-credits-val { font-size: 16px; }
+  .btn-audio-toggle {
+    flex: 1 1 0;
+    min-height: 44px;
+    justify-content: center;
+    padding: 4px 6px;
+    font-size: 11px;
   }
   .rearview-mirror-rig {
-    transform: translateX(-50%) scale(0.85);
-    top: -6px;
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+    order: 3;
+    flex: 0 0 100%;
   }
-  .dial-pod-container {
-    width: 150px;
-    height: 150px;
+  .rearview-mount-arm { display: none; }
+  .rearview-frame { width: min(240px, 100%); height: 50px; }
+
+  /* Bottom: compact drift pill above the radar and gauge */
+  .hud-bottom-cluster { flex-wrap: wrap; align-items: flex-end; }
+  .hud-drift-dynamics {
+    display: flex;
+    order: -1;
+    flex: 0 0 100%;
+    max-width: 300px;
+    margin: 0 auto 6px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 2px 10px;
+    padding: 4px 12px;
   }
-  .digital-speed-val {
-    font-size: 30px;
+  .hud-drift-dynamics .drift-badge { font-size: 10px; letter-spacing: 1px; }
+  .hud-drift-dynamics .drift-score-val { font-size: 18px; }
+  .hud-drift-dynamics .drift-angle-tag { font-size: 11px; }
+  #g-force-tag, #chassis-attitude-tag { display: none; }
+
+  .hud-nav-pod { padding: 8px; }
+  .radar-bezel { width: 104px; height: 104px; }
+  .hud-telemetry-pod { padding: 8px 10px; }
+  .dial-pod-container { width: 144px; height: 144px; }
+  .digital-speed-val { font-size: 32px; }
+  .gear-indicator-pill { width: 22px; height: 22px; font-size: 12px; margin-bottom: 0; }
+  .digital-rpm-val { display: none; }
+  .redline-flasher { top: 6px; }
+  .nitro-cluster-box { margin-top: 6px; }
+  .nitro-header { white-space: nowrap; }
+
+  .takedown-title { font-size: 16px; letter-spacing: 1px; }
+  .takedown-subtitle { font-size: 11px; letter-spacing: 0.8px; }
+  #hud-takedown-banner { padding: 10px 18px; }
+  .hud-toast { font-size: 12px; padding: 0 12px; }
+  .hud-summary-row dd { font-size: 17px; }
+}
+
+/* Short landscape phones: drop the secondary instruments */
+@media (max-height: 520px) and (max-width: 950px) {
+  :root { --ctl-h: 150px; --steer: 56px; --round: 46px; --pedal-w: 58px; --gas-h: 72px; --brake-h: 60px; --alert-top: 70px; }
+  .hud-nav-pod, .hud-drift-dynamics, .dispatch-pulse, .police-dispatch-feed, .mirror-hud-status, .digital-rpm-val { display: none; }
+  .rearview-frame { height: 36px; }
+  .dial-pod-container { width: 110px; height: 110px; }
+  .digital-speed-val { font-size: 24px; }
+  .gear-indicator-pill { display: none; }
+  .nitro-cluster-box { display: none; }
+  .hud-card { padding: 12px 16px; }
+  .hud-summary-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
   }
-  .mobile-steer-btn {
-    width: 58px;
-    height: 58px;
-    font-size: 20px;
-  }
-  .mobile-pedal-gas {
-    width: 58px;
-    height: 110px;
-  }
-  .mobile-pedal-brake {
-    width: 54px;
-    height: 90px;
-  }
-  .mobile-ebrake-btn {
-    width: 54px;
-    height: 54px;
-  }
-  .mobile-nitro-btn {
-    width: 50px;
-    height: 50px;
-    margin-bottom: 54px;
-    margin-right: -32px;
-  }
+}
+
+.mobile-ebrake-btn,
+.mobile-ebrake-btn span,
+.mobile-nitro-btn { white-space: nowrap; }
+.mobile-ebrake-btn { font-size: 10px; letter-spacing: 0; }
+
+/* Short portrait phones (e.g. 360x640): trim secondary info so the drift pill still fits */
+@media (max-width: 600px) and (max-height: 700px) {
+  :root { --ctl-h: 176px; --alert-top: 140px; --gas-h: 98px; --brake-h: 78px; }
+  .police-dispatch-feed, .radar-warning-ticker { display: none; }
+  .rearview-frame { height: 40px; }
+  .radar-bezel { width: 88px; height: 88px; }
+  .dial-pod-container { width: 120px; height: 120px; }
+  .digital-speed-val { font-size: 26px; }
+  .heat-stars-row .heat-star { width: 16px; height: 16px; }
 }

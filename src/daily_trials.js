@@ -25,7 +25,7 @@
  *
  * 3. Giriş Seriyası (Login Streak):
  *    - 1-7 günlük zəncirvari giriş sistemi.
- *    - Gün buraxıldıqda sıfırlanır, ardıcıl günlərdə artır.
+ *    - Gün buraxıldıqda sıfırlanmır: pillə dayanır və qaldığı yerdən davam edir.
  *    - Günün ilk run-unda (onRunStart) "🔥 N günlük seriya!" elanı və artan mükafat.
  *
  * 4. [J] Gündəlik Sınaqlar Paneli:
@@ -268,25 +268,33 @@
       title: 'WASD İLƏ HƏRƏKƏT ET',
       desc: 'Qəhrəmanını istiqamətləndir (150px addımla)',
       keyTag: 'WASD',
+      touchTitle: 'JOYSTİKLƏ HƏRƏKƏT ET',
+      touchDesc: 'Sol joystiki sürüşdür',
       targetDist: 150
     },
     {
       id: 'attack',
       title: 'SOL KLİK İLƏ HÜCUM ET',
       desc: 'Düşmənə yaxınlaş və ilk zərbəni endir',
-      keyTag: 'SOL KLİK'
+      keyTag: 'SOL KLİK',
+      touchTitle: '⚔ DÜYMƏSİNƏ TOXUN',
+      touchDesc: 'Düşmənə yaxınlaş və vur'
     },
     {
       id: 'dash',
       title: 'SPACE İLƏ YAYIN (DASH)',
       desc: 'Təhlükəli hücumlardan sıçrayışla qaç',
-      keyTag: 'SPACE'
+      keyTag: 'SPACE',
+      touchTitle: '💨 İLƏ YAYIN (DASH)',
+      touchDesc: 'Təhlükədən sıçrayışla qaç'
     },
     {
       id: 'weapon',
       title: '1-4 İLƏ SİLAH DƏYİŞ',
       desc: 'Qılınc, Xəncər, Çəkic və ya Yay seç',
-      keyTag: '1-4'
+      keyTag: '1-4',
+      touchTitle: 'SİLAH LÖVHƏSİNƏ TOXUN',
+      touchDesc: 'Qılınc, Xəncər, Çəkic və ya Yay'
     },
     {
       id: 'compass',
@@ -300,12 +308,15 @@
       title: 'R — QƏZƏB DOLANDA ULTIMATE!',
       desc: 'Qəzəb sayğacı dolanda Qiyamət gücünü oyat!',
       keyTag: 'R GÜCÜ',
+      touchTitle: '☄️ — QƏZƏB DOLANDA ULTIMATE!',
+      touchDesc: 'Qəzəb dolanda Qiyamət gücünü oyat!',
       duration: 6.0
     }
   ];
 
   // --- Daxili Vəziyyət (Internal State) ---
   const state = {
+    renderWarned: false,
     // API Keşi
     api: null,
 
@@ -338,6 +349,14 @@
 
     // Panel
     isPanelOpen: false,
+
+    // Sensor aşkarlanması və seriya fasiləsi
+    touchSeen: false,
+    listenersBound: false,
+    skipRect: null,
+    lastW: 0,
+    lastCanvas: null,
+    ladderPaused: false,
 
     // Vizual Animasiyalar
     animTime: 0,
@@ -403,6 +422,59 @@
     return selected;
   }
 
+  // --- Saxlanmış məlumatın doğrulanması (xarab save oyunu dondurmasın) ---
+  const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+  function cleanDate(v) {
+    return typeof v === 'string' && DATE_RE.test(v) ? v : '';
+  }
+
+  function clampInt(v, lo, hi, fallback) {
+    const n = Math.floor(Number(v));
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(lo, Math.min(hi, n));
+  }
+
+  /**
+   * Saxlanmış sınaqları bugünün şablonundan yenidən qurur.
+   * Yalnız `progress` saxlanmış məlumatdan götürülür (sonlu rəqəm, [0,target]);
+   * başlıq, hədəf və mükafatlar HƏMİŞƏ cədvəldən gəlir.
+   */
+  function rebuildTrials(rawText, today) {
+    const fresh = generateDailyTrials(today);
+    let saved = null;
+    try {
+      saved = JSON.parse(rawText);
+    } catch (e) {
+      console.warn('[GameDaily] trialsData oxunmadı, yenidən qurulur.');
+      return { trials: fresh, healed: true };
+    }
+    if (!Array.isArray(saved)) return { trials: fresh, healed: true };
+
+    let healed = saved.length !== fresh.length;
+    for (let i = 0; i < fresh.length; i++) {
+      const f = fresh[i];
+      let match = null;
+      for (let j = 0; j < saved.length; j++) {
+        const c = saved[j];
+        if (c && typeof c === 'object' && !Array.isArray(c) && c.id === f.id) {
+          match = c;
+          break;
+        }
+      }
+      if (!match) {
+        healed = true;
+        continue;
+      }
+      const prog = Number(match.progress);
+      if (!Number.isFinite(prog) || prog < 0 || prog > f.target) healed = true;
+      f.progress = Number.isFinite(prog) ? Math.max(0, Math.min(f.target, prog)) : 0;
+      f.completed = f.progress >= f.target;
+      if (match.completed !== f.completed) healed = true;
+    }
+    return { trials: fresh, healed: healed };
+  }
+
   // --- Məlumatların Yüklənməsi və Sinxronlaşdırılması ---
   function loadDailyData() {
     const today = getTodayString();
@@ -413,50 +485,43 @@
     state.tutorialDone = tutDoneVal === '1' || tutDoneVal === 'true';
 
     // 2. Giriş Seriyası Vəziyyəti
-    const savedLastDate = safeStorageGet('lastDate', '');
-    const savedStreak = parseInt(safeStorageGet('streak', '1'), 10) || 1;
-    const streakClaimed = safeStorageGet('streakClaimedDate', '');
+    // Qayda: buraxılmış gün seriyanı SIFIRLAMIR. Pillə dayanır və qaldığı
+    // yerdən davam edir (gün sayı saxlanılır).
+    const savedLastDate = cleanDate(safeStorageGet('lastDate', ''));
+    const savedStreak = clampInt(safeStorageGet('streak', '1'), 1, 7, 1);
+    const streakClaimed = cleanDate(safeStorageGet('streakClaimedDate', ''));
 
     state.lastDateStr = savedLastDate;
     state.streakClaimedDate = streakClaimed;
+    state.ladderPaused = false;
 
     if (!savedLastDate) {
-      // İlk dəfə daxil olur
       state.streak = 1;
     } else if (savedLastDate === today) {
-      // Bu gün artıq qeydə alınıb
-      state.streak = Math.max(1, Math.min(7, savedStreak));
+      state.streak = savedStreak;
     } else {
-      // Keçmiş tarixlə müqayisə
-      const dNow = new Date(today);
-      const dPast = new Date(savedLastDate);
-      const diffTime = dNow.getTime() - dPast.getTime();
-      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 1) {
-        // Ardıcıl gün! Seriyanı 1 pillə artır (maksimum 7)
-        state.streak = Math.min(7, savedStreak + 1);
-      } else {
-        // Gün buraxılıb, seriya 1-dən yenidən başlayır
-        state.streak = 1;
-      }
+      // Yeni gün. Əvvəlki günün mükafatı götürülübsə növbəti pilləyə keç;
+      // götürülməyibsə həmin pillə hələ gözləyir və olduğu kimi qalır.
+      const dayMs = 1000 * 60 * 60 * 24;
+      const gap = Math.round((new Date(today + 'T00:00:00') - new Date(savedLastDate + 'T00:00:00')) / dayMs);
+      const lastWasClaimed = streakClaimed === savedLastDate;
+      state.streak = lastWasClaimed ? Math.min(7, savedStreak + 1) : savedStreak;
+      state.ladderPaused = Number.isFinite(gap) && gap > 1;
     }
 
     // Tarixi yenilə
     safeStorageSet('lastDate', today);
     safeStorageSet('streak', state.streak);
 
-    // 3. Gündəlik Sınaqların Tərəqqisi
+    // 3. Gündəlik Sınaqların Tərəqqisi (həmişə doğrulanır)
     const savedTrialsDate = safeStorageGet('trialsDate', '');
     const savedTrialsRaw = safeStorageGet('trialsData', '');
     const allClaimedDate = safeStorageGet('allTrialsClaimedDate', '');
 
     if (savedTrialsDate === today && savedTrialsRaw) {
-      try {
-        state.trials = JSON.parse(savedTrialsRaw);
-      } catch (e) {
-        state.trials = generateDailyTrials(today);
-      }
+      const res = rebuildTrials(savedTrialsRaw, today);
+      state.trials = res.trials;
+      if (res.healed) saveTrialsData();
     } else {
       // Yeni günün sınaqları
       state.trials = generateDailyTrials(today);
@@ -516,7 +581,7 @@
 
     for (let i = 0; i < state.trials.length; i++) {
       const tr = state.trials[i];
-      if (tr.completed) continue;
+      if (!tr || tr.completed) continue;
 
       if (tr.type === type) {
         // Silah filtrini yoxla
@@ -601,6 +666,416 @@
     }
   }
 
+  // --- Sensor aşkarlanması ---
+  function isTouchUI(w) {
+    if (state.touchSeen) return true;
+    try {
+      if (typeof window !== 'undefined' && window.matchMedia) {
+        if (window.matchMedia('(pointer: coarse)').matches) return true;
+      }
+    } catch (e) {
+      /* matchMedia yoxdur */
+    }
+    return false;
+  }
+
+  function bindInputListeners() {
+    if (state.listenersBound || typeof window === 'undefined' || !window.addEventListener) return;
+    state.listenersBound = true;
+    window.addEventListener(
+      'touchstart',
+      function () {
+        state.touchSeen = true;
+      },
+      { passive: true, capture: true }
+    );
+    window.addEventListener(
+      'pointerdown',
+      function (e) {
+        if (e.pointerType === 'touch') state.touchSeen = true;
+        else if (e.pointerType === 'mouse') state.touchSeen = false;
+        // Təlimat kartındakı "Keç" düyməsinə toxunuş / klik
+        const r = state.skipRect;
+        const cv = state.lastCanvas;
+        if (!r || !cv || state.tutorialDone || !cv.getBoundingClientRect) return;
+        const box = cv.getBoundingClientRect();
+        if (!box.width || !box.height || !cv.width) return;
+        const k = cv.width / box.width;
+        const x = (e.clientX - box.left) * k;
+        const y = (e.clientY - box.top) * k;
+        if (x >= r.x - 6 && x <= r.x + r.w + 6 && y >= r.y - 6 && y <= r.y + r.h + 6) {
+          skipTutorial();
+        }
+      },
+      { capture: true }
+    );
+  }
+
+  function fitText(ctx, text, maxW) {
+    let t = String(text == null ? '' : text);
+    if (maxW <= 0) return '';
+    if (ctx.measureText(t).width <= maxW) return t;
+    while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+    return t + '…';
+  }
+
+  function formatReward(r) {
+    return `+${r.gold} 🪙` + (r.crystals > 0 ? ` +${r.crystals} 💎` : '');
+  }
+
+  function resetCountdown() {
+    const now = new Date();
+    const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+    const mins = Math.max(0, Math.floor((next - now) / 60000));
+    return `${Math.floor(mins / 60)} saat ${mins % 60} dəq`;
+  }
+
+  // Topmost screen y (CSS px) among visible DOM HUD elements; cached for ~0.25 s.
+  let domTopCache = { t: 0, v: 0 };
+  function highestDomTop(selectors, fallback) {
+    const now = Date.now();
+    if (now - domTopCache.t < 250) return domTopCache.v || fallback;
+    let top = Infinity;
+    try {
+      for (let i = 0; i < selectors.length; i++) {
+        const el = document.querySelector(selectors[i]);
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        if (r.height > 0 && r.top < top) top = r.top;
+      }
+    } catch (e) {
+      /* DOM yoxdur */
+    }
+    domTopCache = { t: now, v: top === Infinity ? 0 : top };
+    return domTopCache.v || fallback;
+  }
+
+  // --- Tutorial kartı ---
+  function drawTutorialCard(ctx, w, h, touch) {
+    if (state.tutorialDone || state.tutorialStep >= TUTORIAL_STEPS.length) return;
+    const curStep = TUTORIAL_STEPS[state.tutorialStep];
+    const cardW = Math.min(460, w - 24);
+    const cardH = 72;
+    const cardX = Math.round((w - cardW) / 2);
+    const compact = touch || w <= 900;
+    // Telefonda alt hissə DOM silah/hotbar lövhələri və sensor düymələri ilə doludur:
+    // kart oyun sahəsinin yuxarı-orta hissəsində (HUD kartlarından aşağıda) dayanır.
+    let cardY = Math.round(
+      compact ? Math.max(56, Math.min(Math.max(258, h * 0.31), h - 312)) : h - 232
+    );
+    if (compact) {
+      // Never sit behind the DOM weapon bar / hotbar: stay above whichever is highest.
+      const domTop = highestDomTop(['.weapons-panel', '.hud-bottom-center', '#quest-tracker'], h);
+      cardY = Math.max(56, Math.min(cardY, Math.round(domTop - cardH - 8)));
+    }
+    const title = touch && curStep.touchTitle ? curStep.touchTitle : curStep.title;
+    const desc = touch && curStep.touchDesc ? curStep.touchDesc : curStep.desc;
+
+    const pulse = Math.sin(state.animTime * 4) * 0.15 + 0.85;
+    drawRoundRect(ctx, cardX, cardY, cardW, cardH, 14);
+    ctx.fillStyle = 'rgba(12, 16, 28, 0.93)';
+    ctx.fill();
+    ctx.strokeStyle = state.tutorialShowCheckmark
+      ? `rgba(74, 222, 128, ${pulse})`
+      : `rgba(212, 175, 55, ${pulse * 0.85})`;
+    ctx.lineWidth = 2;
+    ctx.shadowColor = state.tutorialShowCheckmark ? 'rgba(74, 222, 128, 0.6)' : 'rgba(212, 175, 55, 0.5)';
+    ctx.shadowBlur = 12;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    const circleX = cardX + 34;
+    const circleY = cardY + cardH / 2;
+    ctx.beginPath();
+    ctx.arc(circleX, circleY, 20, 0, Math.PI * 2);
+    ctx.fillStyle = state.tutorialShowCheckmark ? 'rgba(34, 197, 94, 0.35)' : 'rgba(212, 175, 55, 0.25)';
+    ctx.fill();
+    ctx.strokeStyle = state.tutorialShowCheckmark ? '#4ade80' : '#d4af37';
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillStyle = state.tutorialShowCheckmark ? '#4ade80' : '#fef08a';
+    ctx.fillText(state.tutorialShowCheckmark ? '✓' : `${state.tutorialStep + 1}/6`, circleX, circleY);
+
+    const skipBtnW = touch ? 54 : 74;
+    const skipBtnH = touch ? 34 : 26;
+    const skipBtnX = cardX + cardW - skipBtnW - 10;
+    const skipBtnY = cardY + Math.round((cardH - skipBtnH) / 2);
+    state.skipRect = { x: skipBtnX, y: skipBtnY, w: skipBtnW, h: skipBtnH };
+
+    const textStartX = cardX + 64;
+    const textMaxW = skipBtnX - textStartX - 8;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillStyle = state.tutorialShowCheckmark ? '#86efac' : '#ffffff';
+    ctx.fillText(fitText(ctx, state.tutorialShowCheckmark ? 'ƏLA ZƏRBƏ! ✓' : title, textMaxW), textStartX, cardY + 14);
+
+    ctx.font = '12px sans-serif';
+    ctx.fillStyle = 'rgba(226, 232, 240, 0.85)';
+    let descText = desc;
+    if (state.tutorialStep === 0) {
+      const walked = Math.min(150, Math.floor(state.tutorialDistWalked));
+      descText = `Addımla: ${walked} / 150 px`;
+    } else if (state.tutorialStep === 4 || state.tutorialStep === 5) {
+      const rem = Math.max(0, Math.ceil(6.0 - (state.tutorialStepTimer || 0)));
+      descText = `${desc} (${rem}s)`;
+    }
+    ctx.fillText(fitText(ctx, descText, textMaxW), textStartX, cardY + 38);
+
+    drawRoundRect(ctx, skipBtnX, skipBtnY, skipBtnW, skipBtnH, 8);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(212, 175, 55, 0.45)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillText(touch ? 'Keç' : '[H] Keç', skipBtnX + skipBtnW / 2, skipBtnY + skipBtnH / 2);
+  }
+
+  // --- Kompakt widget ---
+  function drawMiniWidget(ctx, w) {
+    let doneCount = 0;
+    for (let i = 0; i < state.trials.length; i++) {
+      if (state.trials[i] && state.trials[i].completed) doneCount++;
+    }
+    const miniW = 150;
+    const miniH = 30;
+    const miniX = Math.max(8, w - miniW - 20);
+    const miniY = 82;
+    drawRoundRect(ctx, miniX, miniY, miniW, miniH, 8);
+    ctx.fillStyle = 'rgba(12, 16, 28, 0.78)';
+    ctx.fill();
+    ctx.strokeStyle = doneCount === 3 ? '#4ade80' : 'rgba(212, 175, 55, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillStyle = doneCount === 3 ? '#86efac' : '#fef08a';
+    ctx.fillText(`[J] Gündəlik: ${doneCount}/3 ✓`, miniX + miniW / 2, miniY + miniH / 2);
+  }
+
+  // --- Gündəlik panel (telefona sığır, hündürlük çatmırsa kiçilir) ---
+  function drawDailyPanel(ctx, w, h) {
+    const narrow = w < 470;
+    const pW = Math.min(430, w - 24);
+    const trialCardH = narrow ? 100 : 88;
+    const trialCardGap = 10;
+    const streakRel = 54;
+    const trialsRel = streakRel + 118;
+    const bonusRel = trialsRel + 3 * (trialCardH + trialCardGap) + 4;
+    const pH = bonusRel + 42 + 54;
+    const scale = Math.min(1, (h - 16) / pH);
+    const sx = w < 560 ? Math.round((w - pW * scale) / 2) : Math.max(20, w - pW * scale - 30);
+    const sy = Math.max(8, Math.round((h - pH * scale) / 2));
+
+    ctx.save();
+    try {
+      ctx.translate(sx, sy);
+      ctx.scale(scale, scale);
+      const pX = 0;
+      const pY = 0;
+
+      drawRoundRect(ctx, pX, pY, pW, pH, 16);
+      ctx.fillStyle = 'rgba(10, 13, 24, 0.96)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(212, 175, 55, 0.55)';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = 'rgba(212, 175, 55, 0.35)';
+      ctx.shadowBlur = 18;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.fillStyle = '#fef08a';
+      ctx.fillText('🌅 GÜNDƏLİK SINAQLAR', pX + 18, pY + 18);
+      ctx.textAlign = 'right';
+      ctx.font = '11px monospace';
+      ctx.fillStyle = 'rgba(203, 213, 225, 0.7)';
+      ctx.fillText(state.todayStr, pX + pW - 18, pY + 22);
+
+      // --- 7 günlük zolaq (hamısı görünür) ---
+      const streakY = pY + streakRel;
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillText(`🔥 Giriş Seriyası: Gün ${state.streak} / 7`, pX + 18, streakY);
+
+      const inner = pW - 36;
+      const boxGap = narrow ? 4 : 7;
+      const boxW = Math.floor((inner - boxGap * 6) / 7);
+      const boxH = 46;
+      for (let i = 0; i < 7; i++) {
+        const bx = pX + 18 + i * (boxW + boxGap);
+        const by = streakY + 22;
+        const isCurrent = i + 1 === state.streak;
+        const isPast = i + 1 < state.streak;
+        drawRoundRect(ctx, bx, by, boxW, boxH, 8);
+        if (isCurrent) {
+          ctx.fillStyle = 'rgba(234, 88, 12, 0.35)';
+          ctx.fill();
+          ctx.strokeStyle = '#f97316';
+          ctx.lineWidth = 1.8;
+        } else if (isPast) {
+          ctx.fillStyle = 'rgba(34, 197, 94, 0.18)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(74, 222, 128, 0.6)';
+          ctx.lineWidth = 1;
+        } else {
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+          ctx.lineWidth = 1;
+        }
+        ctx.stroke();
+
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = (narrow ? 'bold 10px' : 'bold 11px') + ' sans-serif';
+        ctx.fillStyle = isCurrent ? '#fed7aa' : isPast ? '#86efac' : '#94a3b8';
+        ctx.fillText(narrow ? `G${i + 1}` : `Gün ${i + 1}`, bx + boxW / 2, by + 14);
+        ctx.font = (narrow ? '9px' : '10px') + ' sans-serif';
+        const rwd = STREAK_REWARDS[i];
+        ctx.fillStyle = isCurrent ? '#fef08a' : '#cbd5e1';
+        ctx.fillText(rwd.crystals > 0 ? `💎+${rwd.crystals}` : `🪙+${rwd.gold}`, bx + boxW / 2, by + 32);
+      }
+
+      // Növbəti mükafat (neytral ifadə) və fasilə qeydi
+      const claimedToday = state.streakClaimedDate === state.todayStr;
+      const nextDay = claimedToday ? Math.min(7, state.streak + 1) : state.streak;
+      const nextReward = STREAK_REWARDS[nextDay - 1];
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.font = '12px sans-serif';
+      ctx.fillStyle = '#e2e8f0';
+      const nextLabel = claimedToday ? 'Növbəti mükafat' : 'Bu günkü mükafat';
+      ctx.fillText(fitText(ctx, `${nextLabel}: Gün ${nextDay} — ${formatReward(nextReward)}`, inner), pX + 18, streakY + 76);
+      ctx.font = '11px sans-serif';
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.9)';
+      ctx.fillText(
+        fitText(
+          ctx,
+          state.ladderPaused ? `Fasilə oldu: pillə Gün ${state.streak}-də saxlanıldı.` : 'Fasilə olsa, pillə saxlanılır.',
+          inner
+        ),
+        pX + 18,
+        streakY + 94
+      );
+
+      // --- 3 sınaq kartı ---
+      const trialsStartY = pY + trialsRel;
+      for (let i = 0; i < state.trials.length && i < 3; i++) {
+        const tr = state.trials[i];
+        if (!tr) continue;
+        const ty = trialsStartY + i * (trialCardH + trialCardGap);
+        const cx = pX + 18;
+        const cw = pW - 36;
+        drawRoundRect(ctx, cx, ty, cw, trialCardH, 12);
+        ctx.fillStyle = tr.completed ? 'rgba(34, 197, 94, 0.12)' : 'rgba(255, 255, 255, 0.04)';
+        ctx.fill();
+        ctx.strokeStyle = tr.completed ? 'rgba(74, 222, 128, 0.5)' : 'rgba(212, 175, 55, 0.3)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.font = '22px sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(tr.icon || '⚔️', cx + 12, ty + 14);
+
+        const tx = cx + 50;
+        const rewardText = `+${tr.rewardGold} 🪙  +${tr.rewardCrystals} 💎`;
+        ctx.font = 'bold 14px sans-serif';
+        ctx.fillStyle = tr.completed ? '#86efac' : '#ffffff';
+        ctx.fillText(fitText(ctx, tr.title, cx + cw - tx - (narrow ? 10 : 140)), tx, ty + 10);
+
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillStyle = '#fbbf24';
+        if (narrow) {
+          ctx.textAlign = 'left';
+          ctx.fillText(rewardText, tx, ty + 50);
+        } else {
+          ctx.textAlign = 'right';
+          ctx.fillText(rewardText, cx + cw - 12, ty + 12);
+          ctx.textAlign = 'left';
+        }
+
+        ctx.font = '12px sans-serif';
+        ctx.fillStyle = 'rgba(203, 213, 225, 0.8)';
+        ctx.fillText(fitText(ctx, tr.desc, cx + cw - tx - 10), tx, ty + 30);
+
+        const barX = tx;
+        const barY = ty + trialCardH - 28;
+        const barW = cx + cw - tx - 12;
+        const barH = 16;
+        const pct = tr.target > 0 ? Math.max(0, Math.min(1, tr.progress / tr.target)) : 0;
+        drawRoundRect(ctx, barX, barY, barW, barH, 6);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fill();
+        if (pct > 0) {
+          drawRoundRect(ctx, barX, barY, Math.max(2, barW * pct), barH, 6);
+          ctx.fillStyle = tr.completed ? '#22c55e' : '#eab308';
+          ctx.fill();
+        }
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(
+          tr.completed ? 'TAMAMLANDI ✓' : `${Math.floor(tr.progress)} / ${tr.target} (${Math.round(pct * 100)}%)`,
+          barX + barW / 2,
+          barY + barH / 2
+        );
+      }
+
+      // --- 3/3 bonus ---
+      const bonusY = pY + bonusRel;
+      drawRoundRect(ctx, pX + 18, bonusY, pW - 36, 42, 10);
+      ctx.fillStyle = state.allTrialsCompleted ? 'rgba(212, 175, 55, 0.22)' : 'rgba(255, 255, 255, 0.03)';
+      ctx.fill();
+      ctx.strokeStyle = state.allTrialsCompleted ? '#d4af37' : 'rgba(255, 255, 255, 0.12)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillStyle = state.allTrialsCompleted ? '#fef08a' : '#94a3b8';
+      ctx.fillText(
+        fitText(
+          ctx,
+          state.allTrialsCompleted
+            ? '🌟 3/3 BİTDİ: Relikt Seçimi və +500 Qızıl Alındı!'
+            : '🌟 3/3 Bonus: +1 Relikt Seçimi və +500 Qızıl',
+          pW - 48
+        ),
+        pX + pW / 2,
+        bonusY + 21
+      );
+
+      // --- Sıfırlanma vaxtı və alt qeyd ---
+      ctx.font = '11px sans-serif';
+      ctx.fillStyle = 'rgba(203, 213, 225, 0.75)';
+      ctx.fillText(
+        fitText(ctx, `Yeni sınaqlar: yerli vaxtla 00:00 (${resetCountdown()} sonra)`, pW - 24),
+        pX + pW / 2,
+        bonusY + 42 + 18
+      );
+      ctx.fillStyle = 'rgba(203, 213, 225, 0.55)';
+      ctx.fillText(fitText(ctx, '[J] Paneli Bağla  •  [H] Təlimatı Keç', pW - 24), pX + pW / 2, bonusY + 42 + 38);
+    } finally {
+      ctx.restore();
+    }
+  }
+
   // --- Plugin Modulunun Əsas Tərifi ---
   const GameDaily = {
     id: 'daily_trials',
@@ -609,6 +1084,7 @@
     // 1. Səhifə açılarkən 1 dəfə
     init: function (api) {
       state.api = api;
+      bindInputListeners();
       loadDailyData();
     },
 
@@ -846,339 +1322,33 @@
       return false;
     },
 
-    // 13. HUD Render
+    // 13. HUD Render (xəta olsa belə canvas stack-i artmasın)
     renderHUD: function (ctx, w, h, worldState) {
       if (!ctx) return;
+      state.lastW = w;
+      try {
+        state.lastCanvas = ctx.canvas || state.lastCanvas;
+      } catch (e) {
+        state.lastCanvas = null;
+      }
       ctx.save();
-
-      // ====================================================================
-      // 1. FTUE KONTEKSTUAL TUTORIAL KARTI (Əgər tamamlanmayıbsa)
-      // ====================================================================
-      if (!state.tutorialDone && state.tutorialStep < TUTORIAL_STEPS.length) {
-        const curStep = TUTORIAL_STEPS[state.tutorialStep];
-        const cardW = Math.min(460, w - 24);
-        const cardH = 72;
-        const cardX = Math.round((w - cardW) / 2);
-        const cardY = Math.round(h - 232);
-
-        // Nəbz parıltısı
-        const pulse = Math.sin(state.animTime * 4) * 0.15 + 0.85;
-
-        // Kartın Fonu (Glassmorphism)
-        drawRoundRect(ctx, cardX, cardY, cardW, cardH, 14);
-        ctx.fillStyle = 'rgba(12, 16, 28, 0.93)';
-        ctx.fill();
-
-        // Kartın Haşiyəsi və Kölgəsi
-        ctx.strokeStyle = state.tutorialShowCheckmark
-          ? `rgba(74, 222, 128, ${pulse})`
-          : `rgba(212, 175, 55, ${pulse * 0.85})`;
-        ctx.lineWidth = 2;
-        ctx.shadowColor = state.tutorialShowCheckmark
-          ? 'rgba(74, 222, 128, 0.6)'
-          : 'rgba(212, 175, 55, 0.5)';
-        ctx.shadowBlur = 12;
-        ctx.stroke();
-        ctx.shadowBlur = 0; // Sıfırla
-
-        // Sol İkon / Pillə Dairəsi
-        const circleX = cardX + 38;
-        const circleY = cardY + cardH / 2;
-        ctx.beginPath();
-        ctx.arc(circleX, circleY, 20, 0, Math.PI * 2);
-        ctx.fillStyle = state.tutorialShowCheckmark
-          ? 'rgba(34, 197, 94, 0.35)'
-          : 'rgba(212, 175, 55, 0.25)';
-        ctx.fill();
-        ctx.strokeStyle = state.tutorialShowCheckmark ? '#4ade80' : '#d4af37';
-        ctx.lineWidth = 1.8;
-        ctx.stroke();
-
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = 'bold 13px sans-serif';
-        ctx.fillStyle = state.tutorialShowCheckmark ? '#4ade80' : '#fef08a';
-        ctx.fillText(
-          state.tutorialShowCheckmark ? '✓' : `${state.tutorialStep + 1}/6`,
-          circleX,
-          circleY
-        );
-
-        // Mərkəz Mətnləri
-        const textStartX = cardX + 70;
-        ctx.textAlign = 'left';
-
-        // Başlıq
-        ctx.textBaseline = 'top';
-        ctx.font = 'bold 15px sans-serif';
-        ctx.fillStyle = state.tutorialShowCheckmark ? '#86efac' : '#ffffff';
-        ctx.fillText(
-          state.tutorialShowCheckmark ? 'ƏLA ZƏRBƏ! ✓' : curStep.title,
-          textStartX,
-          cardY + 14
-        );
-
-        // Təsvir / Tərəqqi
-        ctx.font = '12px sans-serif';
-        ctx.fillStyle = 'rgba(226, 232, 240, 0.85)';
-        let descText = curStep.desc;
-        if (state.tutorialStep === 0) {
-          const walked = Math.min(150, Math.floor(state.tutorialDistWalked));
-          descText = `Addımla: ${walked} / 150 px`;
-        } else if (state.tutorialStep === 4 || state.tutorialStep === 5) {
-          const rem = Math.max(
-            0,
-            Math.ceil(6.0 - (state.tutorialStepTimer || 0))
-          );
-          descText = `${curStep.desc} (${rem}s)`;
+      try {
+        const touch = isTouchUI(w);
+        state.skipRect = null;
+        drawTutorialCard(ctx, w, h, touch);
+        if (state.isPanelOpen) {
+          drawDailyPanel(ctx, w, h);
+        } else {
+          drawMiniWidget(ctx, w);
         }
-        ctx.fillText(descText, textStartX, cardY + 38);
-
-        // Sağ Tərəf: [H] Keç Düyməsi
-        const skipBtnW = 74;
-        const skipBtnH = 26;
-        const skipBtnX = cardX + cardW - skipBtnW - 14;
-        const skipBtnY = cardY + Math.round((cardH - skipBtnH) / 2);
-
-        drawRoundRect(ctx, skipBtnX, skipBtnY, skipBtnW, skipBtnH, 8);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(212, 175, 55, 0.45)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = 'bold 11px sans-serif';
-        ctx.fillStyle = '#fbbf24';
-        ctx.fillText('[H] Keç', skipBtnX + skipBtnW / 2, skipBtnY + skipBtnH / 2);
+      } catch (err) {
+        if (!state.renderWarned) {
+          state.renderWarned = true;
+          console.warn('[GameDaily] renderHUD xətası:', err);
+        }
+      } finally {
+        ctx.restore();
       }
-
-      // ====================================================================
-      // 2. GÜNDƏLİK SINAQLAR PANELİ (Əgər [J] ilə açılıbsa)
-      // ====================================================================
-      if (state.isPanelOpen) {
-        const pW = 430;
-        const pH = 510;
-        const pX = Math.max(20, Math.min(w - pW - 24, w - pW - 30));
-        const pY = Math.max(20, Math.round((h - pH) / 2));
-
-        // Panel Fonu
-        drawRoundRect(ctx, pX, pY, pW, pH, 16);
-        ctx.fillStyle = 'rgba(10, 13, 24, 0.96)';
-        ctx.fill();
-
-        ctx.strokeStyle = 'rgba(212, 175, 55, 0.55)';
-        ctx.lineWidth = 2;
-        ctx.shadowColor = 'rgba(212, 175, 55, 0.35)';
-        ctx.shadowBlur = 18;
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-
-        // Panel Başlığı
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.font = 'bold 17px sans-serif';
-        ctx.fillStyle = '#fef08a';
-        ctx.fillText('🌅 GÜNDƏLİK SINAQLAR', pX + 20, pY + 18);
-
-        // Tarix Nişanı
-        ctx.textAlign = 'right';
-        ctx.font = '12px monospace';
-        ctx.fillStyle = 'rgba(203, 213, 225, 0.7)';
-        ctx.fillText(`📅 ${state.todayStr}`, pX + pW - 20, pY + 22);
-
-        // --- 7 Günlük Seriya Zolağı ---
-        const streakY = pY + 54;
-        ctx.textAlign = 'left';
-        ctx.font = 'bold 13px sans-serif';
-        ctx.fillStyle = '#fbbf24';
-        ctx.fillText(`🔥 Giriş Seriyası: ${state.streak} Gün`, pX + 20, streakY);
-
-        const boxW = 50;
-        const boxH = 46;
-        const boxGap = 7;
-        const boxesStartX = pX + 20;
-
-        for (let i = 0; i < 7; i++) {
-          const bx = boxesStartX + i * (boxW + boxGap);
-          const by = streakY + 22;
-          const isCurrent = i + 1 === state.streak;
-          const isPast = i + 1 < state.streak;
-
-          drawRoundRect(ctx, bx, by, boxW, boxH, 8);
-
-          if (isCurrent) {
-            ctx.fillStyle = 'rgba(234, 88, 12, 0.35)';
-            ctx.fill();
-            ctx.strokeStyle = '#f97316';
-            ctx.lineWidth = 1.8;
-            ctx.stroke();
-          } else if (isPast) {
-            ctx.fillStyle = 'rgba(34, 197, 94, 0.18)';
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(74, 222, 128, 0.6)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-          } else {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-          }
-
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.font = 'bold 11px sans-serif';
-          ctx.fillStyle = isCurrent ? '#fed7aa' : isPast ? '#86efac' : '#94a3b8';
-          ctx.fillText(`Gün ${i + 1}`, bx + boxW / 2, by + 14);
-
-          // Mükafat İkonu
-          ctx.font = '10px sans-serif';
-          const rwd = STREAK_REWARDS[i];
-          const rwdText = rwd.crystals > 0 ? `💎+${rwd.crystals}` : `🪙+${rwd.gold}`;
-          ctx.fillStyle = isCurrent ? '#fef08a' : '#cbd5e1';
-          ctx.fillText(rwdText, bx + boxW / 2, by + 32);
-        }
-
-        // --- 3 Gündəlik Sınaq Kartı ---
-        const trialsStartY = streakY + 84;
-        const trialCardH = 88;
-        const trialCardGap = 10;
-
-        for (let i = 0; i < state.trials.length; i++) {
-          const tr = state.trials[i];
-          const ty = trialsStartY + i * (trialCardH + trialCardGap);
-
-          drawRoundRect(ctx, pX + 20, ty, pW - 40, trialCardH, 12);
-          ctx.fillStyle = tr.completed
-            ? 'rgba(34, 197, 94, 0.12)'
-            : 'rgba(255, 255, 255, 0.04)';
-          ctx.fill();
-          ctx.strokeStyle = tr.completed
-            ? 'rgba(74, 222, 128, 0.5)'
-            : 'rgba(212, 175, 55, 0.3)';
-          ctx.lineWidth = 1.2;
-          ctx.stroke();
-
-          // İkon
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'top';
-          ctx.font = '22px sans-serif';
-          ctx.fillText(tr.icon || '⚔️', pX + 32, ty + 14);
-
-          // Sınaq Başlığı
-          ctx.font = 'bold 14px sans-serif';
-          ctx.fillStyle = tr.completed ? '#86efac' : '#ffffff';
-          ctx.fillText(tr.title, pX + 68, ty + 12);
-
-          // Sağ Tərəf: Mükafat
-          ctx.textAlign = 'right';
-          ctx.font = 'bold 12px sans-serif';
-          ctx.fillStyle = '#fbbf24';
-          ctx.fillText(
-            `+${tr.rewardGold} 🪙  +${tr.rewardCrystals} 💎`,
-            pX + pW - 32,
-            ty + 14
-          );
-
-          // Təsvir
-          ctx.textAlign = 'left';
-          ctx.font = '12px sans-serif';
-          ctx.fillStyle = 'rgba(203, 213, 225, 0.8)';
-          ctx.fillText(tr.desc, pX + 68, ty + 32);
-
-          // Tərəqqi Zolağı
-          const barX = pX + 68;
-          const barY = ty + 56;
-          const barW = pW - 120;
-          const barH = 16;
-          const pct = Math.max(0, Math.min(1, tr.progress / tr.target));
-
-          drawRoundRect(ctx, barX, barY, barW, barH, 6);
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-          ctx.fill();
-
-          if (pct > 0) {
-            drawRoundRect(ctx, barX, barY, barW * pct, barH, 6);
-            ctx.fillStyle = tr.completed ? '#22c55e' : '#eab308';
-            ctx.fill();
-          }
-
-          // Tərəqqi Mətni
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.font = 'bold 10px sans-serif';
-          ctx.fillStyle = '#ffffff';
-          const pText = tr.completed
-            ? 'TAMAMLANDI ✓'
-            : `${tr.progress} / ${tr.target} (${Math.round(pct * 100)}%)`;
-          ctx.fillText(pText, barX + barW / 2, barY + barH / 2);
-        }
-
-        // --- 3/3 Tamamlanma Xüsusi Bonusu ---
-        const bonusY = trialsStartY + 3 * (trialCardH + trialCardGap) + 4;
-        drawRoundRect(ctx, pX + 20, bonusY, pW - 40, 42, 10);
-        ctx.fillStyle = state.allTrialsCompleted
-          ? 'rgba(212, 175, 55, 0.22)'
-          : 'rgba(255, 255, 255, 0.03)';
-        ctx.fill();
-        ctx.strokeStyle = state.allTrialsCompleted
-          ? '#d4af37'
-          : 'rgba(255, 255, 255, 0.12)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = 'bold 12px sans-serif';
-        ctx.fillStyle = state.allTrialsCompleted ? '#fef08a' : '#94a3b8';
-        ctx.fillText(
-          state.allTrialsCompleted
-            ? '🌟 3/3 BİTDİ: Relikt Seçimi və +500 Qızıl Alındı!'
-            : '🌟 3/3 Bonus: +1 Relikt Seçimi və +500 Qızıl',
-          pX + pW / 2,
-          bonusY + 21
-        );
-
-        // Panel Alt Qeyd
-        ctx.font = '11px sans-serif';
-        ctx.fillStyle = 'rgba(203, 213, 225, 0.6)';
-        ctx.fillText('[J] Paneli Bağla  •  [H] Təlimatı Keç', pX + pW / 2, pY + pH - 16);
-      } else {
-        // ====================================================================
-        // 3. KOMPAKT SAĞ GÜNDƏLİK WIDGET (Panel Bağlı olanda kiçik xatırlatma)
-        // ====================================================================
-        let doneCount = 0;
-        for (let i = 0; i < state.trials.length; i++) {
-          if (state.trials[i].completed) doneCount++;
-        }
-
-        const miniW = 150;
-        const miniH = 30;
-        const miniX = w - miniW - 20;
-        const miniY = 82;
-
-        drawRoundRect(ctx, miniX, miniY, miniW, miniH, 8);
-        ctx.fillStyle = 'rgba(12, 16, 28, 0.78)';
-        ctx.fill();
-        ctx.strokeStyle = doneCount === 3 ? '#4ade80' : 'rgba(212, 175, 55, 0.4)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.font = 'bold 11px sans-serif';
-        ctx.fillStyle = doneCount === 3 ? '#86efac' : '#fef08a';
-        ctx.fillText(
-          `[J] Gündəlik: ${doneCount}/3 ✓`,
-          miniX + miniW / 2,
-          miniY + miniH / 2
-        );
-      }
-
-      ctx.restore();
     },
 
     // ========================================================================
@@ -1192,6 +1362,7 @@
       const trialsList = [];
       for (let i = 0; i < state.trials.length; i++) {
         const t = state.trials[i];
+        if (!t) continue;
         trialsList.push({
           id: t.id,
           title: t.title,

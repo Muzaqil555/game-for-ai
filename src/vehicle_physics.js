@@ -80,8 +80,45 @@
         tireGripBase: 1.15,       // Standart şin tutuş əmsalı
         driftGripDrop: 0.52,      // Sürüşmədə şin tutuşu itkisi
         aerodynamicDrag: 0.33,    // Cd hava müqaviməti
-        rollingResistance: 14.0   // Təkər diyirlənmə sürtünməsi
+        rollingResistance: 14.0,  // Təkər diyirlənmə sürtünməsi
+        // --- Added by the v6 physics fix (all optional, all overridable) ---
+        nitroTopSpeedBonus: 0.08,   // top-speed ceiling raise while nitro is held (+8%)
+        miniTurboTopSpeedBonus: 0.05, // ceiling raise while the mini-turbo is active (+5%)
+        topSpeedSoftZone: 0.025,    // drive force fades to 0 over the last 4% below the ceiling
+        minDriftSpeedKmh: 35,       // drift entry/sustain/scoring gate
+        driftScoreMult: 2.0,        // points multiplier (ARCADE_SPEC driftScoreMult)
+        driftScoreSlipCapRad: 1.05, // slip angle above this (~60 deg) earns no extra points
+        nitroDuration: 4.2,         // seconds of nitro from a full tank (ARCADE_SPEC)
+        wallRestitution: 0.5,       // lateral bounce off a guardrail
+        wallBaseLossPerSec: 0.10,   // fraction of forward speed lost per second of grinding
+        wallMaxLossPerSec: 0.22,    // hard cap on that fraction (never above 25 %/s)
+        wallMinImpactSpeed: 3.0     // m/s of normal speed that counts as an "impact" (shake/audio)
       }, config);
+
+      // --- Upgrade / stat hooks (multipliers, 1.0 = stock). See setStats() ---
+      this.stats = { topSpeed: 1, accel: 1, handling: 1, nitroCapacity: 1, nitroPower: 1 };
+      this.nitroCapacity = 100;    // tank size racer.html should use instead of a literal 100
+      this.topSpeedKmh = this.config.baseTopSpeed; // effective stock+upgrade ceiling
+      this.gearScale = 1;          // final-drive scaling so 6th gear tops out at the ceiling
+      this._ceilingMs = this.config.baseTopSpeed / 3.6 * 1.025; // smoothed top-speed ceiling (m/s)
+      this.driftScore = 0;         // float accumulator (points), never rounded
+      this.driftScoreRate = 0;     // points per second right now (0 when gated)
+      this.miniTurboCount = 0;
+      this.wallContactTime = 0;    // seconds of continuous guardrail contact
+      this.wallImpactCooldown = 0;
+      this._wallSparkAccum = 0;
+      this.onEvent = null;         // optional callback(name, detail)
+      // Reused every update(): zero GC. See update() for the field list.
+      this.stepResult = {
+        miniTurbo: false, miniTurboActive: false, miniTurboCount: 0,
+        driftScoreDelta: 0, driftScore: 0, driftScoreRate: 0, drifting: false,
+        spinout: false, shifted: false, backfire: 0
+      };
+      this.wallResult = {
+        collided: false, resolvedLaneX: 0, side: 0, impact: false, normalSpeed: 0,
+        impactSpeed: 0, lossPerSec: 0, energy: 0, sparks: 0, shake: 0, rumble: 0, scrape: 0
+      };
+      this._applyStats();
 
       // --- Kinematik Mövqe və Hərəkət Vektorları ---
       this.x = 0;                  // Dünya X (və ya yolda lateral ofset [-1.0 .. 1.0])
@@ -168,6 +205,54 @@
       };
     }
 
+    // ------------------------------------------------------------------
+    // Upgrade / stat hooks
+    // ------------------------------------------------------------------
+    /** Recompute everything derived from config + this.stats. Safe to call any time. */
+    _applyStats() {
+      const st = this.stats;
+      const clampM = (v) => Math.max(0.5, Math.min(3, Number(v) || 1));
+      st.topSpeed = clampM(st.topSpeed); st.accel = clampM(st.accel); st.handling = clampM(st.handling);
+      st.nitroCapacity = clampM(st.nitroCapacity); st.nitroPower = clampM(st.nitroPower);
+      this.topSpeedKmh = this.config.baseTopSpeed * st.topSpeed;
+      this.nitroCapacity = 100 * st.nitroCapacity;
+      // Scale all gears so 6th gear reaches ~7300 rpm just above the ceiling (+3 %):
+      // the stated top speed is then really reachable and not far exceeded.
+      const sp = TRANSMISSION_SPECS;
+      const circ = 2 * Math.PI * sp.tireRadius;
+      const vCeil = (this.topSpeedKmh / 3.6) * 1.03;
+      const scale = (7300 / 60 * circ) / (sp.gearRatios[6] * sp.finalDrive * vCeil);
+      this.gearScale = Math.max(0.6, Math.min(1.5, scale));
+    }
+
+    /**
+     * Apply upgrade multipliers (1.0 = stock). Any subset of
+     * { topSpeed, accel, handling, nitroCapacity, nitroPower }.
+     * topSpeed scales the km/h ceiling, accel scales engine torque, handling scales
+     * tyre grip and steering response, nitroCapacity scales the tank (this.nitroCapacity,
+     * 100 = stock), nitroPower scales the nitro torque bonus.
+     */
+    setStats(partial) {
+      if (partial) Object.assign(this.stats, partial);
+      this._applyStats();
+      return this.getStats();
+    }
+
+    getStats() {
+      return Object.assign({ topSpeedKmh: this.topSpeedKmh, nitroCapacity: this.nitroCapacity }, this.stats);
+    }
+
+    /** Nitro tank units per second racer.html should drain (full tank lasts config.nitroDuration s). */
+    getNitroDrainPerSecond() {
+      return 100 / this.config.nitroDuration;
+    }
+
+    /** Gear ratio including the per-car gearScale. */
+    _ratio(gear) {
+      const r = TRANSMISSION_SPECS.gearRatios[gear];
+      return r ? r * this.gearScale : 1.0;
+    }
+
     /**
      * Hər fiziki kadrda avtomobilin bütün sistemlərini yeniləyir.
      * @param {number} dt - Addım zamanı (saniyə)
@@ -175,7 +260,29 @@
      * @param {object} environment - { roadCurve: number, roadElevation: number, roadFriction: number }
      */
     update(dt, inputs = {}, environment = {}) {
-      const safeDt = Math.min(Math.max(dt || 0.016, 0.001), 0.05);
+      const r = this.stepResult;
+      r.miniTurbo = false; r.driftScoreDelta = 0; r.spinout = false; r.shifted = false; r.backfire = 0;
+      const total = Math.min(Math.max(isFinite(dt) && dt > 0 ? dt : 0.016, 0.001), 0.2);
+      // Long frames are split so integration stays stable and dt-independent (<= ~1/30 s each).
+      const n = Math.max(1, Math.ceil(total / 0.034));
+      const h = total / n;
+      let sub = inputs;
+      for (let i = 0; i < n; i++) {
+        this._step(h, sub, environment);
+        if (i === 0 && n > 1 && (inputs.shiftUp || inputs.shiftDown)) {
+          sub = Object.assign({}, inputs, { shiftUp: false, shiftDown: false });
+        }
+      }
+      r.miniTurboActive = this.miniTurboActive;
+      r.miniTurboCount = this.miniTurboCount;
+      r.driftScore = this.driftScore;
+      r.driftScoreRate = this.driftScoreRate;
+      r.drifting = this.isDrifting;
+      return r;
+    }
+
+    /** One fixed integration step of length safeDt (<= ~0.034 s). */
+    _step(safeDt, inputs = {}, environment = {}) {
 
       // 1. Giriş siqnallarını normallaşdır
       const throttleInput = Math.max(0, Math.min(1, inputs.throttle || 0));
@@ -241,7 +348,7 @@
       }
 
       // Təkər sürətinə əsasən ötürmə qutusundan gələn nəzəri RPM
-      const currentGearRatio = specs.gearRatios[this.gear] || 1.0;
+      const currentGearRatio = this._ratio(this.gear);
       const wheelCircumference = 2 * Math.PI * specs.tireRadius;
       const wheelRps = Math.max(0, this.velocityLong) / wheelCircumference;
       let driveRPM = wheelRps * currentGearRatio * specs.finalDrive * 60;
@@ -266,7 +373,7 @@
         this.rpm = specs.limiterCutRPM - 250 + bouncePhase * 280;
 
         // Limiterdə yanmamış yanacaq egzozda partlayır
-        if (Math.random() < 0.28) {
+        if (Math.random() < 1 - Math.exp(-19.7 * dt)) { // 28 %/frame at 60 Hz
           this.triggerBackfire(0.65);
         }
       } else {
@@ -283,7 +390,7 @@
         }
         // Aşağı dövrlərdə (3000 RPM-dən aşağı düşəndə və sürət azaldıqda) aşağı ötürməyə keç
         else if (this.rpm < 2900 && this.gear > 1) {
-          const lowerGearRatio = specs.gearRatios[this.gear - 1];
+          const lowerGearRatio = this._ratio(this.gear - 1);
           const predictedLowerRPM = wheelRps * lowerGearRatio * specs.finalDrive * 60;
           if (predictedLowerRPM < 6800) {
             this._shiftToGear(this.gear - 1);
@@ -302,7 +409,7 @@
      */
     _calculateRPMForSpeed(speedMs, gear) {
       const specs = TRANSMISSION_SPECS;
-      const ratio = specs.gearRatios[gear] || 1.0;
+      const ratio = this._ratio(gear);
       const wheelCircumference = 2 * Math.PI * specs.tireRadius;
       const rps = Math.max(0, speedMs) / wheelCircumference;
       return Math.max(specs.idleRPM, Math.min(specs.maxRPM, rps * ratio * specs.finalDrive * 60));
@@ -316,6 +423,7 @@
       this.gear = newGear;
       this.shiftTimer = TRANSMISSION_SPECS.shiftDuration;
       this.clutchDisengaged = true;
+      this.stepResult.shifted = true;
 
       // Yuxarı ötürməyə keçəndə həmişə aqressiv backfire alovu çıxır
       this.triggerBackfire(0.9);
@@ -351,7 +459,7 @@
       this.targetSteerAngle = steerInput * maxSteer;
 
       // Sükanın dönmə ətaləti (steering response lerp)
-      const steerSpeed = 14.0;
+      const steerSpeed = 14.0 * this.stats.handling;
       this.steerAngle += (this.targetSteerAngle - this.steerAngle) * (1 - Math.exp(-steerSpeed * dt));
     }
 
@@ -368,11 +476,11 @@
         // Tork əyrisi: peakTorqueRPM ətrafında maksimum
         const rpmNorm = (this.rpm - specs.idleRPM) / (specs.maxRPM - specs.idleRPM);
         const torqueCurve = Math.sin(Math.max(0, Math.min(Math.PI, rpmNorm * Math.PI)));
-        engineTorque = cfg.peakTorque * (0.45 + 0.55 * torqueCurve) * throttle;
+        engineTorque = cfg.peakTorque * (0.45 + 0.55 * torqueCurve) * throttle * this.stats.accel;
 
-        // Nitro aktivdirsə +45% güc artımı
+        // Nitro aktivdirsə +45% güc artımı (x nitroPower stat)
         if (nitro) {
-          engineTorque *= 1.45;
+          engineTorque *= 1 + 0.45 * this.stats.nitroPower;
         }
         // Mini-Turbo aktivdirsə +25% güc
         if (this.miniTurboActive) {
@@ -380,9 +488,19 @@
         }
       }
 
-      const gearRatio = specs.gearRatios[this.gear] || 1.0;
+      const gearRatio = this._ratio(this.gear);
       const wheelDriveTorque = engineTorque * gearRatio * specs.finalDrive * 0.88; // %88 ötürücü faydalı iş əmsalı
-      const tractiveForce = wheelDriveTorque / specs.tireRadius;
+      let tractiveForce = wheelDriveTorque / specs.tireRadius;
+
+      // Top-speed governor: ceiling = topSpeed (+ nitro / mini-turbo headroom), smoothed so
+      // the headroom fades out over ~0.5 s. Drive force fades to 0 in the last few percent;
+      // drag then pulls any overshoot (e.g. the mini-turbo kick) back down.
+      const topMs = this.topSpeedKmh / 3.6;
+      const ceilTarget = topMs * (1.025 + (nitro && throttle > 0 ? cfg.nitroTopSpeedBonus : 0) +
+                                      (this.miniTurboActive ? cfg.miniTurboTopSpeedBonus : 0));
+      this._ceilingMs += (ceilTarget - this._ceilingMs) * (1 - Math.exp(-6 * dt));
+      const fade = Math.max(0, Math.min(1, (this._ceilingMs - this.velocityLong) / (this._ceilingMs * cfg.topSpeedSoftZone)));
+      tractiveForce *= fade;
 
       // 2. Əyləc və Handbrake Qüvvələri
       let brakeForceLong = (brake * cfg.brakeTorque) / specs.tireRadius;
@@ -429,8 +547,8 @@
       const normalLoadFront = Math.max(600, (cfg.mass * 9.81 * cfg.weightDistrFront) - deltaFzLong + downforce * 0.45);
       const normalLoadRear = Math.max(600, (cfg.mass * 9.81 * (1 - cfg.weightDistrFront)) + deltaFzLong + downforce * 0.55);
 
-      let frontMu = cfg.tireGripBase * roadFriction;
-      let rearMu = cfg.tireGripBase * roadFriction;
+      let frontMu = cfg.tireGripBase * roadFriction * this.stats.handling;
+      let rearMu = cfg.tireGripBase * roadFriction * this.stats.handling;
 
       // Handbrake çəkildikdə arxa tutuşun 80%-i itirilir! (Kəskin driftə ani giriş)
       if (this.handbrakeActive) {
@@ -481,7 +599,7 @@
       // 7. DRIFT STATUSU, ƏKS-SÜKAN (COUNTER-STEERING) VƏ MİNİ-TURBO SİSTEMİ
       const maxEffectiveSlip = Math.max(Math.abs(this.overallSlipAngle), Math.abs(this.slipAngleRear));
       const absDriftAngleDeg = maxEffectiveSlip * (180 / Math.PI);
-      const minDriftSpeed = 35 / 3.6; // 35 km/h minimum drift sürəti
+      const minDriftSpeed = cfg.minDriftSpeedKmh / 3.6; // 35 km/h minimum drift sürəti
 
       // Driftə giriş tətikləyiciləri: Handbrake, Brake+Steer və ya yüksək sürətli yan sürüşmə
       const initiateDrift = (this.velocityLong >= minDriftSpeed) && (
@@ -491,14 +609,24 @@
       );
 
       // Drifti davam etdirmə şərti (qaz, sükan və ya aktiv sürüşmə)
-      const sustainDrift = this.isDrifting && (
+      const sustainDrift = this.isDrifting && (this.velocityLong >= minDriftSpeed) && (
         (throttle > 0.2 && Math.abs(this.targetSteerAngle) > 0.04) ||
         absDriftAngleDeg >= 4.8 ||
         this.handbrakeActive
       );
 
+      this.driftScoreRate = 0;
       if (initiateDrift || sustainDrift) {
         this.isDrifting = true;
+        // Frame-rate independent float score (no per-frame rounding). Only above minDriftSpeed
+        // (guaranteed by the gate above) and never while spinning out.
+        if (!this.isSpinout) {
+          const slip = Math.min(Math.abs(this.overallSlipAngle), cfg.driftScoreSlipCapRad);
+          this.driftScoreRate = slip * 3000 * cfg.driftScoreMult; // = |slip|*50*mult*60 pts/s
+          const inc = this.driftScoreRate * dt;
+          this.driftScore += inc;
+          this.stepResult.driftScoreDelta += inc;
+        }
         this.driftDirection = Math.sign(this.yawRate) || Math.sign(this.overallSlipAngle) || Math.sign(this.steerAngle) || 1;
 
         // Əks-sükan (Counter-steering) Yoxlanışı:
@@ -537,7 +665,7 @@
       if (this.isSpinout) {
         this.spinoutTimer -= dt;
         this.velocityLong *= Math.exp(-2.5 * dt); // Sürət kəskin azalır
-        this.yawRate += (Math.random() - 0.5) * 8 * dt;
+        this.yawRate += (Math.random() - 0.5) * 8 * Math.sqrt(dt / 60); // random walk: sqrt(dt) keeps variance dt-independent
         if (this.spinoutTimer <= 0) {
           this.isSpinout = false;
         }
@@ -557,6 +685,7 @@
     _triggerSpinout() {
       if (this.isSpinout) return;
       this.isSpinout = true;
+      this.stepResult.spinout = true;
       this.spinoutTimer = 1.4; // 1.4 saniyə fırlanma
       this.miniTurboReady = false;
       this.miniTurboCharge = 0;
@@ -572,6 +701,8 @@
      * 1.5s Təmiz Drift Çıxışında Mini-Turbo Partlayışı
      */
     triggerMiniTurbo() {
+      this.miniTurboCount++;
+      this.stepResult.miniTurbo = true;
       this.miniTurboActive = true;
       this.miniTurboTimer = this.miniTurboDuration;
 
@@ -591,11 +722,10 @@
       }
 
       // Qlobal hadisə bildirimi
-      if (typeof window !== 'undefined') {
-        const event = new CustomEvent('neon:miniturbo', {
-          detail: { speedKmh: this.speedKmh, duration: this.miniTurboDuration }
-        });
-        window.dispatchEvent(event);
+      const detail = { speedKmh: this.speedKmh, duration: this.miniTurboDuration, count: this.miniTurboCount };
+      if (typeof this.onEvent === 'function') this.onEvent('miniturbo', detail);
+      if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+        window.dispatchEvent(new CustomEvent('neon:miniturbo', { detail }));
       }
     }
 
@@ -612,46 +742,80 @@
     }
 
     /**
-     * SƏRT GUARDRAIL BARYER TOQQUŞMASI (Anti-Clipping & Solid Rebound)
-     * Avtomobil polad qoruyucu baryerlərə (X = ±14.45m) dəydikdə işə düşür.
-     * Sadə clamp əvəzinə: elastik sıçrayış, sürtünmə yavaşlaması, şassi əyilməsi və kamera zərbəsi.
-     * @param {number} currentLaneX - Avtomobilin cari X mövqeyi (metr)
-     * @param {number} limitX - Baryer sərhədi (default: 14.45m)
-     * @param {number} dt - Addım zamanı
-     * @returns {{ collided: boolean, resolvedLaneX: number, side: number, impactSpeed: number }}
+     * GUARDRAIL SCRAPE (call once per physics step, touching or not).
+     * dt-scaled and capped: the lateral velocity into the rail is reflected with
+     * restitution (cfg.wallRestitution, 0.5); forward speed decays exponentially at
+     * min(wallMaxLossPerSec, wallBaseLossPerSec + 0.015 * normalSpeed) per second
+     * (capped at 22 %/s, so 1 s of grinding at 180 km/h keeps >= ~140 km/h before engine thrust).
+     * The lane is clamped to the rail, so there is never any interpenetration.
+     * Returns a REUSED object (copy fields if you keep it):
+     *  collided, resolvedLaneX, side (+1 right / -1 left / 0), impact (true once per hit, >= wallMinImpactSpeed),
+     *  normalSpeed (m/s into the rail before reflection), impactSpeed (km/h), lossPerSec (fraction),
+     *  energy (J dissipated this step), sparks (integer count to emit this step, rate-based),
+     *  shake (one-shot camera intensity on impact, else 0), rumble 0..1 (continuous, for audio/camera),
+     *  scrape 0..1 (metal-scrape loudness, speed based).
+     * GameJuice.shake is called only on impact, rate-limited by a 0.25 s cooldown.
      */
-    resolveGuardrailCollision(currentLaneX, limitX = 14.45, dt = 0.016) {
-      if (currentLaneX >= limitX) {
-        const resolvedX = limitX;
-        if (this.velocityLat > 0) {
-          // Sərt elastik sıçrayış (Solid restitution)
-          this.velocityLat = -this.velocityLat * 0.55 - 2.5;
-        }
-        // Sürtünmə qanunu ilə boyuna sürət itkisi
-        this.velocityLong = Math.max(5.0, this.velocityLong - 26.0 * dt);
-        this.suspension.rollVelocity -= 0.18; // Şassi daxilə doğru yellənir
+    scrapeWall(laneX, limitX = 14.45, dt = 1 / 60) {
+      const h = Math.min(Math.max(isFinite(dt) && dt > 0 ? dt : 1 / 60, 0.0005), 0.2);
+      const cfg = this.config;
+      const r = this.wallResult;
+      this.wallImpactCooldown = Math.max(0, this.wallImpactCooldown - h);
+      r.collided = false; r.resolvedLaneX = laneX; r.side = 0; r.impact = false; r.normalSpeed = 0;
+      r.impactSpeed = 0; r.lossPerSec = 0; r.energy = 0; r.sparks = 0; r.shake = 0; r.rumble = 0; r.scrape = 0;
 
+      const side = laneX >= limitX ? 1 : (laneX <= -limitX ? -1 : 0);
+      if (side === 0) { this.wallContactTime = 0; this._wallSparkAccum = 0; return r; }
+
+      this.wallContactTime += h;
+      r.collided = true;
+      r.side = side;
+      r.resolvedLaneX = side * limitX;
+
+      // Lateral: reflect the component moving into the rail.
+      const vOut = this.velocityLat * side;
+      const normalSpeed = vOut > 0 ? vOut : 0;
+      if (normalSpeed > 0) this.velocityLat = -side * normalSpeed * cfg.wallRestitution;
+      r.normalSpeed = normalSpeed;
+
+      // Longitudinal: capped friction loss, exponential so it is dt-independent.
+      const before = Math.max(0, this.velocityLong);
+      const lossPerSec = Math.min(cfg.wallMaxLossPerSec, cfg.wallBaseLossPerSec + 0.015 * normalSpeed);
+      if (this.velocityLong > 0) this.velocityLong *= Math.exp(-lossPerSec * h);
+      this.speedKmh = Math.max(0, this.velocityLong * 3.6);
+      r.lossPerSec = lossPerSec;
+      r.impactSpeed = this.speedKmh;
+
+      const m = cfg.mass;
+      r.energy = 0.5 * m * (before * before - this.velocityLong * this.velocityLong) +
+                 0.5 * m * (1 - cfg.wallRestitution * cfg.wallRestitution) * normalSpeed * normalSpeed;
+
+      // Feedback (rate-based so 60 and 144 Hz look the same).
+      const spd = Math.max(0, this.velocityLong);
+      r.scrape = Math.min(1, spd / 80);
+      r.rumble = r.scrape;
+      this._wallSparkAccum += (25 + 0.25 * this.speedKmh) * h;
+      r.sparks = Math.floor(this._wallSparkAccum);
+      this._wallSparkAccum -= r.sparks;
+
+      if (normalSpeed >= cfg.wallMinImpactSpeed && this.wallImpactCooldown <= 0) {
+        this.wallImpactCooldown = 0.25;
+        r.impact = true;
+        r.shake = Math.min(8, 2 + normalSpeed * 0.8);
+        r.sparks += 12;
+        this.suspension.rollVelocity -= side * Math.min(0.18, 0.02 * normalSpeed);
         if (typeof window !== 'undefined' && window.GameJuice && typeof window.GameJuice.shake === 'function') {
-          window.GameJuice.shake(14.0, 0.22);
+          window.GameJuice.shake(Math.min(14, 4 + normalSpeed * 1.5), 0.22);
         }
-
-        return { collided: true, resolvedLaneX: resolvedX, side: 1, impactSpeed: this.speedKmh };
-      } else if (currentLaneX <= -limitX) {
-        const resolvedX = -limitX;
-        if (this.velocityLat < 0) {
-          this.velocityLat = -this.velocityLat * 0.55 + 2.5;
-        }
-        this.velocityLong = Math.max(5.0, this.velocityLong - 26.0 * dt);
-        this.suspension.rollVelocity += 0.18;
-
-        if (typeof window !== 'undefined' && window.GameJuice && typeof window.GameJuice.shake === 'function') {
-          window.GameJuice.shake(14.0, 0.22);
-        }
-
-        return { collided: true, resolvedLaneX: resolvedX, side: -1, impactSpeed: this.speedKmh };
+        if (typeof this.onEvent === 'function') this.onEvent('wallimpact', { normalSpeed, speedKmh: this.speedKmh, side });
       }
+      return r;
+    }
 
-      return { collided: false, resolvedLaneX: currentLaneX, side: 0, impactSpeed: 0 };
+    /** Back-compat wrapper around scrapeWall(). */
+    resolveGuardrailCollision(currentLaneX, limitX = 14.45, dt = 0.016) {
+      const r = this.scrapeWall(currentLaneX, limitX, dt);
+      return { collided: r.collided, resolvedLaneX: r.resolvedLaneX, side: r.side, impactSpeed: r.impactSpeed };
     }
 
     /**
@@ -661,7 +825,7 @@
      * @param {object} otherBox - { x, z, halfW, halfL, mass, vz }
      * @returns {object|null} Toqquşma baş veribsə həll olunmuş itələmə və impuls parametrləri
      */
-    resolve3DMTVCollision(playerBox, otherBox) {
+    resolve3DMTVCollision(playerBox, otherBox, dt = 1 / 60) {
       const dx = playerBox.x - otherBox.x;
       const dz = playerBox.z - otherBox.z;
 
@@ -680,8 +844,8 @@
           const shiftOtherX = -signX * penX * cRatio;
 
           // Lateral impuls mübadiləsi
-          this.velocityLat += signX * 4.8;
-          this.velocityLong = Math.max(5.0, this.velocityLong * 0.95);
+          this.velocityLat += signX * 4.8 * Math.min(1, dt * 60);
+          this.velocityLong = Math.max(5.0, this.velocityLong * Math.exp(-3.08 * dt));
 
           return {
             collided: true,
@@ -782,6 +946,7 @@
      * Egzoz Backfire və Alov Zərrəcikləri
      */
     triggerBackfire(intensity = 0.8) {
+      if (intensity > this.stepResult.backfire) this.stepResult.backfire = Math.min(1, intensity);
       this.backfireTimer = 0.22;
       this.backfireIntensity = Math.min(1.0, intensity);
 
@@ -810,7 +975,7 @@
 
       if (isSlipping && this.speedKmh > 15) {
         const intensity = Math.min(1.0, (absRearSlip / 0.5) + (this.handbrakeActive ? 0.6 : 0.0));
-        this.particleManager.spawnTireSmoke(this, intensity);
+        this.particleManager.spawnTireSmoke(this, intensity, dt);
       }
 
       // Zərrəciklərin fiziki hərəkətini yenilə
@@ -855,6 +1020,10 @@
         driftDuration: this.driftDuration.toFixed(2),
         miniTurboCharge: Math.round(this.miniTurboCharge * 100),
         miniTurboActive: this.miniTurboActive,
+        driftScore: this.driftScore,
+        driftScoreRate: this.driftScoreRate,
+        topSpeedKmh: this.topSpeedKmh,
+        nitroCapacity: this.nitroCapacity,
         handbrake: this.handbrakeActive,
         rollDeg: (this.suspension.rollAngle * (180 / Math.PI)).toFixed(1),
         pitchDeg: (this.suspension.pitchAngle * (180 / Math.PI)).toFixed(1),
@@ -889,6 +1058,11 @@
       this.miniTurboReady = false;
       this.miniTurboActive = false;
       this.isSpinout = false;
+      this.driftScore = 0;
+      this.driftScoreRate = 0;
+      this.wallContactTime = 0;
+      this.wallImpactCooldown = 0;
+      this._ceilingMs = this.topSpeedKmh / 3.6 * 1.025;
       this.suspension.rollAngle = 0;
       this.suspension.pitchAngle = 0;
       this.suspension.rollVelocity = 0;
@@ -931,6 +1105,7 @@
       const wz = vehicle.z + (offset.x * sinH + offset.z * cosH);
 
       const last = this.lastPoints[wheelKey];
+      if (last && Math.hypot(wx - last.x, wz - last.z) < 0.25) return; // distance-based spacing, not per frame
       if (last) {
         const seg = this.buffer[this.head];
         seg.active = true;
@@ -1005,6 +1180,7 @@
           x: 0, y: 0, z: 0,
           vx: 0, vy: 0, vz: 0,
           size: 1,
+          size0: 1,
           maxSize: 1,
           opacity: 1,
           life: 0,
@@ -1029,8 +1205,12 @@
       return p;
     }
 
-    spawnTireSmoke(vehicle, intensity) {
-      const count = Math.ceil(3 * intensity);
+    spawnTireSmoke(vehicle, intensity, dt = 1 / 60) {
+      // Rate-based emission (3 puffs/wheel per 1/60 s at full intensity) so it is frame-rate independent.
+      this._smokeAccum = (this._smokeAccum || 0) + 3 * intensity * 60 * dt;
+      const count = Math.floor(this._smokeAccum);
+      this._smokeAccum -= count;
+      if (count <= 0) return;
       const rearWheels = ['rl', 'rr'];
 
       for (let w = 0; w < rearWheels.length; w++) {
@@ -1046,6 +1226,7 @@
           p.vy = 0.8 + Math.random() * 1.8;
           p.vz = -vehicle.velocityLong * 0.15 + (Math.random() - 0.5) * 1.5;
           p.size = 0.5 + Math.random() * 0.8;
+          p.size0 = p.size;
           p.maxSize = 2.4 + Math.random() * 2.2;
           p.life = 0;
           p.maxLife = 0.45 + Math.random() * 0.4;
@@ -1096,9 +1277,9 @@
           p.y += p.vy * dt;
           p.z += p.vz * dt;
           // Tüstü böyüyür və solur
-          p.size = p.size + (p.maxSize - p.size) * (progress * 1.5);
+          p.size = p.size0 + (p.maxSize - p.size0) * Math.min(1, progress * 1.5);
           p.opacity = (1 - progress) * 0.7;
-          p.vy *= 0.95;
+          p.vy *= Math.exp(-3.08 * dt); // 0.95/frame at 60 Hz
         } else if (p.type === 'spark') {
           p.x += p.vx * dt;
           p.y += p.vy * dt;
@@ -1126,6 +1307,13 @@
     }
   }
 
+  // Car roster. baseTopSpeed / driftScoreMult / nitroDuration follow ARCADE_SPEC.md section 2.2.
+  const CAR_TUNING = {
+    interceptor:   { mass: 1380, driftGripDrop: 0.50, tireGripBase: 1.20, peakTorque: 710, baseTopSpeed: 300, aerodynamicDrag: 0.30, driftScoreMult: 1.5, nitroDuration: 3.5 },
+    cyber_drifter: { mass: 1180, driftGripDrop: 0.62, tireGripBase: 1.05, peakTorque: 690, baseTopSpeed: 320, aerodynamicDrag: 0.30, driftScoreMult: 3.0, nitroDuration: 4.2 },
+    phantom:       { mass: 1100, driftGripDrop: 0.48, tireGripBase: 1.25, peakTorque: 740, baseTopSpeed: 360, aerodynamicDrag: 0.25, driftScoreMult: 2.0, nitroDuration: 5.0 }
+  };
+
   // --- QLOBAL İXRAC VƏ QEYDİYYAT ---
   const NeonVehiclePhysics = {
     Engine: VehiclePhysicsEngine,
@@ -1139,35 +1327,32 @@
      * @param {string} tunerModel - 'interceptor' | 'cyber_drifter' | 'phantom'
      */
     createVehicle: function (tunerModel = 'cyber_drifter') {
-      let tuning = {};
-      if (tunerModel === 'cyber_drifter') {
-        tuning = {
-          mass: 1180,
-          driftGripDrop: 0.62,
-          tireGripBase: 1.05,
-          peakTorque: 690,
-          baseTopSpeed: 330
-        };
-      } else if (tunerModel === 'phantom') {
-        tuning = {
-          mass: 1100,
-          driftGripDrop: 0.48,
-          tireGripBase: 1.25,
-          peakTorque: 740,
-          baseTopSpeed: 360
-        };
-      } else if (tunerModel === 'interceptor') {
-        tuning = {
-          mass: 1380,
-          driftGripDrop: 0.50,
-          tireGripBase: 1.20,
-          peakTorque: 710,
-          baseTopSpeed: 310
-        };
+      const tuning = Object.assign({}, CAR_TUNING[tunerModel] || CAR_TUNING.cyber_drifter);
+      const v = new VehiclePhysicsEngine(tuning);
+      v.model = CAR_TUNING[tunerModel] ? tunerModel : 'cyber_drifter';
+      return v;
+    },
+
+    CarTuning: null, // filled below
+
+    /**
+     * Headless measurement of a car's real numbers for the garage cards.
+     * Returns { topSpeedKmh, zeroTo100 } from the same model the race uses (takes ~ms).
+     */
+    measureGarageStats: function (model) {
+      const v = this.createVehicle(model);
+      const dt = 1 / 60;
+      let t = 0, t100 = null, top = 0;
+      while (t < 45) {
+        v.update(dt, { throttle: 1 });
+        t += dt;
+        if (t100 === null && v.speedKmh >= 100) t100 = t;
+        if (v.speedKmh > top) top = v.speedKmh;
       }
-      return new VehiclePhysicsEngine(tuning);
+      return { topSpeedKmh: top, zeroTo100: t100 };
     }
   };
+  NeonVehiclePhysics.CarTuning = CAR_TUNING;
 
   // Brauzer qlobal pəncərəsinə təqdim et
   if (typeof window !== 'undefined') {

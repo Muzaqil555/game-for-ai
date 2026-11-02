@@ -36,6 +36,7 @@
     isGameOver: false,
     isVictory: false,
     isDialogueOpen: false,
+    inMenu: true, // Ana menyuda simulyasiya heç vaxt işləmir
 
     // Zaman və Performans
     lastTime: 0,
@@ -211,7 +212,8 @@
           onPauseGame: () => this.pauseGame(),
           onResumeGame: () => this.resumeGame(),
           onRestart: () => this.startNewGame(),
-          onBackToMenu: () => this.pauseGame(),
+          onBackToMenu: () => this.goToMenu(),
+          onDefeatContinue: () => this.continueAfterDefeat(),
           onChangeRegion: (idx) => this.changeRegion(idx),
           onBuyUpgrade: (key) => this.syncProgressionStats(),
           onEquipSkin: (skinId) => this.syncProgressionStats(),
@@ -265,33 +267,23 @@
           return;
         }
 
-        // V2.0 Silah Dəyişmə (1, 2, 3, 4 düymələri)
-        if (e.code === 'Digit1' || e.code === 'Numpad1') {
-          if (!this.isDialogueOpen) this.switchWeapon(1);
-        } else if (e.code === 'Digit2' || e.code === 'Numpad2') {
-          if (!this.isDialogueOpen) this.switchWeapon(2);
-        } else if (e.code === 'Digit3' || e.code === 'Numpad3') {
-          if (!this.isDialogueOpen) this.switchWeapon(3);
-        } else if (e.code === 'Digit4' || e.code === 'Numpad4') {
-          if (!this.isDialogueOpen) this.switchWeapon(4);
-        }
-
-        // V2.0 Yoldaş Ruhu [C], Ultimate [R] və V3.0 Ov Müqaviləsi [M]
-        if (e.code === 'KeyC') {
-          if (!this.isDialogueOpen) this.cycleCompanion();
-        }
-        if (e.code === 'KeyR') {
-          if (!this.isDialogueOpen) this.triggerUltimate();
-        }
-        if (e.code === 'KeyM') {
-          if (!this.isDialogueOpen && window.GameMissions && typeof window.GameMissions.cycleOrStartBounty === 'function') {
+        // Qaçış zamanı tək giriş yolu: 1-4 silah, C yoldaş, R ultimate, M ov müqaviləsi
+        const acting = !this.inMenu && !this.isPaused && !this.isGameOver && !this.isDialogueOpen;
+        if (acting) {
+          if (e.code === 'Digit1' || e.code === 'Numpad1') this.switchWeapon(1);
+          else if (e.code === 'Digit2' || e.code === 'Numpad2') this.switchWeapon(2);
+          else if (e.code === 'Digit3' || e.code === 'Numpad3') this.switchWeapon(3);
+          else if (e.code === 'Digit4' || e.code === 'Numpad4') this.switchWeapon(4);
+          else if (e.code === 'KeyC') this.cycleCompanion();
+          else if (e.code === 'KeyR') this.triggerUltimate();
+          else if (e.code === 'KeyM' && window.GameMissions && typeof window.GameMissions.cycleOrStartBounty === 'function') {
             window.GameMissions.cycleOrStartBounty(this.worldState);
           }
         }
 
         // Döyüş və Hərəkət Qısayolları
         if (e.code === 'KeyF') {
-          if (this.isDialogueOpen) return;
+          if (this.isDialogueOpen || this.inMenu || this.isPaused || this.isGameOver) return;
           this.performInteraction();
         }
         if (e.code === 'KeyQ') {
@@ -317,9 +309,14 @@
           }
         }
         if (e.code === 'Escape') {
-          if (this.isPaused) this.resumeGame();
-          else this.pauseGame();
+          this.handleEscape();
         }
+      });
+
+      // Pəncərə fokusu itəndə və ya tab gizlənəndə oyunu pauza et (studio qaydası)
+      window.addEventListener('blur', () => this._autoPause());
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) this._autoPause();
       });
 
       window.addEventListener('keyup', (e) => {
@@ -372,9 +369,9 @@
       if (window.GameProgression && typeof window.GameProgression.getComputedPlayerStats === 'function') {
         const stats = window.GameProgression.getComputedPlayerStats();
         if (stats) {
-          const hpRatio = this.player.maxHp > 0 ? this.player.hp / this.player.maxHp : 1;
-          this.player.maxHp = stats.maxHp || 100;
-          this.player.hp = Math.min(this.player.maxHp, this.player.maxHp * hpRatio);
+          // Baza maksimum can yenilənir; plugin bonusu _applyPluginMaxHp ilə üstünə əlavə olunur
+          this.player.baseMaxHp = stats.maxHp || 100;
+          this._applyPluginMaxHp(this.getPluginStats());
           this.player.attackDamage = stats.attackDamage || 38;
           this.player.spellDamage = stats.spellDamage || 52;
           this.player.moveSpeed = stats.moveSpeed || 270;
@@ -405,10 +402,10 @@
         playTime: 0
       };
 
-      // Progression sıfırla və ya oxu
+      // Yalnız qaçışa aid vəziyyəti sıfırla; qızıl, təkmilləşdirmə, skin, nailiyyət və gündəlik mükafat saxlanılır
       if (window.GameProgression) {
-        if (typeof window.GameProgression.resetSave === 'function') {
-          window.GameProgression.resetSave();
+        if (typeof window.GameProgression.resetRun === 'function') {
+          window.GameProgression.resetRun();
         }
         this.syncProgressionStats();
       }
@@ -420,21 +417,13 @@
       if (window.GameCompanions && typeof window.GameCompanions.init === 'function') {
         window.GameCompanions.init();
       }
-      if (window.GameEvents) {
-        if (typeof window.GameEvents.endArenaMode === 'function') {
-          window.GameEvents.endArenaMode(this.worldState);
-        } else {
-          window.GameEvents.isArenaMode = false;
-        }
-        if (typeof window.GameEvents.resetCombo === 'function') {
-          window.GameEvents.resetCombo();
-        }
-      }
+      this._resetRunEvents();
       if (window.GameMissions && typeof window.GameMissions.init === 'function') {
         window.GameMissions.init();
       }
 
       // V4.0 Plugin Sistemlərinin run başlanğıcı (Story)
+      this._beginRun();
       this._callPlugins('onRunStart', 'story', this.getPluginApi());
 
       this.player.weaponType = 'sword';
@@ -482,21 +471,13 @@
       if (window.GameCompanions && typeof window.GameCompanions.init === 'function') {
         window.GameCompanions.init();
       }
-      if (window.GameEvents) {
-        if (typeof window.GameEvents.endArenaMode === 'function') {
-          window.GameEvents.endArenaMode(this.worldState);
-        } else {
-          window.GameEvents.isArenaMode = false;
-        }
-        if (typeof window.GameEvents.resetCombo === 'function') {
-          window.GameEvents.resetCombo();
-        }
-      }
+      this._resetRunEvents();
       if (window.GameMissions && typeof window.GameMissions.init === 'function') {
         window.GameMissions.init();
       }
 
       // V4.0 Plugin Sistemlərinin run başlanğıcı (Arena)
+      this._beginRun();
       this._callPlugins('onRunStart', 'arena', this.getPluginApi());
 
       this.player.weaponType = 'sword';
@@ -540,6 +521,7 @@
         regIdx = window.GameProgression.state.currentRegion || 0;
       }
       this.syncProgressionStats();
+      this._beginRun();
       this._callPlugins('onRunStart', 'continue', this.getPluginApi());
       this._applyPluginMaxHp(this.getPluginStats());
       this.player.hp = this.player.maxHp;
@@ -554,13 +536,136 @@
       }
     },
 
+    /**
+     * Pauza: motor bayrağı və pauza modalı həmişə birlikdə dəyişir (desync yoxdur).
+     * Ana menyuda və qələbə/məğlubiyyət ekranında pauza yoxdur.
+     */
     pauseGame: function () {
+      if (this.inMenu || this.isGameOver) return;
       this.isPaused = true;
+      if (window.GameUI && typeof window.GameUI.togglePauseModal === 'function') {
+        window.GameUI.togglePauseModal(true);
+      }
     },
 
     resumeGame: function () {
+      if (this.inMenu) return;
       this.isPaused = false;
       this.lastTime = performance.now();
+      if (window.GameUI && typeof window.GameUI.togglePauseModal === 'function') {
+        window.GameUI.togglePauseModal(false);
+      }
+    },
+
+    _autoPause: function () {
+      this.keys = {};
+      this.mouse.isDown = false;
+      this.mouse.rightDown = false;
+      if (this.isRunning && !this.inMenu && !this.isGameOver && !this.isPaused) this.pauseGame();
+    },
+
+    /**
+     * Tək Esc yolu: əvvəl açıq panel/dialoq bağlanır, yoxdursa pauza dəyişir.
+     */
+    handleEscape: function () {
+      if (this.isGameOver || this.isVictory) return;
+      const ui = window.GameUI;
+      if (ui && typeof ui.closeTopPanel === 'function' && ui.closeTopPanel()) {
+        // Panel bağlandı: pauza modalı görünmürsə oyuna qayıt (səssiz donma yoxdur)
+        const pauseVisible = typeof ui.isPauseModalOpen === 'function' && ui.isPauseModalOpen();
+        if (!this.inMenu && this.isPaused && !pauseVisible) this.resumeGame();
+        return;
+      }
+      if (this.inMenu) return;
+      if (this.isPaused) this.resumeGame();
+      else this.pauseGame();
+    },
+
+    /**
+     * Ana menyuya qayıdış: simulyasiya dayanır, arena bayrağı və kombo sıfırlanır.
+     */
+    goToMenu: function () {
+      this.inMenu = true;
+      this.isPaused = true;
+      this.isGameOver = false;
+      this.isDialogueOpen = false;
+      this.keys = {};
+      this._resetRunEvents();
+      if (window.GameUI && typeof window.GameUI.togglePauseModal === 'function') {
+        window.GameUI.togglePauseModal(false);
+      }
+    },
+
+    _resetRunEvents: function () {
+      if (window.GameEvents) {
+        if (typeof window.GameEvents.resetRun === 'function') {
+          window.GameEvents.resetRun(this.worldState);
+        } else {
+          window.GameEvents.isArenaMode = false;
+          if (typeof window.GameEvents.resetCombo === 'function') window.GameEvents.resetCombo();
+        }
+      }
+    },
+
+    /**
+     * Hər qaçışın başlanğıcı (yeni oyun, arena, davam): menyudan çıx, taymerləri sıfırla.
+     */
+    _beginRun: function () {
+      this.inMenu = false;
+      this.isPaused = false;
+      this.keys = {};
+      const p = this.player;
+      p.dashCooldown = 0; p.dashTimer = 0; p.spellCooldown = 0; p.aoeCooldown = 0;
+      p.comboStep = 1; p.comboTimer = 0; p.attackCooldown = 0; p.attackTimer = 0; p.invulnTimer = 0;
+      if (window.GameUI && typeof window.GameUI.togglePauseModal === 'function') {
+        window.GameUI.togglePauseModal(false);
+      }
+    },
+
+    /**
+     * Ölüm: qaçış xülasəsi ilə məğlubiyyət ekranı. Davam (25% qaçış qızılı itir) və ya menyu.
+     */
+    handlePlayerDefeat: function () {
+      if (this.isGameOver) return;
+      this.isGameOver = true;
+      this.keys = {};
+      this.mouse.isDown = false;
+      this.mouse.rightDown = false;
+      const earned = Math.max(0, Math.floor(this.stats.goldCollected || 0));
+      let penalty = Math.floor(earned * 0.25);
+      if (window.GameProgression && window.GameProgression.state) {
+        penalty = Math.min(penalty, Math.max(0, window.GameProgression.state.gold || 0));
+      }
+      this._defeatPenalty = penalty;
+      if (window.GameUI && typeof window.GameUI.showGameOver === 'function') {
+        window.GameUI.showGameOver(false, {
+          kills: this.stats.kills,
+          gold: earned,
+          timeSec: this.stats.playTime,
+          regionName: this.worldState.region ? this.worldState.region.name : '',
+          bestRank: (window.GameEvents && typeof window.GameEvents.getBestComboRank === 'function') ? window.GameEvents.getBestComboRank() : '',
+          souls: (window.GameTalents && typeof window.GameTalents.getRunEarnedSouls === 'function') ? window.GameTalents.getRunEarnedSouls() : 0,
+          penalty: penalty,
+          canContinue: true
+        });
+      }
+    },
+
+    /**
+     * Məğlubiyyətdən sonra davam: qaçışda qazanılan qızılın 25%-i itir, daimi irəliləyiş toxunulmazdır.
+     */
+    continueAfterDefeat: function () {
+      if (!this.isGameOver || this.isVictory) return;
+      const lost = this._defeatPenalty || 0;
+      if (lost > 0 && window.GameProgression && typeof window.GameProgression.loseGold === 'function') {
+        window.GameProgression.loseGold(lost);
+        this.stats.goldCollected = Math.max(0, this.stats.goldCollected - lost);
+      }
+      this._defeatPenalty = 0;
+      this.isGameOver = false;
+      this.isPaused = false;
+      this.lastTime = performance.now();
+      this.respawnPlayer();
     },
 
     changeRegion: function (regionIndex, isPreview) {
@@ -774,6 +879,9 @@
 
       if (window.GameCompanions && typeof window.GameCompanions.cycleCompanion === 'function') {
         const active = window.GameCompanions.cycleCompanion();
+        if (window.GameAudio && typeof window.GameAudio.playSFX === 'function') {
+          window.GameAudio.playSFX('relic');
+        }
         if (active && window.GameVFX && typeof window.GameVFX.spawnFloatingText === 'function') {
           window.GameVFX.spawnFloatingText(
             this.player.x,
@@ -1108,8 +1216,22 @@
 
     gameLoop: function (timestamp) {
       if (!this.isRunning) return;
+      try {
+        this._frame(timestamp);
+      } catch (err) {
+        // Bir xəta döngünü öldürməsin: hər fərqli xətanı bir dəfə logla, oyun davam etsin
+        const key = (err && err.message) ? err.message : String(err);
+        if (this._loopErrKey !== key) {
+          this._loopErrKey = key;
+          console.error('[GameEngine] Kadr xətası (oyun davam edir):', err);
+        }
+      } finally {
+        requestAnimationFrame((t) => this.gameLoop(t));
+      }
+    },
 
-      const rawDt = Math.min(0.1, (timestamp - this.lastTime) / 1000);
+    _frame: function (timestamp) {
+      const rawDt = Math.max(0, Math.min(0.05, (timestamp - this.lastTime) / 1000));
       this.lastTime = timestamp;
 
       // FPS sayğacı
@@ -1157,8 +1279,6 @@
       }
 
       this.render();
-
-      requestAnimationFrame((t) => this.gameLoop(t));
     },
 
     getCamera: function () {
@@ -1908,7 +2028,14 @@
         if (this.currentRegionIndex >= 2) {
           this.isVictory = true;
           if (window.GameUI && typeof window.GameUI.showGameOver === 'function') {
-            window.GameUI.showGameOver(true, this.stats);
+            window.GameUI.showGameOver(true, {
+              kills: this.stats.kills,
+              gold: this.stats.goldCollected,
+              timeSec: this.stats.playTime,
+              regionName: this.worldState.region ? this.worldState.region.name : '',
+              bestRank: (window.GameEvents && typeof window.GameEvents.getBestComboRank === 'function') ? window.GameEvents.getBestComboRank() : '',
+              souls: (window.GameTalents && typeof window.GameTalents.getRunEarnedSouls === 'function') ? window.GameTalents.getRunEarnedSouls() : 0
+            });
           }
         } else {
           this.changeRegion(this.currentRegionIndex + 1);
@@ -2647,7 +2774,7 @@
           return;
         }
         p.hp = 0;
-        this.respawnPlayer();
+        this.handlePlayerDefeat();
       }
     },
 
@@ -2858,7 +2985,9 @@
       const boxWidth = textWidth + 36;
       const boxHeight = 40;
       const x = this.canvas.width / 2 - boxWidth / 2;
-      const y = this.canvas.height - 110;
+      // On touch layouts the bottom of the screen belongs to the touch controls.
+      const touch = !!(window.GameUI && window.GameUI._isTouchLayout && window.GameUI._isTouchLayout());
+      const y = touch ? Math.round(this.canvas.height * 0.4) : this.canvas.height - 110;
 
       ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
       ctx.strokeStyle = '#38bdf8';

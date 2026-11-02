@@ -1276,6 +1276,30 @@
       }
     },
 
+    /**
+     * Hər yeni qaçış və ya menyuya qayıdış üçün arena bayrağını və kombo rekordunu sıfırlayır.
+     */
+    resetRun(worldState) {
+      this.endArenaMode(worldState);
+      this.arenaWave = 1;
+      this.arena.waveKillCount = 0;
+      this.arena.totalArenaKills = 0;
+      this.arena.rewardGranted = false;
+      this.resetCombo();
+      this.combo.highestCombo = 0;
+    },
+
+    /**
+     * Bu qaçışdakı ən yüksək kombo dərəcəsi ('' əgər kombo olmayıbsa)
+     */
+    getBestComboRank() {
+      const best = this.combo.highestCombo || 0;
+      for (let i = 0; i < COMBO_RANKS.length; i++) {
+        if (best >= COMBO_RANKS[i].minHits) return COMBO_RANKS[i].rank;
+      }
+      return '';
+    },
+
     // ========================================================================
     // BÖLMƏ V: CANVAS HUD VƏ OVERLAY ÇƏKMƏ (STİL KOMBO + ARENA + BANNER)
     // ========================================================================
@@ -1419,8 +1443,9 @@
     _renderBannerHUD(ctx, viewWidth, viewHeight) {
       const b = this.worldEvents.banner;
       const cx = viewWidth / 2;
-      const cy = 115;
-      const w = 480;
+      // Narrow screens: sit below the hero card instead of on top of it.
+      const cy = viewWidth <= 600 ? Math.round(viewHeight * 0.3) : 115;
+      const w = Math.min(480, viewWidth - 24);
       const h = 60;
 
       ctx.save();

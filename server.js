@@ -31,8 +31,10 @@ const server = http.createServer((req, res) => {
       pathname = '/index.html';
     }
 
+    // Serve only files inside ROOT, and never dot-files or dot-folders (.git, .claude, ...).
     const safePath = path.normalize(path.join(ROOT, pathname));
-    if (!safePath.startsWith(ROOT)) {
+    const rel = path.relative(ROOT, safePath);
+    if (rel.startsWith('..') || path.isAbsolute(rel) || rel.split(path.sep).some((part) => part.startsWith('.'))) {
       res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
       res.end('403 Forbidden');
       return;
@@ -45,8 +47,14 @@ const server = http.createServer((req, res) => {
         return;
       }
 
+      // Only game asset types are served; notes, configs and sources like .md stay private.
       const ext = path.extname(safePath).toLowerCase();
-      const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+      const contentType = MIME_TYPES[ext];
+      if (!contentType) {
+        res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('403 Forbidden');
+        return;
+      }
 
       res.writeHead(200, {
         'Content-Type': contentType,
@@ -68,6 +76,25 @@ const server = http.createServer((req, res) => {
   }
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`⚔️ [Aetheria Server] Oyun serveri aktivdir: http://localhost:${PORT}/index.html`);
+// Local only: other devices on the network cannot reach the repository.
+// If the port is busy, try the next ones instead of killing whatever holds it.
+// `node server.js --open` opens the browser on the port actually used.
+let port = PORT;
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE' && port < PORT + 10) {
+    port += 1;
+    server.listen(port, '127.0.0.1');
+  } else {
+    console.error(err.message);
+    process.exit(1);
+  }
 });
+server.on('listening', () => {
+  const url = `http://localhost:${port}/index.html`;
+  console.log(`⚔️ [Aetheria Server] Oyun serveri aktivdir: ${url}`);
+  if (process.argv.includes('--open')) {
+    const opener = { win32: ['cmd', ['/c', 'start', '', url]], darwin: ['open', [url]] }[process.platform] || ['xdg-open', [url]];
+    require('child_process').spawn(opener[0], opener[1], { stdio: 'ignore', detached: true }).unref();
+  }
+});
+server.listen(port, '127.0.0.1');

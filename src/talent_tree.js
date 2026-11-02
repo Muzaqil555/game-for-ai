@@ -248,12 +248,21 @@
   };
 
   // --- 4. YADDAŞ İDARƏETMƏSİ (LOCALSTORAGE) ---
+  const MAX_SOULS = 999999999;
+  const STAT_KEYS = ['totalSoulsCollected', 'totalSoulsSpent', 'phoenixRevivesTriggered'];
+
+  function toSafeInt(v, max) {
+    const n = Math.floor(Number(v));
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.min(max, n));
+  }
+
   function loadSavedData() {
     if (typeof window === 'undefined' || !window.localStorage) return;
     try {
       const savedSouls = localStorage.getItem(STORAGE_KEY_SOULS);
       if (savedSouls !== null) {
-        state.soulStones = Math.max(0, parseInt(savedSouls, 10) || 0);
+        state.soulStones = toSafeInt(parseInt(savedSouls, 10), MAX_SOULS);
       }
 
       const savedTalents = localStorage.getItem(STORAGE_KEY_ALLOCATED);
@@ -262,7 +271,7 @@
         if (parsed && typeof parsed === 'object') {
           // Doğrulama
           for (const [id, lvl] of Object.entries(parsed)) {
-            if (TALENTS[id]) {
+            if (Object.prototype.hasOwnProperty.call(TALENTS, id)) {
               state.allocatedTalents[id] = clamp(parseInt(lvl, 10) || 0, 0, TALENTS[id].maxLevel);
             }
           }
@@ -272,8 +281,12 @@
       const savedStats = localStorage.getItem(STORAGE_KEY_STATS);
       if (savedStats) {
         const parsedStats = JSON.parse(savedStats);
-        if (parsedStats && typeof parsedStats === 'object') {
-          Object.assign(state.stats, parsedStats);
+        if (parsedStats && typeof parsedStats === 'object' && !Array.isArray(parsedStats)) {
+          for (const key of STAT_KEYS) {
+            if (Object.prototype.hasOwnProperty.call(parsedStats, key)) {
+              state.stats[key] = toSafeInt(parsedStats[key], Number.MAX_SAFE_INTEGER);
+            }
+          }
         }
       }
     } catch (err) {
@@ -358,7 +371,7 @@
     const qty = Math.max(0, Math.floor(amount));
     if (qty <= 0) return;
 
-    state.soulStones += qty;
+    state.soulStones = Math.min(MAX_SOULS, state.soulStones + qty);
     state.runEarnedSouls += qty;
     state.stats.totalSoulsCollected += qty;
     state.hudGlowTimer = 2.0;
@@ -379,7 +392,7 @@
   }
 
   function upgradeTalent(talentId, api) {
-    const t = TALENTS[talentId];
+    const t = Object.prototype.hasOwnProperty.call(TALENTS, talentId) ? TALENTS[talentId] : null;
     if (!t) return { success: false, reason: 'İstedad tapılmadı.' };
 
     const currentLvl = getTalentLevel(talentId);
@@ -425,6 +438,30 @@
     return { success: true, newLevel: nextLvl };
   }
 
+  function computeRefund() {
+    let refund = 0;
+    for (const [id, lvl] of Object.entries(state.allocatedTalents)) {
+      const t = Object.prototype.hasOwnProperty.call(TALENTS, id) ? TALENTS[id] : null;
+      if (!t || !(lvl > 0)) continue;
+      for (let i = 0; i < lvl; i++) refund += t.costs[i] || 0;
+    }
+    return refund;
+  }
+
+  // Uzunmüddətli hədəf: ən yaxın açıla bilən istedad və ağacın qalan dəyəri
+  function getUnlockProgress() {
+    let next = null;
+    let remaining = 0;
+    for (const t of Object.values(TALENTS)) {
+      const lvl = getTalentLevel(t.id);
+      for (let i = lvl; i < t.maxLevel; i++) remaining += t.costs[i] || 0;
+      if (lvl >= t.maxLevel || !isTalentUnlocked(t.id)) continue;
+      const cost = getTalentCost(t.id, lvl);
+      if (!next || cost < next.cost) next = { name: t.name, cost: cost };
+    }
+    return { next: next, remaining: remaining };
+  }
+
   function resetAllTalents(api) {
     let refundAmount = 0;
     for (const [id, lvl] of Object.entries(state.allocatedTalents)) {
@@ -439,7 +476,7 @@
       return { success: false, reason: 'Sıfırlanacaq aktiv istedad yoxdur.' };
     }
 
-    state.soulStones += refundAmount;
+    state.soulStones = Math.min(MAX_SOULS, state.soulStones + refundAmount);
     state.stats.totalSoulsSpent = Math.max(0, state.stats.totalSoulsSpent - refundAmount);
     state.allocatedTalents = {};
     saveAllData();
@@ -942,6 +979,40 @@
     document.head.appendChild(styleEl);
   }
 
+  let respecArmed = false;
+  let respecTimer = null;
+  let progressMsg = '';
+
+  function setProgressMessage(msg) {
+    progressMsg = msg;
+    updateModalHeader();
+    setTimeout(() => {
+      if (progressMsg === msg) {
+        progressMsg = '';
+        updateModalHeader();
+      }
+    }, 4000);
+  }
+
+  function armRespec(refund) {
+    respecArmed = true;
+    const btn = document.getElementById('talent-respec-btn');
+    const cancel = document.getElementById('talent-respec-cancel');
+    if (btn) btn.textContent = `Təsdiqlə: +${refund} 💠`;
+    if (cancel) cancel.style.display = '';
+    clearTimeout(respecTimer);
+    respecTimer = setTimeout(disarmRespec, 6000);
+  }
+
+  function disarmRespec() {
+    respecArmed = false;
+    clearTimeout(respecTimer);
+    const btn = document.getElementById('talent-respec-btn');
+    const cancel = document.getElementById('talent-respec-cancel');
+    if (btn) btn.textContent = '↺ Sıfırla';
+    if (cancel) cancel.style.display = 'none';
+  }
+
   function createModalDOM() {
     if (typeof document === 'undefined') return null;
     let modalEl = document.getElementById(MODAL_ID);
@@ -962,6 +1033,7 @@
           <div class="talent-title-box">
             <h2 class="talent-main-title">QƏDİM İSTEDAD AĞACI</h2>
             <span class="talent-subtitle">Ölüm son deyil — Ruh Daşları ilə qədim gücləri oyat</span>
+            <span class="talent-subtitle" id="talent-progress" style="color:#67e8f9;margin-top:4px;display:block;"></span>
           </div>
           <div class="talent-header-actions">
             <div class="talent-souls-badge" title="Mövcud Ruh Daşları">
@@ -971,6 +1043,7 @@
             <button class="talent-btn-respec" id="talent-respec-btn" title="Bütün Ruh Daşlarını geri al">
               ↺ Sıfırla
             </button>
+            <button class="talent-btn-respec" id="talent-respec-cancel" style="display:none;background:rgba(255,255,255,0.08);color:#cbd5e1;border-color:rgba(255,255,255,0.2);">Ləğv et</button>
             <button class="talent-close-btn" id="talent-close-btn" aria-label="Bağla">✕</button>
           </div>
         </div>
@@ -1004,18 +1077,31 @@
     }
 
     const respecBtn = modalEl.querySelector('#talent-respec-btn');
+    const respecCancel = modalEl.querySelector('#talent-respec-cancel');
     if (respecBtn) {
+      // Brauzerin confirm() pəncərəsi əvəzinə modal daxilində iki mərhələli təsdiq:
+      // 1-ci klik refund məbləğini göstərir, 2-ci klik tam geri ödəyir.
       respecBtn.addEventListener('click', () => {
-        if (confirm('Bütün istedadları sıfırlayıb xərclənmiş Ruh Daşlarını geri almaq istəyirsiniz?')) {
-          const res = resetAllTalents(state.lastEngineApi);
-          if (res.success) {
-            playSFXSafe('talentUnlock', state.lastEngineApi);
-          } else {
-            alert(res.reason);
+        if (!respecArmed) {
+          const refund = computeRefund();
+          if (refund <= 0) {
+            setProgressMessage('Sıfırlanacaq istedad yoxdur.');
+            return;
           }
+          armRespec(refund);
+          return;
+        }
+        disarmRespec();
+        const res = resetAllTalents(state.lastEngineApi);
+        if (res.success) {
+          playSFXSafe('talentUnlock', state.lastEngineApi);
+          setProgressMessage(`↺ ${res.refunded} 💠 geri qaytarıldı.`);
+        } else {
+          setProgressMessage(res.reason);
         }
       });
     }
+    if (respecCancel) respecCancel.addEventListener('click', () => disarmRespec());
 
     const tabs = modalEl.querySelectorAll('.talent-tab');
     tabs.forEach((tab) => {
@@ -1045,6 +1131,19 @@
     const soulsDisplay = document.getElementById('talent-souls-display');
     if (soulsDisplay) {
       soulsDisplay.textContent = String(state.soulStones);
+    }
+    const prog = document.getElementById('talent-progress');
+    if (prog) {
+      if (progressMsg) {
+        prog.textContent = progressMsg;
+      } else {
+        const up = getUnlockProgress();
+        if (up.next) {
+          prog.textContent = `Növbəti açılış: ${up.next.name} — ${state.soulStones} / ${up.next.cost} 💠  •  Ağacın qalanı: ${up.remaining} 💠`;
+        } else {
+          prog.textContent = 'Bütün istedadlar açılıb!';
+        }
+      }
     }
   }
 
@@ -1167,6 +1266,7 @@
       modal.classList.remove('active');
     }
     state.isModalOpen = false;
+    disarmRespec();
     playSFXSafe('click', state.lastEngineApi);
   }
 
@@ -1450,7 +1550,7 @@
       ctx.fillText(String(state.soulStones), hudX + 28, hudY + 14);
 
       // [T] İstedadlar Düymə Göstəricisi
-      ctx.font = 'bold 10px "Plus Jakarta Sans", sans-serif';
+      ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
       ctx.fillStyle = '#f5c542';
       ctx.textAlign = 'right';
       ctx.fillText('[T] İstedadlar', hudX + hudW - 8, hudY + 14);

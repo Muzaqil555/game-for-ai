@@ -20,6 +20,19 @@
   const randRange = (min, max) => Math.random() * (max - min) + min;
   const randChoice = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
+  // --------------------------------------------------------------------------
+  // UNITS (single source of truth)
+  //   * Z positions (player.z, cop.z, spike.z ...) are WORLD UNITS. racer.html advances
+  //     playerZ by speedMs * dt * 18, so 1 metre = 18 world units.
+  //   * Every distance tunable in this file is written in METRES and converted with M().
+  //   * Speeds are km/h. A km/h value moves an entity (v / 3.6 m/s) * 18 = v * 5 units/s.
+  //   * X positions are normalised road coordinates, -1..+1 (edge to edge).
+  //     options.roadHalfWidthM (default 16 = racer.html ROAD_WIDTH / 2) converts X to metres.
+  // --------------------------------------------------------------------------
+  const UNITS_PER_METER = 18;
+  const KMH_TO_UNITS = UNITS_PER_METER / 3.6; // = 5
+  const M = (metres) => metres * UNITS_PER_METER;
+
   let _idSeq = 0;
   const getUniqueId = (prefix = 'ai') => `${prefix}_${++_idSeq}`;
 
@@ -27,6 +40,18 @@
   // 2. Heat Səviyyələri və Vahid Arxitip Konfiqurasiyaları
   // --------------------------------------------------------------------------
   const HEAT_CONFIG = {
+    0: {
+      level: 0,
+      name: 'CLEAR',
+      color: '#00ff66',
+      tagline: 'Pursuit evaded. Dispatch is searching.',
+      maxPolice: 0,
+      spawnInterval: 999,
+      allowedTypes: [],
+      aggression: 0,
+      evasionReward: 0,
+      strobeSpeed: 6.0
+    },
     1: {
       level: 1,
       name: 'LOCAL PATROL',
@@ -107,7 +132,9 @@
       color: '#1a1d2e',  // Qara/Ağ polis gövdəsi
       accent: '#ffffff',
       hasLightbar: true,
-      role: 'boxer'      // Arxadan yaxınlaşır, sıxışdırır
+      role: 'boxer',     // Arxadan yaxınlaşır, sıxışdırır
+      contactHalfW: 1.1,
+      contactHalfL: 2.3
     },
 
     // Heat 2: Şosse Müdaxilə Avtomobili (Corvette tərzi sürətli interseptor)
@@ -127,7 +154,9 @@
       color: '#0d0d14',
       accent: '#00f5ff',
       hasLightbar: true,
-      role: 'pit_flanker' // Yan cinahdan PIT manevri edir
+      role: 'pit_flanker', // Yan cinahdan PIT manevri edir
+      contactHalfW: 1.1,
+      contactHalfL: 2.3
     },
 
     // Heat 5: Ağır Zirehli SWAT Rhino APC (Əks istiqamətdən gələn zərbə tankı)
@@ -147,7 +176,9 @@
       color: '#101216',
       accent: '#ff0033',
       hasLightbar: true,
-      role: 'head_on_ram' // Ön-önə ramming
+      role: 'head_on_ram', // Ön-önə ramming
+      contactHalfW: 1.6,
+      contactHalfL: 3.1
     },
 
     // Mülki Trafik Tipləri (Dinc yol axını)
@@ -204,11 +235,29 @@
         trackLength: 400000,   // Metr
         roadWidth: 2000,       // Daxili dünya koordinat vahidi
         maxTrafficCount: 16,
-        policeSpawnDistanceBehind: -140, // Metr
-        policeSpawnDistanceAhead: 850,   // Metr
-        rhinoSpawnDistanceAhead: 950,
-        roadblockInterval: 2200,         // Hər 2.2 km-də bir blokada
-        hitStopDuration: 0.080,          // 80ms hit-stop tələbi!
+        roadHalfWidthM: 16,              // racer.html ROAD_WIDTH / 2 (x=1 -> 16 m)
+        // All distances below are METRES (converted with M()).
+        policeSpawnDistanceBehind: 150,  // spec: heat 1 cruiser follows 150 m behind
+        policeSpawnDistanceAhead: 260,   // roadblocks appear this far ahead (visible warning)
+        rhinoSpawnDistanceAhead: 320,
+        roadblockInterval: 2200,         // one roadblock every 2.2 km (heat 3+)
+        escapeRadius: 300,               // no live cop within this => escaping
+        escapeTime: 7.0,                 // seconds out of range to drop one heat level
+        cullBehind: 450,                 // cops removed this far behind (fade starts at fadeStart)
+        fadeStart: 350,
+        cullAhead: 700,
+        hitStopDuration: 0.080,          // 80ms hit-stop
+        bustedSpeedKmh: 25,              // busted: below this speed...
+        bustedContactRadius: 9,          // ...with a cop within this many metres (along road)
+        bustedTime: 3.0,                 // ...for this many seconds
+        bustedMinHeat: 2,
+        takedownRelSpeedKmh: 45,         // closing speed that makes a plain rear ram a takedown
+        driftRamBonus: 500,
+        wallPinBonus: 400,
+        nearMissReward: 200,             // spec: +$200 for brushing traffic above 200 km/h
+        spikeEvasionReward: 500,
+        trafficEnabled: true,            // set false until racer.html renders traffic
+        // Callbacks (any may also be assigned as a property after construction):
         onTakedown: null,
         onSpikeBlowout: null,
         onSpikeEvasion: null,
@@ -216,7 +265,10 @@
         onSpotlightLock: null,
         onPursuitEvaded: null,
         onScreenShake: null,
-        onAudioEvent: null
+        onAudioEvent: null,
+        onAlert: null,
+        onCredits: null,
+        onBusted: null
       }, options);
 
       this.reset();
@@ -229,15 +281,24 @@
       // Heat Vəziyyəti
       this.heatLevel = 1;
       this.heatProgress = 0.0; // 0.0 -> 1.0 (Növbəti heat-ə keçid)
+      this.heatPercent = 0;    // heatProgress * 100, updated every frame (HUD meter)
+      this.peakHeat = 1;
+      this.busted = false;
+      this.bustedTimer = 0;
+      this.bustedProgress = 0; // 0..1, HUD can show an arrest meter
+      this.sessionCredits = 0; // everything paid through onCredits
+      this.lastPlayerSpeed = 0;
       this.pursuitActive = true;
       this.escapeCooldown = 0.0;
       this.totalTakedowns = 0;
       this.totalCreditsEarned = 0;
+      this.bustWarned = false;
 
       // Vaxt və Zaman Qrafiki
       this.time = 0.0;
       this.lastSpawnTime = -10.0;
-      this.lastRoadblockZ = 1200; // İlk blokadanın başlama məsafəsi
+      this.lastRoadblockZ = 0; // z of the previous roadblock; first one after roadblockInterval
+      this.lastTrafficSpawn = -10;
 
       // Hit-stop freeze-frame taymeri (Burnout 80ms)
       this.hitStopTimer = 0.0;
@@ -278,202 +339,226 @@
     }
 
     // ========================================================================
-    // 4. ƏSAS YENİLƏNMƏ DÖVRÜ (Frame Update Loop)
+    // 4. MAIN UPDATE LOOP
     // ========================================================================
     /**
-     * Hər kadr çağırılan əsas metod
-     * @param {number} dt - Saniyə ilə delta vaxt (məs: 0.016)
-     * @param {Object} player - Oyunçunun avtomobil məlumatları:
-     *   { x, z, y, speed, isDrifting, driftAngle, isNitro, isInvulnerable, phaseShift }
-     * @returns {Object} Frame statusu (hitStopActive, blowoutActive, alerts, cameraShake, audioTriggers)
+     * Call once per frame.
+     * @param {number} dt seconds
+     * @param {Object} player  (units: see UNITS block at the top of the file)
+     *   x            normalised road X, -1..+1
+     *   z            world units (racer.html playerZ, 18 units per metre)
+     *   speed        km/h
+     *   isDrifting   bool
+     *   driftAngle   slip angle in RADIANS (signed or not)
+     *   isNitro      bool (alias nitroActive accepted)
+     *   isInvulnerable / phaseShift  bool, spikes harmless
+     * @returns {Object} frame status:
+     *   hitStopActive, blowoutActive, blowoutSpeedCap (km/h|null), cameraShake,
+     *   alerts (live array), takedownOccurred, spikeEvasionOccurred,
+     *   heatLevel, heatPercent, busted, bustedProgress,
+     *   playerSpeedScale (1 = no crash this frame; multiply player speed by it),
+     *   playerLateralPush (normalised x impulse to apply to the player, usually 0)
      */
     update(dt, player) {
       if (!player) return { hitStopActive: false, blowoutActive: false };
+      dt = clamp(dt, 0, 0.1);
 
-      // 1. Burnout Hit-stop (80ms dondurma effekti)
+      if (this.busted) {
+        this._updateParticles(dt);
+        this._updateAlerts(dt);
+        return this._frame({ busted: true }, 0, false, false, 1, 0);
+      }
+
+      this.lastPlayerSpeed = player.speed || 0;
+
+      // Hit-stop (80 ms): world frozen, only particles and alerts animate
       if (this.hitStopTimer > 0) {
         this.hitStopTimer -= dt;
-        if (this.hitStopTimer <= 0) {
-          this.hitStopTimer = 0;
-        }
-        // Hit-stop zamanı dünyanı dondururuq, yalnız zərbə vizuallarını canlandırırıq
+        if (this.hitStopTimer <= 0) this.hitStopTimer = 0;
         this._updateParticlesOnly(dt);
-        return {
-          hitStopActive: true,
-          blowoutActive: this.blowoutRemaining > 0,
-          cameraShake: 0,
-          alerts: this.activeAlerts
-        };
+        this._updateAlerts(dt);
+        return this._frame({ hitStopActive: true }, 0, false, false, 1, 0);
       }
 
       this.time += dt;
 
-      // 2. Təkər partlayışı taymeri
       let blowoutSpeedCap = null;
       if (this.blowoutRemaining > 0) {
         this.blowoutRemaining -= dt;
-        blowoutSpeedCap = 80; // km/h tavan məhdudiyyəti
-        // Təkər disklərindən qığılcım yağdırırıq
+        blowoutSpeedCap = 80;
         this._emitRimSparks(player.x, player.z);
         if (this.blowoutRemaining <= 0) {
           this.blowoutRemaining = 0;
-          this._addAlert('TIRES REPAIRED', '#00f5ff', 1.8);
+          blowoutSpeedCap = null;
+          this._addAlert('TIRES REPAIRED', '#00f5ff', 1.8, 'info');
         }
       }
 
-      // 3. Heat Səviyyəsinin Hesablanması və İdarəsi
       this._updateHeatSystem(dt, player);
-
-      // 4. Trafik və Polis Vahidləri Spawner Rejissoru
       this._updateDirectorSpawns(dt, player);
-
-      // 5. Helikopterin İdarəetmə AI (Heat 4 & 5)
       this._updateChopperAI(dt, player);
-
-      // 6. Polis və Trafik Avtomobillərinin Fiziki AI Davranışları
       this._updatePoliceVehicles(dt, player);
       this._updateTrafficVehicles(dt, player);
 
-      // 7. Toqquşma, PIT Manevri, Tikanlar və Burnout Takedown Yoxlaması
-      const collisionResult = this._resolveCollisions(dt, player);
+      const col = this._resolveCollisions(dt, player);
 
-      // 8. Zərrəciklər (Sparks, Debris) və Bildirişlər
+      this._updateBusted(dt, player);
       this._updateParticles(dt);
       this._updateAlerts(dt);
-
-      // 9. Ekrandan uzaqlaşmış obyektlərin təmizlənməsi (Zero memory leak)
       this._cullOffscreenEntities(player.z);
 
-      return {
+      return this._frame({ blowoutSpeedCap }, col.screenShake, col.takedownOccurred,
+        col.spikeEvasionOccurred, col.speedScale, col.lateralPush);
+    }
+
+    _frame(extra, shake, takedown, spikeEv, speedScale, lateralPush) {
+      return Object.assign({
         hitStopActive: false,
         blowoutActive: this.blowoutRemaining > 0,
-        blowoutSpeedCap: blowoutSpeedCap,
-        cameraShake: collisionResult.screenShake,
+        blowoutSpeedCap: null,
+        cameraShake: shake,
         alerts: this.activeAlerts,
-        takedownOccurred: collisionResult.takedownOccurred,
-        spikeEvasionOccurred: collisionResult.spikeEvasionOccurred
-      };
+        takedownOccurred: takedown,
+        spikeEvasionOccurred: spikeEv,
+        heatLevel: this.heatLevel,
+        heatPercent: this.heatPercent,
+        busted: this.busted,
+        bustedProgress: this.bustedProgress,
+        playerSpeedScale: speedScale,
+        playerLateralPush: lateralPush
+      }, extra);
     }
 
     // ========================================================================
-    // 5. HEAT VƏ TƏQİB SİSTEMİ (Heat Progression & Escalation)
+    // 5. HEAT SYSTEM (escalation, de-escalation, evasion)
     // ========================================================================
+    _setHeat(level, direction) {
+      const prev = this.heatLevel;
+      this.heatLevel = clamp(level, 0, 5);
+      if (this.heatLevel === prev) return;
+      this.peakHeat = Math.max(this.peakHeat, this.heatLevel);
+      const cfg = HEAT_CONFIG[this.heatLevel];
+      if (direction === 'up') {
+        this._addAlert(`HEAT LEVEL ${this.heatLevel}: ${cfg.name}!`, cfg.color, 3.5, 'heat_up');
+        this._audio('heat_escalation', { heatLevel: this.heatLevel, previous: prev });
+        this._dispatch('onScreenShake', { intensity: 14, duration: 0.5 });
+      } else {
+        this._audio('heat_deescalation', { heatLevel: this.heatLevel, previous: prev });
+      }
+      this._dispatch('onHeatChange', this.heatLevel, cfg.name,
+        { direction, previous: prev, config: cfg, color: cfg.color, tagline: cfg.tagline });
+    }
+
     _updateHeatSystem(dt, player) {
       const speedKmH = player.speed || 0;
+      const cfgNow = HEAT_CONFIG[this.heatLevel];
+      const rawDrift = player.driftAngle;
+      const driftMag = Math.abs(rawDrift === undefined || rawDrift === null ? 0.5 : rawDrift);
 
-      // Sürət > 220 km/h, Drift və Near-Miss heat artırır
-      let heatGainRate = 0.012; // Sabit fon axtarış təzyiqi
+      let gain = 0.012;
+      if (speedKmH > 240) gain += ((speedKmH - 240) / 100) * 0.04;
+      if (player.isDrifting) gain += 0.05 * driftMag;
+      if (this.chopper.active && this.chopper.spotlight.isLocked) gain += 0.08;
 
-      if (speedKmH > 240) {
-        heatGainRate += ((speedKmH - 240) / 100) * 0.04;
+      const radiusU = M(this.options.escapeRadius);
+      let nearbyPolice = false;
+      for (let i = 0; i < this.policeUnits.length; i++) {
+        const p = this.policeUnits[i];
+        if (p.isWrecked || p.role === 'blockade') continue;
+        if (Math.abs(p.z - player.z) < radiusU) { nearbyPolice = true; break; }
       }
-      if (player.isDrifting) {
-        heatGainRate += 0.05 * Math.abs(player.driftAngle || 0.5);
-      }
-      if (this.chopper.active && this.chopper.spotlight.isLocked) {
-        heatGainRate += 0.08; // Helikopter fənəri altında olanda axtarış pik həddə çatır
-      }
 
-      // Əgər ətrafda heç bir polis yoxdursa və oyunçu gizlənirsə / uzaqlaşırsa təqibdən qaçış
-      const nearbyPolice = this.policeUnits.some(p => Math.abs(p.z - player.z) < 450 && !p.isWrecked);
-      if (!nearbyPolice) {
-        this.escapeCooldown += dt;
-        if (this.escapeCooldown >= 7.0 && this.heatLevel > 1) {
-          // Təqibdən yayındı!
-          const reward = HEAT_CONFIG[this.heatLevel].evasionReward;
-          this.totalCreditsEarned += reward;
-          this._addAlert(`PURSUIT EVADED! +$${reward}`, '#00ff66', 3.0);
-          this._dispatch('onPursuitEvaded', { reward, previousHeat: this.heatLevel });
-          this._dispatch('onAudioEvent', { cue: 'pursuit_evaded' });
-
-          // Heat səviyyəsini 1 pillə azaldırıq
-          this.heatLevel = Math.max(1, this.heatLevel - 1);
-          this.heatProgress = 0.2;
-          this.escapeCooldown = 0.0;
-          this._dispatch('onHeatChange', { heatLevel: this.heatLevel });
+      if (this.heatLevel === 0) {
+        // Clear: no pursuit. Dispatch re-engages once the player has been loud for a while.
+        this.escapeCooldown = 0;
+        this.heatProgress += (gain + 0.03) * dt;
+        if (this.heatProgress >= 1.0) {
+          this.heatProgress = 0.0;
+          this._setHeat(1, 'up');
+          this.lastSpawnTime = -10; // first cruiser immediately, behind the player
         }
-      } else {
+      } else if (nearbyPolice) {
         this.escapeCooldown = 0.0;
-        this.heatProgress += heatGainRate * dt;
+        this.heatProgress += gain * dt;
+      } else {
+        this.escapeCooldown += dt;
+        this.heatProgress = Math.max(0, this.heatProgress - 0.06 * dt); // meter visibly drains
+        if (this.escapeCooldown >= this.options.escapeTime) {
+          const prev = this.heatLevel;
+          const reward = cfgNow.evasionReward;
+          this.escapeCooldown = 0.0;
+          this._setHeat(prev - 1, 'down');
+          this.heatProgress = this.heatLevel > 0 ? 0.5 : 0.0;
+          if (this.heatLevel === 0) {
+            this._pay(reward, 'pursuit_evaded', `PURSUIT EVADED! +$${reward}`, '#00ff66', 3.5, 'evaded');
+            this._audio('pursuit_evaded', { reward, previousHeat: prev });
+            this._dispatch('onPursuitEvaded', reward, { previousHeat: prev, reward });
+          } else {
+            this._pay(reward, 'heat_cleared', `HEAT ${prev} SHAKEN! +$${reward}`, '#00ff66', 3.0, 'evaded');
+          }
+        }
       }
 
-      // Heat pilləsinin artması (Level Up 1 -> 5)
-      if (this.heatProgress >= 1.0 && this.heatLevel < 5) {
-        this.heatProgress = 0.0;
-        this.heatLevel++;
-        const cfg = HEAT_CONFIG[this.heatLevel];
-        this._addAlert(`HEAT LEVEL ${this.heatLevel}: ${cfg.name}!`, cfg.color, 3.5);
-        this._dispatch('onHeatChange', { heatLevel: this.heatLevel, config: cfg });
-        this._dispatch('onAudioEvent', { cue: 'heat_escalation', heatLevel: this.heatLevel });
-        this._dispatch('onScreenShake', { intensity: 14, duration: 0.5 });
+      if (this.heatProgress >= 1.0 && this.heatLevel >= 1) {
+        if (this.heatLevel < 5) {
+          this.heatProgress = 0.0;
+          this._setHeat(this.heatLevel + 1, 'up');
+        } else {
+          this.heatProgress = 1.0;
+        }
       }
+      this.heatPercent = clamp(this.heatProgress, 0, 1) * 100;
     }
 
     // ========================================================================
-    // 6. DİREKTOR SPONS (Dinamik Trafik və Polis Doğulması)
+    // 6. DIRECTOR (spawns)
     // ========================================================================
     _updateDirectorSpawns(dt, player) {
       const cfg = HEAT_CONFIG[this.heatLevel];
+      const opt = this.options;
 
-      // 1. Polis Spawn İntellekti
-      const activePoliceCount = this.policeUnits.filter(u => !u.isWrecked).length;
-      if (activePoliceCount < cfg.maxPolice && (this.time - this.lastSpawnTime) > cfg.spawnInterval) {
-        this._spawnPoliceUnit(player, cfg);
-        this.lastSpawnTime = this.time;
+      if (this.heatLevel >= 1) {
+        let active = 0;
+        for (let i = 0; i < this.policeUnits.length; i++) {
+          const u = this.policeUnits[i];
+          if (!u.isWrecked && u.role !== 'blockade' && u.type !== 'swat_rhino') active++;
+        }
+        if (active < cfg.maxPolice && (this.time - this.lastSpawnTime) > cfg.spawnInterval) {
+          this._spawnPoliceUnit(player, cfg);
+          this.lastSpawnTime = this.time;
+        }
       }
 
-      // 2. Blokada və Tikanlı Zolaq Doğulması (Heat 3+)
-      if (this.heatLevel >= 3 && (player.z - this.lastRoadblockZ) > this.options.roadblockInterval) {
-        this._spawnRoadblockWithSpikes(player.z + this.options.policeSpawnDistanceAhead);
+      if (this.heatLevel >= 3 && (player.z - this.lastRoadblockZ) > M(opt.roadblockInterval)) {
+        this._spawnRoadblockWithSpikes(player.z + M(opt.policeSpawnDistanceAhead));
         this.lastRoadblockZ = player.z;
       }
 
-      // 3. SWAT Rhino Spawn (Heat 5)
-      if (this.heatLevel >= 5 && Math.random() < 0.008 && !this.policeUnits.some(p => p.type === 'swat_rhino' && !p.isWrecked)) {
+      if (this.heatLevel >= 5 && Math.random() < 0.4 * dt &&
+          !this.policeUnits.some(p => p.type === 'swat_rhino' && !p.isWrecked)) {
         this._spawnSwatRhino(player);
       }
 
-      // 4. Helikopter Aktivləşdirmə (Heat 4 & 5)
       if (this.heatLevel >= 4 && !this.chopper.active) {
         this._activateChopper(player);
       } else if (this.heatLevel < 4 && this.chopper.active) {
         this.chopper.active = false;
+        this.chopper.spotlight.isLocked = false;
       }
 
-      // 5. Mülki Trafik Axını
-      if (this.trafficUnits.length < this.options.maxTrafficCount) {
+      if (opt.trafficEnabled && this.trafficUnits.length < opt.maxTrafficCount &&
+          (this.time - this.lastTrafficSpawn) > 0.25) {
         this._spawnCivilianTraffic(player);
+        this.lastTrafficSpawn = this.time;
       }
     }
 
-    /**
-     * Polis maşınını arxipetə uyğun doğurmaq
-     */
-    _spawnPoliceUnit(player, cfg) {
-      const eligibleTypes = cfg.allowedTypes.filter(t => t !== 'roadblock' && t !== 'chopper' && t !== 'swat_rhino');
-      if (eligibleTypes.length === 0) return;
-
-      const chosenType = (this.heatLevel >= 2 && Math.random() < 0.6) 
-        ? 'highway_interceptor' 
-        : 'patrol_cruiser';
-
-      const arch = ARCHETYPES[chosenType];
-      if (!arch) return;
-
-      // Arxadan gəlmə (Heat 1 & 2 arxadan hücum edir)
-      const spawnZ = player.z + this.options.policeSpawnDistanceBehind - randRange(10, 40);
-      const spawnX = (Math.random() > 0.5 ? 1 : -1) * randRange(0.2, 0.7);
-
-      const police = {
-        id: getUniqueId('cop'),
+    _makeCop(arch, extra) {
+      return Object.assign({
         type: arch.type,
         name: arch.name,
-        x: spawnX,
-        z: spawnZ,
         y: 0,
         vx: 0,
-        vz: (player.speed || 200) * 1.15, // Oyunçunu qovmaq üçün yüksək başlanğıc sürəti
-        targetX: player.x,
         width: arch.width,
         length: arch.length,
         mass: arch.mass,
@@ -486,177 +571,147 @@
         wreckSpinSpeed: 0,
         wreckSlideVx: 0,
         wreckSmokeTimer: 0,
+        wreckAge: 0,
         role: arch.role,
-        state: 'pursuing', // 'pursuing', 'flanking', 'pit_executing', 'recovering'
-        strobeTimer: 0,
-        strobeState: false, // true = red, false = blue
-        pitTimer: 0,
-        flankSide: (Math.random() > 0.5 ? 1 : -1), // 1 = sağ, -1 = sol cinah
-        hitboxW: arch.hitboxW,
-        hitboxL: arch.hitboxL,
-        takedownValue: arch.takedownValue,
-        color: arch.color,
-        accent: arch.accent
-      };
-
-      this.policeUnits.push(police);
-      this._dispatch('onAudioEvent', { cue: 'siren_spawn', type: police.type });
-    }
-
-    /**
-     * Heat 5 SWAT Rhino APC Spawner (Ağır zirehli əks zolaq canavarı)
-     */
-    _spawnSwatRhino(player) {
-      const arch = ARCHETYPES.swat_rhino;
-      // Qarşıdan, oyunçunun getdiyi zolağa yaxın mövqedən doğulur
-      const spawnZ = player.z + this.options.rhinoSpawnDistanceAhead;
-      // Oyunçunun getdiyi zolağın qarşısına hədəflənir
-      const targetLane = clamp(player.x + (Math.random() * 0.4 - 0.2), -0.7, 0.7);
-
-      const rhino = {
-        id: getUniqueId('rhino'),
-        type: 'swat_rhino',
-        name: arch.name,
-        x: targetLane,
-        z: spawnZ,
-        y: 0,
-        vx: 0,
-        vz: -arch.maxSpeed, // Əks istiqamətdə tam sürətlə irəliləyir!
-        targetX: targetLane,
-        width: arch.width,
-        length: arch.length,
-        mass: arch.mass,
-        maxSpeed: arch.maxSpeed,
-        handling: arch.handling,
-        health: arch.health,
-        maxHealth: arch.health,
-        isWrecked: false,
-        wreckAngle: 0,
-        wreckSpinSpeed: 0,
-        wreckSlideVx: 0,
-        wreckSmokeTimer: 0,
-        role: arch.role,
-        state: 'charging_head_on',
         strobeTimer: 0,
         strobeState: false,
         hitboxW: arch.hitboxW,
         hitboxL: arch.hitboxL,
+        contactHalfW: arch.contactHalfW,   // metres, used by the contact resolver
+        contactHalfL: arch.contactHalfL,
         takedownValue: arch.takedownValue,
+        bounty: arch.takedownValue,
         color: arch.color,
-        accent: arch.accent
-      };
+        accent: arch.accent,
+        fade: 1,                           // 0..1 opacity for the renderer (despawn without a pop)
+        telegraph: 0,                      // 0..1, >0 while a visible attack windup is running
+        stateTimer: 0,
+        attackCooldown: 1.0,
+        disengage: 0,
+        contactTime: 0,
+        hitCooldown: 0,
+        speed: 0                           // km/h, mirrored from vz for audio
+      }, extra);
+    }
 
+    _spawnPoliceUnit(player, cfg) {
+      const chosenType = (this.heatLevel >= 2 && Math.random() < 0.6) ? 'highway_interceptor' : 'patrol_cruiser';
+      const arch = ARCHETYPES[chosenType];
+      if (!arch) return;
+
+      const spawnZ = player.z - M(this.options.policeSpawnDistanceBehind + randRange(0, 30));
+      const spawnX = (Math.random() > 0.5 ? 1 : -1) * randRange(0.2, 0.7);
+      const vz = Math.max(120, (player.speed || 0) * 1.1);
+
+      const police = this._makeCop(arch, {
+        id: getUniqueId('cop'),
+        x: spawnX,
+        z: spawnZ,
+        vz,
+        speed: vz,
+        targetX: player.x,
+        state: 'pursuing',
+        pitTimer: 0,
+        flankSide: (Math.random() > 0.5 ? 1 : -1)
+      });
+      this.policeUnits.push(police);
+      this._audio('siren_spawn', { type: police.type, id: police.id, behind: true });
+    }
+
+    _spawnSwatRhino(player) {
+      const arch = ARCHETYPES.swat_rhino;
+      const spawnZ = player.z + M(this.options.rhinoSpawnDistanceAhead);
+      const targetLane = clamp(player.x + (Math.random() * 0.4 - 0.2), -0.7, 0.7);
+      const rhino = this._makeCop(arch, {
+        id: getUniqueId('rhino'),
+        x: targetLane,
+        z: spawnZ,
+        vz: -arch.maxSpeed,
+        speed: arch.maxSpeed,
+        targetX: targetLane,
+        state: 'charging_head_on',
+        telegraph: 1 // visible from spawn: it is hundreds of metres away, horn + alert fire
+      });
       this.policeUnits.push(rhino);
-      this._addAlert('⚠️ WARNING: SWAT RHINO CHARGING ONCOMING!', '#ff0033', 3.0);
-      this._dispatch('onAudioEvent', { cue: 'rhino_horn' });
+      this._addAlert('WARNING: SWAT RHINO CHARGING ONCOMING!', '#ff0033', 3.0, 'warning');
+      this._audio('rhino_horn', { id: rhino.id });
       this._dispatch('onScreenShake', { intensity: 10, duration: 0.4 });
     }
 
-    /**
-     * Heat 3: Taktiki Blokadalar və Tikanlı Zolaqlar (Roadblocks & Spike Strips)
-     */
     _spawnRoadblockWithSpikes(roadZ) {
-      // Yol eni 3 zolaqdan ibarət hesab olunur: Sol (-0.6), Orta (0.0), Sağ (+0.6)
-      // Təsadüfi bir keçid dəliyi (Evasion Gap) buraxırıq
-      const gapIndex = Math.floor(Math.random() * 3); // 0 = Sol açıq, 1 = Orta açıq, 2 = Sağ açıq
+      const gapIndex = Math.floor(Math.random() * 3);
       const lanes = [-0.62, 0.0, 0.62];
-
       const roadblockId = getUniqueId('blockade');
 
       lanes.forEach((laneX, idx) => {
         if (idx === gapIndex) {
-          // Bu zolaq boş buraxılır, LAKİN Heat 4 və 5-də bu zolağın ortasına dar tikan zolağı qoyula bilər
-          if (this.heatLevel >= 4 && Math.random() < 0.4) {
-            this._deploySpikeStrip(laneX, roadZ, 0.35);
-          }
+          if (this.heatLevel >= 4 && Math.random() < 0.4) this._deploySpikeStrip(laneX, roadZ, 0.35);
           return;
         }
-
-        // Qalan zolaqlara polis patrul maşını eninə və ya tikanlı baryer qoyulur
         if (Math.random() < 0.65) {
-          // Blokada maşını (bucaq altında dayanıb)
           const arch = ARCHETYPES.patrol_cruiser;
-          this.policeUnits.push({
+          this.policeUnits.push(this._makeCop(arch, {
             id: getUniqueId('roadblock_car'),
             type: 'roadblock_car',
             name: 'Roadblock Cruiser',
             x: laneX,
-            z: roadZ + randRange(-5, 5),
-            y: 0,
-            vx: 0,
-            vz: 0, // Tərpənməz maneə
+            z: roadZ + randRange(-M(1.5), M(1.5)),
+            vz: 0,
             targetX: laneX,
-            width: arch.length / 35.0, // Eninə durduğu üçün ölçülər dəyişir
-            length: arch.width * 25.0,
-            mass: arch.mass * 2.0,     // Əyləci çəkilib, kütləsi artıqdır
+            mass: arch.mass * 2.0,
             maxSpeed: 0,
             handling: 0,
             health: 220,
             maxHealth: 220,
-            isWrecked: false,
-            wreckAngle: Math.PI / 3, // Bucaq altında dayanıb
-            wreckSpinSpeed: 0,
-            wreckSlideVx: 0,
-            wreckSmokeTimer: 0,
+            wreckAngle: Math.PI / 3,
             role: 'blockade',
             state: 'stationary',
-            strobeTimer: 0,
             strobeState: true,
             hitboxW: 0.42,
             hitboxL: 12.0,
-            takedownValue: 1200,
+            contactHalfW: 2.3,
+            contactHalfL: 1.1,
+            takedownValue: 0,
+            bounty: 0,
             color: '#1a1d2e',
             accent: '#ff0033'
-          });
+          }));
         } else {
-          // Tikanlı zolaq (Spike Strip)
           this._deploySpikeStrip(laneX, roadZ, 0.50);
         }
       });
 
-      this.roadblocks.push({
-        id: roadblockId,
-        z: roadZ,
-        gapX: lanes[gapIndex],
-        evaded: false
-      });
-
-      this._addAlert('⚠️ ROADBLOCK AHEAD! FIND THE GAP!', '#ffe600', 2.8);
-      this._dispatch('onAudioEvent', { cue: 'roadblock_alert' });
+      this.roadblocks.push({ id: roadblockId, z: roadZ, gapX: lanes[gapIndex], evaded: false });
+      this._addAlert('ROADBLOCK AHEAD! FIND THE GAP!', '#ffe600', 2.8, 'warning');
+      this._audio('roadblock_alert', { gapX: lanes[gapIndex] });
     }
 
-    /**
-     * Tikanlı zolağın yerləşdirilməsi
-     */
     _deploySpikeStrip(x, z, width = 0.45) {
       this.spikeStrips.push({
         id: getUniqueId('spike'),
-        x: x,
-        z: z,
-        width: width,
-        length: 4.5, // 4.5 metr dərinlik
+        x, z, width,
+        length: M(4.5),     // world units (4.5 m deep)
         hitboxW: width,
-        hitboxL: 4.0,
+        hitboxL: M(4.0),
         triggered: false,
         deployedFromAir: false
       });
     }
 
-    /**
-     * Mülki Trafik Spawner
-     */
     _spawnCivilianTraffic(player) {
       const typeKey = randChoice(['civilian_sedan', 'civilian_sports', 'civilian_truck']);
       const arch = ARCHETYPES[typeKey];
-
-      // Həm qarşıdan, həm arxadan doğula bilər
       const isAhead = Math.random() < 0.85;
       const spawnZ = isAhead
-        ? player.z + randRange(250, 750)
-        : player.z - randRange(150, 300);
-
+        ? player.z + M(randRange(150, 420))
+        : player.z - M(randRange(60, 120));
       const lanePositions = [-0.68, -0.34, 0.0, 0.34, 0.68];
       const spawnX = randChoice(lanePositions);
+
+      for (let i = 0; i < this.trafficUnits.length; i++) { // do not stack spawns
+        const t = this.trafficUnits[i];
+        if (Math.abs(t.x - spawnX) < 0.2 && Math.abs(t.z - spawnZ) < M(40)) return;
+      }
 
       this.trafficUnits.push({
         id: getUniqueId('civ'),
@@ -684,60 +739,55 @@
         color: arch.color,
         hitboxW: arch.hitboxW,
         hitboxL: arch.hitboxL,
+        contactHalfW: arch.type === 'civilian_truck' ? 1.3 : 1.0,
+        contactHalfL: arch.type === 'civilian_truck' ? 5.5 : 2.3,
         isCivilian: true
       });
     }
 
     // ========================================================================
-    // 7. POLİS HELİKOPTERİ AI (Heat 4 & 5 Aerial Spotlight & Spike Drops)
+    // 7. CHOPPER (heat 4+)
     // ========================================================================
     _activateChopper(player) {
-      this.chopper.active = true;
-      this.chopper.x = player.x;
-      this.chopper.z = player.z - 50;
-      this.chopper.y = 280.0;
-      this.chopper.spotlight.x = player.x;
-      this.chopper.spotlight.z = player.z;
-      this.chopper.spotlight.isLocked = false;
-      this.chopper.spotlight.lockTimer = 0.0;
-      this.chopper.dropSpikeTimer = 6.0;
-
-      this._addAlert('🚁 POLICE AIR CHOPPER DEPLOYED!', '#ff007f', 3.2);
-      this._dispatch('onAudioEvent', { cue: 'chopper_enter' });
+      const c = this.chopper;
+      c.active = true;
+      c.x = player.x;
+      c.z = player.z - M(3);
+      c.y = 280.0;
+      c.spotlight.x = player.x;
+      c.spotlight.z = player.z;
+      c.spotlight.radiusZ = M(30);
+      c.spotlight.isLocked = false;
+      c.spotlight.lockTimer = 0.0;
+      c.dropSpikeTimer = 6.0;
+      this._addAlert('POLICE AIR CHOPPER DEPLOYED!', '#ff007f', 3.2, 'warning');
+      this._audio('chopper_enter', {});
     }
 
     _updateChopperAI(dt, player) {
       if (!this.chopper.active) return;
-
       const chop = this.chopper;
+      const vUnits = (player.speed || 0) * KMH_TO_UNITS;
       chop.rotorAngle = (chop.rotorAngle + dt * 45.0) % (Math.PI * 2);
 
-      // Helikopter oyunçunun üstündə və bir qədər qabaqda uçur
-      const idealZ = player.z + 40.0;
-      const idealX = player.x * 0.7; // Kamera daxilində qalmaq üçün yüngül mərkəzləşmə
-
+      const idealZ = player.z + M(30) + vUnits / 2.2; // lead cancels follow lag
+      const idealX = player.x * 0.7;
       chop.x = lerp(chop.x, idealX, dt * 1.8);
       chop.z = lerp(chop.z, idealZ, dt * 2.2);
 
-      // Fənər (Spotlight) İdarəetməsi
       const spot = chop.spotlight;
-      // Fənər şüası elastik şəkildə oyunçunu izləyir
       spot.x = lerp(spot.x, player.x, dt * 3.5);
-      spot.z = lerp(spot.z, player.z + 10.0, dt * 4.0);
+      spot.z = lerp(spot.z, player.z + vUnits * 0.25, dt * 4.0);
       spot.flicker = 0.95 + Math.sin(this.time * 24.0) * 0.05;
 
-      // Oyunçu fənərin konusundadırmı?
-      const dx = Math.abs(spot.x - player.x);
-      const dz = Math.abs(spot.z - player.z);
-      const isInsideBeam = dx < spot.radiusX && dz < spot.radiusZ;
-
-      if (isInsideBeam) {
+      const inside = Math.abs(spot.x - player.x) < spot.radiusX && Math.abs(spot.z - player.z) < spot.radiusZ;
+      if (inside) {
         spot.lockTimer += dt;
         if (spot.lockTimer >= 1.2 && !spot.isLocked) {
           spot.isLocked = true;
-          this._addAlert('🎯 CHOPPER LOCKED ON! EVADE!', '#ff0033', 2.0);
+          this._addAlert('CHOPPER LOCKED ON! EVADE!', '#ff0033', 2.0, 'warning');
           this._dispatch('onSpotlightLock', { locked: true });
-          this._dispatch('onAudioEvent', { cue: 'spotlight_lock' });
+          this._audio('spotlight_lock', {});
         }
       } else {
         spot.lockTimer = Math.max(0, spot.lockTimer - dt * 2.0);
@@ -747,47 +797,42 @@
         }
       }
 
-      // Havadan Tikan Atma (Aerial Spike Drop)
       chop.dropSpikeTimer -= dt;
       if (chop.dropSpikeTimer <= 0) {
         chop.dropSpikeTimer = randRange(8.0, 14.0);
-        // Oyunçunun 250 metr qabağına tikan paketi atır
-        const dropZ = player.z + randRange(260, 360);
+        const dropZ = player.z + M(randRange(150, 250));
         const dropX = clamp(player.x + randRange(-0.3, 0.3), -0.7, 0.7);
-
         this._deploySpikeStrip(dropX, dropZ, 0.55);
-        this._addAlert('⚠️ AIR DROP SPIKES INCOMING!', '#ff007f', 2.5);
-        this._dispatch('onAudioEvent', { cue: 'spike_drop' });
+        this._addAlert('AIR DROP SPIKES INCOMING!', '#ff007f', 2.5, 'warning');
+        this._audio('spike_drop', {});
       }
     }
 
     // ========================================================================
-    // 8. POLİS AVTOMOBİLLƏRİNİN AVTONOM AI DAVRANIŞLARI (Cruiser & Interceptor)
+    // 8. POLICE VEHICLE AI
     // ========================================================================
     _updatePoliceVehicles(dt, player) {
-      const cfg = HEAT_CONFIG[this.heatLevel];
+      const cfg = HEAT_CONFIG[this.heatLevel] || HEAT_CONFIG[1];
+      const wreckDecay = Math.pow(0.96, dt * 60);
+      const slideDecay = Math.pow(0.95, dt * 60);
 
       for (let i = 0; i < this.policeUnits.length; i++) {
         const cop = this.policeUnits[i];
-        const maxSpd = cop.maxSpeed || 300;
-        const handling = cop.handling || 1.8;
 
-        // Yanıb-sönən mayakların (Strobe lightbar) taymeri
         cop.strobeTimer = (cop.strobeTimer || 0) + dt * cfg.strobeSpeed;
-        if (cop.strobeTimer >= 1.0) {
-          cop.strobeTimer = 0;
-          cop.strobeState = !cop.strobeState; // Qırmızı <-> Göy dəyişməsi
-        }
+        if (cop.strobeTimer >= 1.0) { cop.strobeTimer = 0; cop.strobeState = !cop.strobeState; }
+        if (cop.hitCooldown > 0) cop.hitCooldown -= dt;
 
-        // Qəzaya uğramış (Wrecked) maşının fizikası
         if (cop.isWrecked) {
-          cop.z += (cop.vz * 5.0) * dt;
-          cop.x += cop.wreckSlideVx * dt;
+          cop.wreckAge += dt;
+          cop.z += cop.vz * KMH_TO_UNITS * dt;
+          cop.x = clamp(cop.x + cop.wreckSlideVx * dt, -1.1, 1.1);
           cop.wreckAngle += cop.wreckSpinSpeed * dt;
-          cop.vz *= 0.96; // Tədricən dayanır
-          cop.wreckSlideVx *= 0.95;
-
-          // Qara tüstü və qığılcım
+          cop.vz *= wreckDecay;
+          cop.wreckSlideVx *= slideDecay;
+          cop.speed = Math.abs(cop.vz);
+          cop.telegraph = 0;
+          cop.fade = clamp(1 - (cop.wreckAge - 5.0) / 2.0, 0, 1); // fades out 5..7 s after the wreck
           cop.wreckSmokeTimer -= dt;
           if (cop.wreckSmokeTimer <= 0) {
             cop.wreckSmokeTimer = 0.04;
@@ -796,377 +841,511 @@
           continue;
         }
 
-        // Stasionar Blokada Maşını
-        if (cop.role === 'blockade') {
-          continue;
-        }
+        if (cop.role === 'blockade') continue;
 
-        // SWAT Rhino Head-on Hücum AI
         if (cop.role === 'head_on_ram') {
-          cop.z += (cop.vz * 5.0) * dt; // Əks yolda irəliləyir
-          // Oyunçunun zolağına doğru ləng, amma qətiyyətlə yönəlir
+          cop.z += cop.vz * KMH_TO_UNITS * dt;
           const dX = player.x - cop.x;
           cop.x += Math.sign(dX) * Math.min(Math.abs(dX), cop.handling * 0.4 * dt);
+          cop.speed = Math.abs(cop.vz);
           continue;
         }
 
-        // Heat 1: Crown Patrul Kreyseri AI (Arxadan qovma və sıxışdırma)
-        if (cop.type === 'patrol_cruiser') {
+        if (cop.disengage > 0) {
+          this._updateDisengage(cop, player, dt);
+        } else if (cop.type === 'patrol_cruiser') {
           this._updatePatrolCruiserAI(cop, player, dt);
-        }
-
-        // Heat 2: Corvette Interceptor AI (Yan cinahlardan aqressiv PIT manevri)
-        else if (cop.type === 'highway_interceptor') {
+        } else if (cop.type === 'highway_interceptor') {
           this._updateInterceptorAI(cop, player, dt);
         }
+        cop.speed = cop.vz;
+      }
+    }
+
+    /** Lateral steering, dt-correct. maxRate in normalised x per second. */
+    _steerCop(cop, dt, maxRate) {
+      const steer = (cop.targetX - cop.x) * (cop.handling || 1.8);
+      cop.x = clamp(cop.x + clamp(steer, -maxRate, maxRate) * dt, -0.95, 0.95);
+    }
+
+    /**
+     * A cop that has been in non-takedown contact too long backs off or peels away so it can
+     * never pin the player (QA #4): behind -> brake and open a gap, ahead -> speed up and leave
+     * the player's lane, beside -> steer outward.
+     */
+    _updateDisengage(cop, player, dt) {
+      cop.disengage -= dt;
+      cop.telegraph = 0;
+      const spd = player.speed || 0;
+      const copAhead = cop.z > player.z;
+      if (copAhead) {
+        cop.vz = Math.min(cop.maxSpeed * 1.1, Math.max(spd + 25, 60));
+      } else {
+        cop.vz = Math.max(60, spd - 30);
+      }
+      const side = cop.x >= player.x ? 1 : -1;
+      cop.targetX = clamp(player.x + side * 0.6, -0.8, 0.8);
+      this._steerCop(cop, dt, 2.4);
+      cop.z += cop.vz * KMH_TO_UNITS * dt;
+      cop.speed = cop.vz;
+      if (cop.disengage <= 0) {
+        cop.state = cop.type === 'patrol_cruiser' ? 'recover' : 'recovering';
+        cop.stateTimer = 1.0;
+        cop.pitTimer = 1.0;
       }
     }
 
     /**
-     * Heat 1: Patrul Kreyseri Taktikası (Crown Vic Boxing)
+     * Heat 1 cruiser. States: pursuing -> windup (0.9 s, visible: telegraph 1..0)
+     * -> attack (0.5 s lateral shove) -> recover (1.8 s, drops back, punishable) -> pursuing.
      */
     _updatePatrolCruiserAI(cop, player, dt) {
-      const distZ = player.z - cop.z;
+      const distM = (player.z - cop.z) / UNITS_PER_METER; // >0: cop behind the player
+      const spd = player.speed || 0;
+      const maxSpd = cop.maxSpeed || 270;
+      const inLane = Math.abs(player.x - cop.x) < 0.25;
+      cop.attackCooldown = Math.max(0, cop.attackCooldown - dt);
 
-      // 1. Sürət İdarəsi (Catch-up boost və ya yaxınlaşma)
-      const maxSpd = cop.maxSpeed || 280;
-      const handling = cop.handling || 1.8;
-      if (distZ > 30) {
-        // Çox geridədir — sürəti artırır
-        cop.vz = Math.min(maxSpd, (player.speed || 180) * 1.20 + 20);
-      } else if (distZ < -20) {
-        // Oyunçunu ötüb keçib — tormozlayır
-        cop.vz = Math.max(80, (player.speed || 180) * 0.85);
-      } else {
-        // Bumper-to-bumper məsafəsi: sürəti oyunçu ilə eyniləşdirir
-        cop.vz = lerp(cop.vz || 180, player.speed || 180, dt * 2.5);
+      const follow = () => {
+        if (distM > 40) {
+          cop.vz = Math.min(maxSpd, Math.max(120, spd * 1.2 + 20));       // catch up
+        } else if (distM < -15) {
+          // Ahead of the player. In the player's path: speed up and swing out so the player is
+          // never pinned behind it; otherwise brake and fall back behind.
+          if (inLane) {
+            cop.vz = Math.min(maxSpd * 1.1, Math.max(spd + 15, 40));
+            cop.targetX = clamp(cop.x + (cop.x >= player.x ? 1 : -1) * 0.5, -0.8, 0.8);
+          } else {
+            cop.vz = Math.max(80, spd * 0.85);
+          }
+        } else {
+          const lead = distM < 0 && inLane ? 15 : 0;                       // never sit in front, slower
+          cop.vz = lerp(cop.vz, spd + lead, dt * 2.5);
+        }
+      };
+
+      switch (cop.state) {
+        case 'windup': {
+          cop.stateTimer -= dt;
+          cop.telegraph = clamp(cop.stateTimer / 0.9, 0, 1);
+          cop.vz = lerp(cop.vz, spd, dt * 3);
+          cop.targetX = clamp(player.x + cop.flankSide * 0.45, -0.9, 0.9); // pulls out to the side
+          if (cop.stateTimer <= 0) { cop.state = 'attack'; cop.stateTimer = 0.5; }
+          break;
+        }
+        case 'attack': {
+          cop.stateTimer -= dt;
+          cop.telegraph = 0;
+          cop.vz = lerp(cop.vz, spd + 8, dt * 3);
+          cop.targetX = player.x + cop.flankSide * 0.12;                   // steers into the player
+          if (cop.stateTimer <= 0) { cop.state = 'recover'; cop.stateTimer = 1.8; cop.flankSide = -cop.flankSide; }
+          break;
+        }
+        case 'recover': {
+          cop.stateTimer -= dt;
+          cop.telegraph = 0;
+          cop.vz = Math.max(60, spd - 20);
+          cop.targetX = clamp(player.x + cop.flankSide * 0.7, -0.9, 0.9);
+          if (cop.stateTimer <= 0) {
+            cop.state = 'pursuing';
+            cop.attackCooldown = 2.5 / Math.max(0.3, (HEAT_CONFIG[this.heatLevel] || HEAT_CONFIG[1]).aggression);
+          }
+          break;
+        }
+        default: {
+          cop.state = 'pursuing';
+          cop.telegraph = 0;
+          follow();
+          if (Math.abs(distM) < 40 && !(distM < -15 && inLane)) cop.targetX = player.x; // line up behind
+          if (distM > -6 && distM < 14 && cop.attackCooldown <= 0 && spd > 40) {
+            cop.state = 'windup';
+            cop.stateTimer = 0.9;
+            cop.flankSide = player.x >= 0 ? -1 : 1;                        // swing toward the open side
+            this._audio('cop_windup', { id: cop.id, type: cop.type });
+          }
+        }
       }
 
-      // 2. Sıxışdırma (Boxing & Pinning)
-      // Əgər arxadan çatırsa, oyunçunun yanına keçib onu yol kənarına doğru sıxışdırır
-      if (Math.abs(distZ) < 35) {
-        // Oyunçunu sol və ya sağ baryerə tərəf itələmə hədəfi seçir
-        const pushDirection = player.x >= 0 ? 1.05 : -1.05;
-        cop.targetX = lerp(player.x, pushDirection, 0.4);
-      } else {
-        // Arxadan oyunçunun izinə düzlənir
-        cop.targetX = player.x;
-      }
-
-      // X koordinatı üzrə hərəkət
-      const steerX = (cop.targetX - cop.x);
-      cop.x += clamp(steerX * handling * dt, -0.04, 0.04);
-      cop.z += ((cop.vz || 180) * 5.0) * dt;
+      this._steerCop(cop, dt, 2.4);
+      cop.z += cop.vz * KMH_TO_UNITS * dt;
     }
 
     /**
-     * Heat 2: Corvette Interceptor PIT Manevri AI
+     * Heat 2+ interceptor. pursuing -> flanking (windup: PIT warning raised HERE, telegraph grows)
+     * -> pit_executing (0.9 s) -> recovering (2.5 s) -> pursuing.
      */
     _updateInterceptorAI(cop, player, dt) {
-      const distZ = player.z - cop.z;
+      const distM = (player.z - cop.z) / UNITS_PER_METER;
+      const spd = player.speed || 0;
       const maxSpd = cop.maxSpeed || 330;
-      const handling = cop.handling || 2.5;
 
-      // Vəziyyət Maşını (State Machine): APPROACH -> FLANK -> EXECUTE_PIT -> RECOVER
       switch (cop.state || 'pursuing') {
         case 'pursuing': {
-          // Arxadan sürətlə oyunçunun cinahına gəlir
-          cop.vz = Math.min(maxSpd, (player.speed || 200) * 1.35 + 30);
-          cop.targetX = player.x + (cop.flankSide || 1) * 0.42;
-
-          if (Math.abs(distZ) < 25) {
+          cop.telegraph = 0;
+          cop.vz = Math.min(maxSpd, Math.max(120, spd * 1.35 + 30));
+          cop.targetX = player.x + cop.flankSide * 0.42;
+          if (Math.abs(distM) < 25) {
             cop.state = 'flanking';
             cop.pitTimer = randRange(1.0, 2.2);
+            cop.pitWindup = cop.pitTimer;
+            this._addAlert('WARNING: PIT MANEUVER INCOMING!', '#ff0055', 1.8, 'warning');
+            this._audio('pit_warning', { id: cop.id });
           }
           break;
         }
-
         case 'flanking': {
-          // Oyunçunun arxa cinahında (rear quarter) mövqe saxlayır
-          // Z məsafəsi: Oyunçudan 8-12 metr geridə
-          const idealZ = player.z - 8.0;
-          cop.vz = lerp(cop.vz || 200, (player.speed || 200), dt * 3.5);
-          cop.z = lerp(cop.z, idealZ, dt * 4.0);
-
-          cop.targetX = player.x + (cop.flankSide || 1) * 0.38;
-          cop.pitTimer = (cop.pitTimer || 1.5) - dt;
-
-          if (cop.pitTimer <= 0) {
-            // PIT manevri başladılır!
-            cop.state = 'pit_executing';
-            cop.pitTimer = 0.9; // 900ms zərbə pəncərəsi
-            this._addAlert('⚠️ WARNING: PIT MANEUVER INCOMING!', '#ff0055', 1.8);
-            this._dispatch('onAudioEvent', { cue: 'pit_warning' });
-          }
+          cop.vz = lerp(cop.vz, spd, dt * 3.5);
+          cop.z = lerp(cop.z, player.z - M(8.0), dt * 4.0);
+          cop.targetX = player.x + cop.flankSide * 0.38;
+          cop.pitTimer -= dt;
+          cop.telegraph = clamp(1 - cop.pitTimer / (cop.pitWindup || 1.5), 0, 1); // 1 at impact
+          if (cop.pitTimer <= 0) { cop.state = 'pit_executing'; cop.pitTimer = 0.9; }
           break;
         }
-
         case 'pit_executing': {
-          // Aqressiv lateral kəllə-çarx: Oyunçunun arxa təkər qövsünə doğru kəskin dönür!
           cop.targetX = player.x;
-          // Güclü lateral zərbə impulsu
-          const ramDirection = (player.x - cop.x);
-          cop.x += Math.sign(ramDirection) * handling * 1.9 * dt;
-
-          // Sürəti oyunçunun arxa cinahına kilidləyir
-          cop.z = lerp(cop.z, player.z - 3.0, dt * 5.0);
-
+          cop.telegraph = 1;
           cop.pitTimer -= dt;
           if (cop.pitTimer <= 0) {
             cop.state = 'recovering';
             cop.pitTimer = 2.5;
-            cop.flankSide = -(cop.flankSide || 1); // Növbəti dəfə o biri cinaha keçəcək
+            cop.flankSide = -cop.flankSide;
           }
           break;
         }
-
-        case 'recovering': {
-          // Uğursuz zərbədən sonra bir qədər geri çəkilir və yeni hücum hazırlayır
-          cop.vz = (player.speed || 200) * 0.95;
-          cop.targetX = (cop.flankSide || 1) * 0.65;
+        default: { // recovering
+          cop.telegraph = 0;
+          cop.vz = Math.max(60, spd * 0.95);
+          cop.targetX = clamp(cop.flankSide * 0.65, -0.9, 0.9);
           cop.pitTimer -= dt;
-          if (cop.pitTimer <= 0) {
-            cop.state = 'pursuing';
-          }
-          break;
+          if (cop.pitTimer <= 0) cop.state = 'pursuing';
         }
       }
 
-      // X koordinatının hamarlaşdırılmış inteqrasiyası
-      if (cop.state !== 'pit_executing') {
-        const steer = (cop.targetX - cop.x);
-        cop.x += clamp(steer * handling * dt, -0.06, 0.06);
-        cop.z += ((cop.vz || 200) * 5.0) * dt;
+      if (cop.state === 'pit_executing') {
+        const ramDir = Math.sign(player.x - cop.x);
+        cop.x = clamp(cop.x + ramDir * (cop.handling || 2.5) * 1.9 * dt, -0.95, 0.95);
+        cop.z = lerp(cop.z, player.z - M(3.0), dt * 5.0);
+      } else {
+        this._steerCop(cop, dt, 3.6);
+        cop.z += cop.vz * KMH_TO_UNITS * dt;
       }
     }
 
     // ========================================================================
-    // 9. MÜLKİ TRAFİK AI (Zolaq Dəyişmə və Qaçış)
+    // 9. CIVILIAN TRAFFIC
     // ========================================================================
     _updateTrafficVehicles(dt, player) {
+      const wreckDecay = Math.pow(0.95, dt * 60);
       for (let i = 0; i < this.trafficUnits.length; i++) {
         const car = this.trafficUnits[i];
-
         if (car.isWrecked) {
-          car.z += (car.vz * 5.0) * dt;
+          car.z += car.vz * KMH_TO_UNITS * dt;
           car.x += car.wreckSlideVx * dt;
           car.wreckAngle += car.wreckSpinSpeed * dt;
-          car.vz *= 0.95;
-          car.wreckSlideVx *= 0.95;
+          car.vz *= wreckDecay;
+          car.wreckSlideVx *= wreckDecay;
           continue;
         }
-
-        car.z += (car.vz * 5.0) * dt;
-
-        // Dövri zolaq dəyişmə
+        car.z += car.vz * KMH_TO_UNITS * dt;
         car.laneChangeTimer -= dt;
         if (car.laneChangeTimer <= 0) {
           car.laneChangeTimer = randRange(4.0, 10.0);
-          const lanes = [-0.68, -0.34, 0.0, 0.34, 0.68];
-          car.targetLane = randChoice(lanes);
+          car.targetLane = randChoice([-0.68, -0.34, 0.0, 0.34, 0.68]);
         }
-
-        // Əgər arxadan yüksək sürətlə oyunçu və ya sirenli polis gəlirsə, kənara çəkilir (Panic yield)
-        const dZ = player.z - car.z;
-        if (dZ < 0 && dZ > -70 && Math.abs(player.x - car.x) < 0.35) {
-          // Oyunçu arxadan yaxınlaşır — sağa və ya sola çəkil
+        const dZ = player.z - car.z; // negative: car is ahead of the player
+        if (dZ < 0 && dZ > -M(30) && Math.abs(player.x - car.x) < 0.35) {
           car.targetLane = car.x > 0 ? 0.75 : -0.75;
         }
-
-        const steer = car.targetLane - car.x;
-        car.x += clamp(steer * car.handling * dt, -0.03, 0.03);
+        const steer = (car.targetLane - car.x) * car.handling;
+        car.x += clamp(steer, -1.8, 1.8) * dt;
       }
     }
 
     // ========================================================================
-    // 10. TOQQUŞMA, TAKEDOWN VƏ TİKAN ƏMƏLİYYATLARI (Collision & Physics)
+    // 10. COLLISIONS: ONE COP-CONTACT RESOLVER, ONE PAYOUT PATH
     // ========================================================================
+    /** Pay what was announced. The ONLY place credits are granted (-> onCredits). */
+    _pay(amount, reason, alertText, color, duration, kind) {
+      amount = Math.round(amount);
+      if (amount > 0) {
+        this.totalCreditsEarned += amount;
+        this.sessionCredits += amount;
+        this._dispatch('onCredits', amount, reason, { total: this.sessionCredits });
+      }
+      if (alertText) this._addAlert(alertText, color || '#ffffff', duration || 2.0, kind || 'credits');
+    }
+
+    _playerState(player) {
+      return {
+        x: player.x,
+        z: player.z,
+        speed: player.speed || 0,
+        isDrifting: !!player.isDrifting,
+        driftAngle: Math.abs(player.driftAngle || 0),
+        isNitro: !!(player.isNitro || player.nitroActive)
+      };
+    }
+
+    /**
+     * Decides whether a takedown happened, which bonuses apply, and applies the result.
+     * Rules:
+     *   ram         cop is AHEAD of the player and closing speed >= takedownRelSpeedKmh
+     *   drift_ram   player drifting with |slip| > 0.12 rad (any contact)       -> +drift bonus
+     *   wall_pin    cop at |x| >= 0.85 and outside the player (pinned to rail)  -> +wall bonus
+     * Nitro alone never qualifies. Heavy units (rhino, roadblock cars) are never takedowns.
+     */
+    _resolveCopContact(cop, p, dt, overlapXNorm) {
+      const res = { kind: 'none', takedown: false, crash: false, speedScale: 1, lateralPush: 0, shake: 0 };
+      if (cop.isWrecked) return res;
+      const opt = this.options;
+      const sideSign = cop.x >= p.x ? 1 : -1;
+
+      // Heavy units: crash, never a takedown
+      if (cop.type === 'swat_rhino' || cop.role === 'blockade') {
+        if (cop.hitCooldown > 0) return res;
+        cop.hitCooldown = 1.5;
+        const rhino = cop.type === 'swat_rhino';
+        res.crash = true;
+        res.kind = rhino ? 'rhino_crash' : 'roadblock_crash';
+        res.speedScale = rhino ? 0.25 : 0.5;
+        res.lateralPush = -sideSign * (rhino ? 0.4 : 0.2);
+        res.shake = rhino ? 35 : 22;
+        cop.health -= 80;
+        this._addAlert(rhino ? 'HEAD-ON RHINO IMPACT!' : 'ROADBLOCK HIT!', '#ff0033', 2.5, 'crash');
+        this._audio('heavy_crash', { id: cop.id });
+        this._emitSparkShower((p.x + cop.x) * 0.5, p.z, rhino ? 70 : 45);
+        return res;
+      }
+
+      const copAhead = cop.z >= p.z - M(1.0);
+      const relSpeed = copAhead ? p.speed - cop.vz : 0;
+      const driftRam = p.isDrifting && p.driftAngle > 0.12;
+      const wallPin = Math.abs(cop.x) >= 0.85 && Math.abs(cop.x) > Math.abs(p.x);
+      const ram = relSpeed >= opt.takedownRelSpeedKmh;
+
+      if (!(ram || driftRam || wallPin)) {
+        // plain contact: shove the cop clear, never the player; escalate to disengage
+        cop.x = clamp(cop.x + sideSign * Math.min(Math.max(overlapXNorm, 0.01), 0.06), -0.95, 0.95);
+        cop.contactTime += dt;
+        if (cop.contactTime > 0.5 && cop.disengage <= 0) {
+          cop.disengage = 2.5;
+          cop.contactTime = 0;
+        }
+        res.kind = 'bump';
+        res.shake = 8;
+        if (!cop.scrapeCd || this.time - cop.scrapeCd > 0.35) {
+          cop.scrapeCd = this.time;
+          this._emitSparkShower((p.x + cop.x) * 0.5, p.z, 20);
+          this._audio('metal_scrape', { id: cop.id });
+        }
+        return res;
+      }
+
+      // ---- TAKEDOWN ----
+      const base = cop.bounty != null ? cop.bounty : (ARCHETYPES[cop.type] ? ARCHETYPES[cop.type].takedownValue : 800);
+      const labels = [];
+      let bonus = 0;
+      if (driftRam) { bonus += opt.driftRamBonus; labels.push('DRIFT RAM'); }
+      if (wallPin) { bonus += opt.wallPinBonus; labels.push('WALL PIN'); }
+      const kind = wallPin ? 'wall_pin' : (driftRam ? 'drift_ram' : 'ram');
+      const total = base + bonus;
+
+      cop.isWrecked = true;
+      cop.health = 0;
+      cop.wreckSpinSpeed = randRange(14.0, 24.0) * sideSign;
+      cop.wreckSlideVx = sideSign * randRange(1.8, 3.2);
+      cop.vz = p.speed * 0.4;
+      cop.telegraph = 0;
+      cop.state = 'wrecked';
+      this.hitStopTimer = opt.hitStopDuration;
+      this._emitSparkShower((p.x + cop.x) * 0.5, cop.z, 90);
+      this._emitDebris(cop.x, cop.z, 10);
+      this.totalTakedowns++;
+
+      const label = (labels.length ? labels.join(' + ') + ': ' : 'TAKEDOWN: ') + cop.name.toUpperCase();
+      this._pay(total, 'takedown_' + kind, `${label} +$${total}`, '#ff007f', 3.0, 'takedown');
+      this._audio('takedown', { id: cop.id, type: cop.type, kind });
+      this._dispatch('onScreenShake', { intensity: 24, duration: 0.45 });
+      this._dispatch('onTakedown', {
+        copId: cop.id,
+        unit: cop,
+        copType: cop.type,
+        name: cop.name,
+        kind,
+        labels,
+        base,
+        bonus,
+        bounty: total,   // legacy alias: the amount ALREADY paid via onCredits (do not add it again)
+        reward: total,
+        relSpeed,
+        nitroRefill: 1.0
+      });
+      res.takedown = true;
+      res.kind = kind;
+      res.shake = 24;
+      return res;
+    }
+
+    /**
+     * Public hook for the 3D physics solver: call when it detects penetration with a live cop,
+     * BEFORE applying its own response. If result.takedown is true the cop is now wrecked
+     * (credits and banner were already emitted) and the solver must skip its own takedown code.
+     * @param {string} copId
+     * @param {Object} playerState same shape as update()'s player
+     * @returns {Object|null} {kind, takedown, crash, speedScale, lateralPush, shake}
+     */
+    reportContact(copId, playerState) {
+      const cop = this.policeUnits.find(u => u.id === copId);
+      if (!cop || !playerState) return null;
+      return this._resolveCopContact(cop, this._playerState(playerState), 1 / 60, 0.02);
+    }
+
     _resolveCollisions(dt, player) {
       let screenShake = 0;
       let takedownOccurred = false;
       let spikeEvasionOccurred = false;
+      let speedScale = 1;
+      let lateralPush = 0;
 
-      const playerHitW = 0.22;
-      const playerHitL = 75.0;
+      const p = this._playerState(player);
+      const roadHalf = this.options.roadHalfWidthM;
+      const margin = 0.35; // metres: the physics solver separates objects, so detect "touching"
+      const pHalfW = 1.05, pHalfL = 2.3;
+      const playerHitW = 0.13;         // normalised, for spikes
+      const playerHitL = M(4.6);       // world units
 
-      // ----------------------------------------------------------------------
-      // A. POLİS MAŞINLARI İLƏ TOQQUŞMALAR (Burnout Takedown Yoxlaması)
-      // ----------------------------------------------------------------------
+      // A. Police
       for (let i = 0; i < this.policeUnits.length; i++) {
         const cop = this.policeUnits[i];
         if (cop.isWrecked) continue;
-
-        const copHitW = cop.hitboxW || 0.22;
-        const copHitL = cop.hitboxL ? (cop.hitboxL * 6.5) : 75.0;
-
-        const dX = Math.abs(player.x - cop.x);
-        const dZ = Math.abs(player.z - cop.z);
-
-        const overlapX = (playerHitW + copHitW) * 0.5 - dX;
-        const overlapZ = (playerHitL + copHitL) * 0.5 - dZ;
-
-        // Əgər toxunma varsa:
-        if (overlapX > 0 && overlapZ > 0) {
-          // SWAT Rhino ilə toqquşma
-          if (cop.type === 'swat_rhino') {
-            screenShake = Math.max(screenShake, 35);
-            this._addAlert('💥 HEAD-ON RHINO IMPACT!', '#ff0033', 2.5);
-            this._dispatch('onAudioEvent', { cue: 'heavy_crash' });
-            // Oyunçuya zərbə: sürət kəskin azalır
-            player.speed = Math.max(30, (player.speed || 150) * 0.25);
-            player.x += (player.x > cop.x ? 0.4 : -0.4);
-            cop.health -= 80;
-            this._emitSparkShower((player.x + cop.x) * 0.5, player.z, 70);
-            continue;
-          }
-
-          // Burnout Takedown Şərtləri:
-          // 1. Oyunçu Nitrodadırsa VƏ YA Driftdədirsə VƏ YA
-          // 2. Nisbi toqquşma sürəti yüksəkdirsə (Delta V > 50 km/h) VƏ YA
-          // 3. Oyunçu polisi çəpərə sıxışdırıbsa (|cop.x| >= 0.88)
-          const relSpeed = (player.speed || 200) - cop.vz;
-          const isDrifting = !!player.isDrifting;
-          const isNitro = !!player.isNitro;
-          const isWallPin = Math.abs(cop.x) >= 0.85;
-
-          const qualifiesForTakedown = (isNitro || (isDrifting && Math.abs(player.driftAngle || 0) > 0.3) || relSpeed > 50 || isWallPin);
-
-          if (qualifiesForTakedown) {
-            // ================================================================
-            // TAKEDOWN BAŞ VERDİ! (Burnout Style)
-            // ================================================================
-            cop.isWrecked = true;
-            cop.health = 0;
-            cop.wreckSpinSpeed = randRange(14.0, 24.0) * (cop.x > player.x ? 1 : -1);
-            cop.wreckSlideVx = (cop.x > player.x ? 1 : -1) * randRange(1.8, 3.2);
-            cop.vz = (player.speed || 200) * 0.4;
-
-            // 1. Tələb olunan dəqiq 80ms Hit-stop dondurma taymeri!
-            this.hitStopTimer = this.options.hitStopDuration;
-
-            // 2. Qığılcım yağışı və zibil qırıntıları
-            this._emitSparkShower((player.x + cop.x) * 0.5, cop.z, 90);
-            this._emitDebris(cop.x, cop.z, 10);
-
-            // 3. Kamera titrəməsi
-            screenShake = Math.max(screenShake, 24);
-
-            // 4. Mükafatlar: 100% Nitro bərpası və Pul
-            const reward = cop.takedownValue || 1500;
-            this.totalTakedowns++;
-            this.totalCreditsEarned += reward;
-
-            this._addAlert(`🔥 TAKEDOWN! +$${reward}`, '#ff007f', 3.0);
-            takedownOccurred = true;
-
-            this._dispatch('onTakedown', {
-              copId: cop.id,
-              copType: cop.type,
-              reward: reward,
-              nitroRefill: 1.0 // 100% nitro
-            });
-            this._dispatch('onAudioEvent', { cue: 'takedown' });
-            this._dispatch('onScreenShake', { intensity: 24, duration: 0.45 });
-
-          } else {
-            // Adi yan toqquşma (Ramming bounce)
-            const pushDir = player.x > cop.x ? 1 : -1;
-            player.x += pushDir * 0.08;
-            cop.x -= pushDir * 0.08;
-            screenShake = Math.max(screenShake, 8);
-            this._emitSparkShower((player.x + cop.x) * 0.5, player.z, 20);
-            this._dispatch('onAudioEvent', { cue: 'metal_scrape' });
-          }
+        const dXm = Math.abs(p.x - cop.x) * roadHalf;
+        const dZm = Math.abs(p.z - cop.z) / UNITS_PER_METER;
+        const ovX = (pHalfW + (cop.contactHalfW || 1.1) + margin) - dXm;
+        const ovZ = (pHalfL + (cop.contactHalfL || 2.3) + margin) - dZm;
+        if (ovX > 0 && ovZ > 0) {
+          const r = this._resolveCopContact(cop, p, dt, ovX / roadHalf);
+          screenShake = Math.max(screenShake, r.shake);
+          if (r.takedown) takedownOccurred = true;
+          speedScale = Math.min(speedScale, r.speedScale);
+          lateralPush += r.lateralPush;
+        } else {
+          cop.contactTime = Math.max(0, cop.contactTime - dt * 2);
         }
       }
 
-      // ----------------------------------------------------------------------
-      // B. TİKANLI ZOLAQLARLA TOQQUŞMA VƏ EVASION (Heat 3 Spikes)
-      // ----------------------------------------------------------------------
+      // B. Spike strips
       for (let i = 0; i < this.spikeStrips.length; i++) {
         const spike = this.spikeStrips[i];
-        const spikeLen = spike.length || 4.5;
-        const spikeHitW = spike.hitboxW || spike.width || 0.45;
+        const spikeLen = spike.length;
+        const spikeHitW = spike.hitboxW || spike.width;
         const spikeHitL = spike.hitboxL || spikeLen;
         const spikeCenterZ = spike.z + spikeLen * 0.5;
-
-        const dX = Math.abs(player.x - spike.x);
-        const dZ = Math.abs(player.z - spikeCenterZ);
-
+        const dX = Math.abs(p.x - spike.x);
+        const dZ = Math.abs(p.z - spikeCenterZ);
         const overlapX = (playerHitW + spikeHitW) * 0.5 - dX;
         const overlapZ = (playerHitL + spikeHitL) * 0.5 - dZ;
 
-        // Tikanlara toxunma (Bounding Box Overlap)
         if (!spike.triggered && overlapX > 0 && overlapZ > 0) {
-          // Əgər oyunçunun 'phaseShift' qabiliyyəti (Phantom car) aktivdirsə, ziyansız keçir
+          spike.triggered = true;
           if (player.phaseShift || player.isInvulnerable) {
-            this._addAlert('PHASE CLOAK: SPIKES BYPASSED!', '#9d00ff', 2.0);
-            spike.triggered = true;
+            this._addAlert('PHASE CLOAK: SPIKES BYPASSED!', '#9d00ff', 2.0, 'info');
             continue;
           }
-
-          // TƏKƏR PARTLAYIŞI! (Tire Blowout)
-          spike.triggered = true;
-          this.blowoutRemaining = 4.0; // 4 saniyəlik partlaq təkər
+          this.blowoutRemaining = 4.0;
           screenShake = Math.max(screenShake, 22);
-
-          this._emitSparkShower(player.x, player.z, 60);
-          this._addAlert('💥 TIRE BLOWOUT! SPEED CAPPED AT 80 KM/H!', '#ff0033', 3.5);
-
+          this._emitSparkShower(p.x, p.z, 60);
+          this._addAlert('TIRE BLOWOUT! SPEED CAPPED AT 80 KM/H!', '#ff0033', 3.5, 'crash');
           this._dispatch('onSpikeBlowout', { duration: 4.0, maxSpeed: 80 });
-          this._dispatch('onAudioEvent', { cue: 'tire_blowout' });
+          this._audio('tire_blowout', {});
           this._dispatch('onScreenShake', { intensity: 22, duration: 0.5 });
         }
 
-        // Tikanlardan yan keçmə (Spike Evasion Bonusu)
-        // Oyunçu tikan zolağını tam geridə qoyduqda (arxa bufer tikanı ötüb):
-        const playerRearZ = player.z - playerHitL * 0.5;
+        const playerRearZ = p.z - playerHitL * 0.5;
         if (playerRearZ > spike.z + spikeLen && !this.spikesPassedIds.has(spike.id)) {
           this.spikesPassedIds.add(spike.id);
-          // Əgər toxunulmayıbsa və oyunçu kifayət qədər yaxınlıqdan (dX < 0.65) keçibsə:
           if (!spike.triggered && dX < 0.65) {
             spikeEvasionOccurred = true;
-            const reward = 1000;
-            this.totalCreditsEarned += reward;
-            this._addAlert(`⚡ SPIKE EVASION! +$${reward}`, '#00f5ff', 2.2);
+            const reward = this.options.spikeEvasionReward;
+            this._pay(reward, 'spike_evasion', `SPIKE EVASION! +$${reward}`, '#00f5ff', 2.2, 'credits');
             this._dispatch('onSpikeEvasion', { spikeId: spike.id, reward });
-            this._dispatch('onAudioEvent', { cue: 'spike_evasion' });
+            this._audio('spike_evasion', { reward });
           }
         }
       }
 
-      // ----------------------------------------------------------------------
-      // C. MÜLKİ MAŞINLARLA TOQQUŞMA VƏ NEAR-MISS
-      // ----------------------------------------------------------------------
-      for (let i = 0; i < this.trafficUnits.length; i++) {
-        const civ = this.trafficUnits[i];
-        if (civ.isWrecked) continue;
+      // C. Civilians + near miss
+      if (this.options.trafficEnabled) {
+        for (let i = 0; i < this.trafficUnits.length; i++) {
+          const civ = this.trafficUnits[i];
+          if (civ.isWrecked) continue;
+          const dXm = Math.abs(p.x - civ.x) * roadHalf;
+          const dZm = Math.abs(p.z - civ.z) / UNITS_PER_METER;
+          const gapX = dXm - (pHalfW + civ.contactHalfW);
+          const gapZ = dZm - (pHalfL + civ.contactHalfL);
 
-        const civHitW = civ.hitboxW || civ.width || 0.28;
-        const civHitL = civ.hitboxL || civ.length || 12.0;
-        const dX = Math.abs(player.x - civ.x);
-        const dZ = Math.abs(player.z - civ.z);
-
-        // Toqquşma
-        if (dX < (playerHitW + civHitW) * 0.5 && dZ < (playerHitL + civHitL) * 0.5) {
-          civ.isWrecked = true;
-          civ.wreckSpinSpeed = randRange(10, 18) * (civ.x > player.x ? 1 : -1);
-          civ.wreckSlideVx = (civ.x > player.x ? 1 : -1) * randRange(1.2, 2.4);
-          player.speed = Math.max(60, (player.speed || 180) * 0.65);
-          screenShake = Math.max(screenShake, 15);
-          this._emitSparkShower((player.x + civ.x) * 0.5, player.z, 40);
-          this._dispatch('onAudioEvent', { cue: 'traffic_crash' });
-        }
-        // Near-Miss (Təhlükəli Yaxın Ötmə Bonusu)
-        else if (dX < 0.32 && dZ < 15.0 && (player.speed || 0) > 200 && !civ.nearMissAwarded) {
-          civ.nearMissAwarded = true;
-          this.totalCreditsEarned += 150;
-          this._addAlert('⚡ NEAR MISS! +$150', '#00f5ff', 1.2);
-          this._dispatch('onAudioEvent', { cue: 'near_miss' });
+          if (gapX < 0 && gapZ < 0) {
+            civ.isWrecked = true;
+            civ.wreckSpinSpeed = randRange(10, 18) * (civ.x > p.x ? 1 : -1);
+            civ.wreckSlideVx = (civ.x > p.x ? 1 : -1) * randRange(1.2, 2.4);
+            speedScale = Math.min(speedScale, 0.65);
+            screenShake = Math.max(screenShake, 15);
+            this._emitSparkShower((p.x + civ.x) * 0.5, p.z, 40);
+            this._audio('traffic_crash', { id: civ.id });
+          } else if (!civ.nearMissAwarded && p.speed > 200 && gapX < 1.2 && gapZ < 4.0) {
+            civ.nearMissAwarded = true;
+            const reward = this.options.nearMissReward;
+            this._pay(reward, 'near_miss', `NEAR MISS! +$${reward}`, '#00f5ff', 1.2, 'credits');
+            this._audio('near_miss', { id: civ.id, reward });
+          }
         }
       }
 
-      return { screenShake, takedownOccurred, spikeEvasionOccurred };
+      return { screenShake, takedownOccurred, spikeEvasionOccurred, speedScale, lateralPush };
+    }
+
+    // ========================================================================
+    // 10b. BUSTED (fail state)
+    // ========================================================================
+    _updateBusted(dt, player) {
+      const opt = this.options;
+      const speed = player.speed || 0;
+      let cop = null;
+      if (this.heatLevel >= opt.bustedMinHeat && speed < opt.bustedSpeedKmh) {
+        for (let i = 0; i < this.policeUnits.length; i++) {
+          const u = this.policeUnits[i];
+          if (u.isWrecked || u.role === 'blockade') continue;
+          if (Math.abs(u.z - player.z) / UNITS_PER_METER < opt.bustedContactRadius &&
+              Math.abs(u.x - player.x) * opt.roadHalfWidthM < 4.5) { cop = u; break; }
+        }
+      }
+      if (cop) {
+        this.bustedTimer += dt;
+        if (!this.bustWarned) {
+          this.bustWarned = true;
+          this._addAlert('SURROUNDED! KEEP MOVING OR GET BUSTED!', '#ff0033', 2.5, 'warning');
+          this._audio('bust_warning', { time: opt.bustedTime });
+        }
+        if (this.bustedTimer >= opt.bustedTime) {
+          this.busted = true;
+          this.bustedProgress = 1;
+          const info = {
+            heat: this.heatLevel,
+            peakHeat: this.peakHeat,
+            takedowns: this.totalTakedowns,
+            credits: this.sessionCredits,
+            time: this.time
+          };
+          this._addAlert('BUSTED!', '#ff0033', 6.0, 'busted');
+          this._audio('busted', info);
+          this._dispatch('onBusted', info);
+          return;
+        }
+      } else {
+        this.bustedTimer = Math.max(0, this.bustedTimer - dt * 1.5);
+        if (this.bustedTimer === 0) this.bustWarned = false;
+      }
+      this.bustedProgress = clamp(this.bustedTimer / opt.bustedTime, 0, 1);
     }
 
     // ========================================================================
@@ -1284,14 +1463,18 @@
       }
     }
 
-    _addAlert(text, color = '#ffffff', duration = 2.0) {
-      this.activeAlerts.push({
+    _addAlert(text, color = '#ffffff', duration = 2.0, kind = 'info') {
+      const alert = {
         id: getUniqueId('alert'),
         text,
+        kind,
         color,
         duration,
         timeRemaining: duration
-      });
+      };
+      this.activeAlerts.push(alert);
+      if (this.activeAlerts.length > 8) this.activeAlerts.shift();
+      this._dispatch('onAlert', { text, kind, color, duration });
     }
 
     _updateAlerts(dt) {
@@ -1308,25 +1491,34 @@
     // 12. OBYEKTLƏRİN TƏMİZLƏNMƏSİ (Culling)
     // ========================================================================
     _cullOffscreenEntities(playerZ) {
-      // Arxada çox uzaqda qalan (> 400m) və ya qabaqda çox uzaqda olanları silirik
+      const o = this.options;
+      const behind = M(o.cullBehind), fadeFrom = M(o.fadeStart), ahead = M(o.cullAhead);
+      // Cops fade out over (fadeStart..cullBehind) metres behind so they never pop.
       this.policeUnits = this.policeUnits.filter(cop => {
         const dZ = cop.z - playerZ;
-        return dZ > -350 && dZ < 1500;
+        if (dZ > ahead) return false;
+        if (cop.type === 'swat_rhino' && dZ < -M(80)) return false; // oncoming unit that has passed
+        if (dZ < -behind) return false;
+        if (cop.isWrecked && cop.fade <= 0) return false;
+        if (dZ < -fadeFrom) cop.fade = Math.min(cop.fade, clamp(1 - (-dZ - fadeFrom) / (behind - fadeFrom), 0, 1));
+        return true;
       });
 
       this.trafficUnits = this.trafficUnits.filter(car => {
         const dZ = car.z - playerZ;
-        return dZ > -300 && dZ < 1200;
+        return dZ > -M(150) && dZ < M(500);
       });
 
-      this.spikeStrips = this.spikeStrips.filter(s => {
-        const dZ = s.z - playerZ;
-        return dZ > -150 && dZ < 1600;
+      this.spikeStrips = this.spikeStrips.filter(sp => {
+        const dZ = sp.z - playerZ;
+        const keep = dZ > -M(60) && dZ < M(900);
+        if (!keep) this.spikesPassedIds.delete(sp.id);   // no unbounded growth (security #9)
+        return keep;
       });
 
-      this.roadblocks = this.roadblocks.filter(b => {
-        const dZ = b.z - playerZ;
-        return dZ > -200 && dZ < 1800;
+      this.roadblocks = this.roadblocks.filter(r => {
+        const dZ = r.z - playerZ;
+        return dZ > -M(100) && dZ < M(900);
       });
     }
 
@@ -1477,6 +1669,7 @@
       const h = Math.max(8, w * (cop.type === 'swat_rhino' ? 0.65 : 0.46));
 
       ctx.save();
+      ctx.globalAlpha = cop.fade === undefined ? 1 : clamp(cop.fade, 0, 1);
       ctx.translate(p.x, p.y);
 
       // Qəzaya uğrayıbsa fırlanma bucağı
@@ -1746,14 +1939,29 @@
     // ========================================================================
     // 14. HADİSƏLƏRİN DİSPETÇERİ (Event Dispatcher)
     // ========================================================================
-    _dispatch(eventName, data) {
-      if (typeof this.options[eventName] === 'function') {
-        try {
-          this.options[eventName](data);
-        } catch (err) {
-          console.error(`[NeonPursuitAI] Event error in ${eventName}:`, err);
-        }
+    /**
+     * Calls the callback given in constructor options AND the one assigned as a property
+     * (ai.onAudioEvent = fn, as racer_audio.connectToAI does). If both exist both are called.
+     */
+    _dispatch(eventName, ...args) {
+      const a = this.options[eventName];
+      const b = this[eventName];
+      if (typeof a === 'function') this._safeCall(eventName, a, args);
+      if (typeof b === 'function' && b !== a) this._safeCall(eventName, b, args);
+    }
+
+    _safeCall(name, fn, args) {
+      try {
+        fn.apply(this, args);
+      } catch (err) {
+        console.error(`[NeonPursuitAI] Event error in ${name}:`, err);
       }
+    }
+
+    /** onAudioEvent(cue, data). data always carries .cue as well. */
+    _audio(cue, data) {
+      const d = Object.assign({ cue }, data || {});
+      this._dispatch('onAudioEvent', cue, d);
     }
   }
 
@@ -1763,7 +1971,8 @@
   const ExportModule = {
     NeonPursuitAI,
     HEAT_CONFIG,
-    ARCHETYPES
+    ARCHETYPES,
+    UNITS_PER_METER
   };
 
   if (typeof window !== 'undefined') {

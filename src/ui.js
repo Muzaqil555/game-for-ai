@@ -82,6 +82,7 @@
       this._bindEvents();
       this._initMinimap();
       this._initTouchControls();
+      this.refreshContinueButton();
 
       // Audio statusunu ilkin yoxla
       this.updateAudioButtonState();
@@ -247,6 +248,33 @@
     _bindEvents: function () {
       var self = this;
 
+      // 0. Touch detection (used to place canvas cards clear of the touch controls)
+      window.addEventListener('touchstart', function () { self._touchSeen = true; }, { passive: true, capture: true });
+      window.addEventListener('mousemove', function (e) { if (e.sourceCapabilities && !e.sourceCapabilities.firesTouchEvents) self._touchSeen = false; }, { passive: true });
+
+      // 0b. Quest tracker: tap / click / Enter / Space expands the full list
+      var qt = this.dom.questTracker;
+      if (qt) {
+        var toggleQuests = function () {
+          var on = !qt.classList.contains('expanded');
+          qt.classList.toggle('expanded', on);
+          qt.setAttribute('aria-expanded', on ? 'true' : 'false');
+          qt.setAttribute('aria-label', on ? 'Aktiv tapşırıqlar, yığmaq üçün toxun' : 'Aktiv tapşırıqlar, genişlətmək üçün toxun');
+        };
+        qt.addEventListener('click', function (e) {
+          toggleQuests();
+          // keep Space / Enter free for the game after a mouse or touch tap
+          if (e.detail > 0 && qt.blur) qt.blur();
+        });
+        qt.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleQuests();
+          }
+        });
+      }
+
       // 1. Ana Menyu Düymələri
       if (this.dom.btnNewGame) {
         this.dom.btnNewGame.addEventListener('click', function () {
@@ -330,12 +358,13 @@
               if (window.GameAudio) window.GameAudio.playSFX('chest');
               self.showNotification(
                 'GÜNDƏLİK MÜKAFAT ALINDI!',
-                '+' + bonus.gold + ' Qızıl, +' + bonus.crystals + ' Astral Kristal qazandınız!',
+                '+' + bonus.rewardGold + ' Qızıl, +' + bonus.rewardCrystals + ' Astral Kristal qazandınız!',
                 'bonus'
               );
               self.dom.btnDailyBonus.classList.add('claimed');
               self.dom.btnDailyBonus.setAttribute('disabled', 'true');
-              self.dom.btnDailyBonus.querySelector('.btn-label').textContent = 'Mükafat Alındı ✓';
+              // Menyuda HUD gizlidir: nəticəni düymənin üzərində göstər
+              self.dom.btnDailyBonus.querySelector('.btn-label').textContent = 'Mükafat Alındı ✓ (+' + bonus.rewardGold + ' Qızıl, +' + bonus.rewardCrystals + ' Kristal)';
             } else {
               self.showNotification('MÜKAFAT ARTIQ ALINIB', 'Növbəti gün yenidən cəhd edin.', 'warning');
             }
@@ -482,7 +511,9 @@
         this.dom.btnGameOverRestart.addEventListener('click', function () {
           self._playClickSound();
           self.dom.modalGameOver.classList.add('hidden');
-          if (self.callbacks.onRestart) {
+          if (self._gameOverIsDefeat && self.callbacks.onDefeatContinue) {
+            self.callbacks.onDefeatContinue();
+          } else if (self.callbacks.onRestart) {
             self.callbacks.onRestart();
           } else if (window.GameEngine && window.GameEngine.startNewGame) {
             window.GameEngine.startNewGame();
@@ -543,70 +574,63 @@
         else if (e.code === 'KeyT') self.closeOtherPanels('talents');
       }, true);
 
-      // 9. Klaviatura Qısayolları (Esc -> Pauza, B -> Mağaza, F -> Qarşılıqlı Əlaqə)
+      // 9. Klaviatura: yalnız dialoq irəliləməsi burada. Esc, B, 1-4, R, C, M, F oyun hərəkətləri
+      // GameEngine-in tək keydown yolundan keçir (çoxlu dinləyici yoxdur).
       window.addEventListener('keydown', function (e) {
-        // Dialoq aktivdirsə Space və ya Enter ilə irəlilə
         if (self.activeDialogue && (e.code === 'Space' || e.code === 'KeyF' || e.code === 'Enter')) {
           e.preventDefault();
           self._advanceDialogue();
-          return;
-        }
-
-        if (e.code === 'Escape') {
-          // Əgər açıq modal varsa, onu bağla, yoxdursa pauzanı aç/bağla
-          if (self.dom.modalShop && !self.dom.modalShop.classList.contains('hidden')) {
-            self.toggleShopModal(false);
-          } else if (self.dom.modalControls && !self.dom.modalControls.classList.contains('hidden')) {
-            self.toggleControlsModal(false);
-          } else if (self.dom.modalRegionSelect && !self.dom.modalRegionSelect.classList.contains('hidden')) {
-            self.toggleRegionSelectModal(false);
-          } else if (self.dom.gameHud && !self.dom.gameHud.classList.contains('hidden')) {
-            // GameEngine öz keydown dinləyicisində PLAYING/PAUSED zamanı Escape-i idarə edir
-            if (!window.GameEngine || (window.GameEngine.state !== 'PLAYING' && window.GameEngine.state !== 'PAUSED')) {
-              var isPauseHidden = self.dom.modalPause.classList.contains('hidden');
-              self.togglePauseModal(isPauseHidden);
-              if (isPauseHidden) {
-                if (self.callbacks.onPauseGame) self.callbacks.onPauseGame();
-                else if (window.GameEngine && window.GameEngine.pauseGame) window.GameEngine.pauseGame();
-              } else {
-                if (self.callbacks.onResumeGame) self.callbacks.onResumeGame();
-                else if (window.GameEngine && window.GameEngine.resumeGame) window.GameEngine.resumeGame();
-              }
-            }
-          }
-        } else if (e.code === 'KeyB') {
-          if (self.dom.gameHud && !self.dom.gameHud.classList.contains('hidden')) {
-            // GameEngine PLAYING rejimində KeyB-ni artıq çağırır; ikiqat açılıb-bağlanmanın qarşısını al
-            if (!window.GameEngine || window.GameEngine.state !== 'PLAYING') {
-              self.toggleShopModal();
-            }
-          }
-        } else if (e.code === 'Digit1') {
-          if (self.dom.gameHud && !self.dom.gameHud.classList.contains('hidden')) {
-            self.switchWeapon(1);
-          }
-        } else if (e.code === 'Digit2') {
-          if (self.dom.gameHud && !self.dom.gameHud.classList.contains('hidden')) {
-            self.switchWeapon(2);
-          }
-        } else if (e.code === 'Digit3') {
-          if (self.dom.gameHud && !self.dom.gameHud.classList.contains('hidden')) {
-            self.switchWeapon(3);
-          }
-        } else if (e.code === 'Digit4') {
-          if (self.dom.gameHud && !self.dom.gameHud.classList.contains('hidden')) {
-            self.switchWeapon(4);
-          }
-        } else if (e.code === 'KeyR') {
-          if (self.dom.gameHud && !self.dom.gameHud.classList.contains('hidden')) {
-            self.triggerUltimate();
-          }
-        } else if (e.code === 'KeyC') {
-          if (self.dom.gameHud && !self.dom.gameHud.classList.contains('hidden')) {
-            self.cycleCompanion();
-          }
         }
       });
+    },
+
+    /**
+     * Esc üçün: ən üstdəki açıq paneli bağlayır. Bir şey bağlandısa true qaytarır.
+     */
+    closeTopPanel: function () {
+      if (this.activeDialogue) {
+        this._closeDialogue();
+        return true;
+      }
+      if (this._isShopOpen()) {
+        this.toggleShopModal(false);
+        return true;
+      }
+      if (this.dom.modalControls && !this.dom.modalControls.classList.contains('hidden')) {
+        this.toggleControlsModal(false);
+        return true;
+      }
+      if (this.dom.modalRegionSelect && !this.dom.modalRegionSelect.classList.contains('hidden')) {
+        this.toggleRegionSelectModal(false);
+        return true;
+      }
+      if (this._isTalentsOpen() && typeof window.GameTalents.closeModal === 'function') {
+        window.GameTalents.closeModal();
+        return true;
+      }
+      if (this._isDailyOpen() && typeof window.GameDaily.togglePanel === 'function') {
+        window.GameDaily.togglePanel();
+        return true;
+      }
+      return false;
+    },
+
+    isPauseModalOpen: function () {
+      return !!(this.dom.modalPause && !this.dom.modalPause.classList.contains('hidden'));
+    },
+
+    /**
+     * "Davam Et" yalnız davam ediləcək qaçış varsa görünür
+     */
+    refreshContinueButton: function () {
+      var btn = this.dom.btnContinue;
+      if (!btn) return;
+      var prog = window.GameProgression;
+      var has = !!(prog && typeof prog.hasContinuableRun === 'function' && prog.hasContinuableRun());
+      btn.style.display = has ? '' : 'none';
+      btn.setAttribute('aria-hidden', has ? 'false' : 'true');
+      if (has) btn.removeAttribute('disabled');
+      else btn.setAttribute('disabled', 'true');
     },
 
     /**
@@ -723,21 +747,14 @@
           function (e) {
             e.preventDefault();
             el.classList.add('active');
+            // Tək yol: onTouchAction (mühərrik triggerAction çağırır); yoxdursa birbaşa mühərrik
             if (self.callbacks.onTouchAction) {
               self.callbacks.onTouchAction(actionKey, true);
+            } else if (window.GameEngine && window.GameEngine.triggerAction) {
+              window.GameEngine.triggerAction(engineActionKey);
             }
-            if (actionKey === 'ult') {
-              self.triggerUltimate();
-            } else if (actionKey === 'comp') {
-              self.cycleCompanion();
-            }
-            if (window.GameEngine) {
-              if (window.GameEngine.handleVirtualButton) {
-                window.GameEngine.handleVirtualButton(actionKey, true);
-              }
-              if (window.GameEngine.triggerAction) {
-                window.GameEngine.triggerAction(engineActionKey);
-              }
+            if (window.GameEngine && window.GameEngine.handleVirtualButton) {
+              window.GameEngine.handleVirtualButton(actionKey, true);
             }
           },
           { passive: false }
@@ -800,6 +817,7 @@
      * Ana Menyu görünüşü
      */
     showMenu: function () {
+      this.refreshContinueButton();
       if (this.dom.mainMenu) this.dom.mainMenu.classList.remove('hidden');
       if (this.dom.gameHud) this.dom.gameHud.classList.add('hidden');
       if (this.dom.modalPause) this.dom.modalPause.classList.add('hidden');
@@ -869,6 +887,36 @@
       var sum = window.GameDaily.getSummary();
       return !!(sum && sum.isPanelOpen);
     },
+    // Phones: the canvas mission/bounty card is drawn at the bottom-left, under the DOM hotbar and
+    // touch buttons. Wrap it once: skip it on narrow touch screens (the quest tracker lists the same
+    // mission and expands on tap) and lift it above the weapon bar on wider touch screens.
+    _isTouchLayout: function () {
+      try {
+        return !!(this._touchSeen || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches));
+      } catch (e) { return false; }
+    },
+    _topOfDom: function (sel, fallback) {
+      var el = document.querySelector(sel);
+      if (!el) return fallback;
+      var r = el.getBoundingClientRect();
+      return r.height > 0 ? r.top : fallback;
+    },
+    _patchMissionCard: function () {
+      var M = window.GameMissions;
+      if (!M || M.__uiPatched || typeof M._renderTopRightMissionCard !== 'function') return;
+      M.__uiPatched = true;
+      var orig = M._renderTopRightMissionCard;
+      var ui = this;
+      M._renderTopRightMissionCard = function (ctx, w, h) {
+        if (!ui._isTouchLayout()) return orig.call(this, ctx, w, h);
+        if (w <= 600) return;
+        var origY = Math.max(300, h - 330);
+        var ty = Math.max(230, Math.min(origY, ui._topOfDom('.weapons-panel', h - 276) - 176));
+        ctx.save();
+        ctx.translate(0, ty - origY);
+        try { return orig.call(this, ctx, w, h); } finally { ctx.restore(); }
+      };
+    },
     // Close every modal panel except `keep` ('shop' | 'talents' | 'daily' | undefined)
     closeOtherPanels: function (keep) {
       if (keep !== 'shop' && this._isShopOpen()) this.dom.modalShop.classList.add('hidden');
@@ -881,8 +929,19 @@
     _syncPanelState: function (nowMs) {
       if (nowMs - this._lastPanelSync < 120) return;
       this._lastPanelSync = nowMs;
-      var open = this._isShopOpen() || this._isTalentsOpen() || this._isDailyOpen();
+      var daily = this._isDailyOpen();
+      var open = this._isShopOpen() || this._isTalentsOpen() || daily;
       setCls(this.dom.gameHud, 'panel-open', open);
+      // The canvas daily panel is drawn under the DOM HUD: also fade the hero card and touch controls.
+      setCls(this.dom.gameHud, 'daily-open', daily);
+      this._patchMissionCard();
+      // Belt and braces for QA #11: keep the shop header currencies in sync with the live state.
+      if (this._isShopOpen() && window.GameProgression && window.GameProgression.state) {
+        var ps = window.GameProgression.state;
+        var g = String(ps.gold || 0), c = String(ps.crystals || 0);
+        if (this.dom.shopGold && this.dom.shopGold.textContent !== g) this.dom.shopGold.textContent = g;
+        if (this.dom.shopCrystals && this.dom.shopCrystals.textContent !== c) this.dom.shopCrystals.textContent = c;
+      }
     },
 
     toggleShopModal: function (forceState) {
@@ -1234,9 +1293,17 @@
       if (!this.dom.modalGameOver) return;
 
       stats = stats || {};
-      var kills = stats.kills || 0;
-      var goldEarned = stats.gold || 0;
+      var toInt = function (v) {
+        return Number.isFinite(Number(v)) ? Math.max(0, Math.floor(Number(v))) : 0;
+      };
+      var safeKills = toInt(stats.kills);
+      var safeGold = toInt(stats.gold);
+      var safeSouls = toInt(stats.souls);
+      var safePenalty = toInt(stats.penalty);
+      var totalSec = toInt(stats.timeSec);
+      var timeStr = Math.floor(totalSec / 60) + ':' + ('0' + (totalSec % 60)).slice(-2);
       var regionTitle = stats.regionName || 'Aetheria Səltənəti';
+      this._gameOverIsDefeat = !isVictory && stats.canContinue === true;
 
       if (isVictory) {
         if (this.dom.gameOverTitle) {
@@ -1246,6 +1313,8 @@
         if (this.dom.gameOverSubtitle) {
           this.dom.gameOverSubtitle.textContent = 'Bütün kölgə hökmranları məğlub edildi və qədim torpaqlara dinclik gəldi!';
         }
+        if (this.dom.btnGameOverRestart) this.dom.btnGameOverRestart.textContent = 'Yenidən Başla';
+        if (this.dom.btnGameOverMenu) this.dom.btnGameOverMenu.textContent = 'Ana Menyu';
         if (window.GameAudio) window.GameAudio.playSFX('levelUp');
       } else {
         if (this.dom.gameOverTitle) {
@@ -1253,19 +1322,35 @@
           this.dom.gameOverTitle.className = 'gameover-title defeat-text';
         }
         if (this.dom.gameOverSubtitle) {
-          this.dom.gameOverSubtitle.textContent = 'Ruhun qədim obelisklərin yanında yenidən oyanmaq üçün güc toplayır.';
+          this.dom.gameOverSubtitle.textContent = this._gameOverIsDefeat
+            ? 'Ruhun hələ də qəhrəmanın bədəninə qayıda bilər, amma kölgələr bu qaçışın qızılından pay alacaq.'
+            : 'Ruhun qədim obelisklərin yanında yenidən oyanmaq üçün güc toplayır.';
         }
+        if (this.dom.btnGameOverRestart) {
+          this.dom.btnGameOverRestart.textContent = this._gameOverIsDefeat
+            ? 'Davam Et (−' + safePenalty + ' Qızıl)'
+            : 'Yenidən Diril / Başla';
+        }
+        if (this.dom.btnGameOverMenu) this.dom.btnGameOverMenu.textContent = 'Ana Menyuya Qayıt';
         if (window.GameAudio) window.GameAudio.playSFX('playerHurt');
       }
 
       if (this.dom.gameOverStats) {
-        var safeKills = Number.isFinite(Number(kills)) ? Math.max(0, Math.floor(Number(kills))) : 0;
-        var safeGold = Number.isFinite(Number(goldEarned)) ? Math.max(0, Math.floor(Number(goldEarned))) : 0;
-        this.dom.gameOverStats.innerHTML = `
-          <div class="stat-row"><span>Bölgə:</span> <strong>${escapeHtml(regionTitle)}</strong></div>
-          <div class="stat-row"><span>Məhv Edilən Bədheybətlər:</span> <strong>${escapeHtml(safeKills)}</strong></div>
-          <div class="stat-row"><span>Toplanan Xəzinə:</span> <strong>${escapeHtml(safeGold)} Qızıl</strong></div>
-        `;
+        var rows = '' +
+          '<div class="stat-row stat-region"><span>Bölgə:</span> <strong>' + escapeHtml(regionTitle) + '</strong></div>' +
+          '<div class="stat-row"><span>Məhv Edilən Bədheybətlər:</span> <strong>' + escapeHtml(safeKills) + '</strong></div>' +
+          '<div class="stat-row"><span>Qaçış Vaxtı:</span> <strong>' + escapeHtml(timeStr) + '</strong></div>';
+        if (stats.bestRank !== undefined) {
+          rows += '<div class="stat-row"><span>Ən Yaxşı Kombo Dərəcəsi:</span> <strong>' + escapeHtml(stats.bestRank || '—') + '</strong></div>';
+        }
+        rows += '<div class="stat-row"><span>Toplanan Xəzinə:</span> <strong>' + escapeHtml(safeGold) + ' Qızıl</strong></div>';
+        if (stats.souls !== undefined) {
+          rows += '<div class="stat-row"><span>Qazanılan Ruh Daşı:</span> <strong>' + escapeHtml(safeSouls) + ' 💠</strong></div>';
+        }
+        if (this._gameOverIsDefeat) {
+          rows += '<div class="stat-row stat-penalty"><span>Davam üçün itki (25%):</span> <strong>−' + escapeHtml(safePenalty) + ' Qızıl</strong></div>';
+        }
+        this.dom.gameOverStats.innerHTML = rows;
       }
 
       this.dom.modalGameOver.classList.remove('hidden');

@@ -316,36 +316,11 @@
         }
       }
 
-      // Klaviatura qısayolları (1, 2, 3, 4 düymələri ilə dərhal silah dəyişmə)
-      if (!this._hasBoundInput && typeof window !== 'undefined') {
-        this._bindInputListeners();
-        this._hasBoundInput = true;
-      }
+      // 1-4 düymələri GameEngine tərəfindən idarə olunur (tək giriş yolu)
 
       this.isInitialized = true;
       console.log('⚔️ [GameRelics] Silah Arsenalı və 12 Roguelike Relikt sistemi aktivləşdirildi.');
       return this;
-    },
-
-    /**
-     * Klaviatura dinləyicisi (1-4 düymələri)
-     */
-    _bindInputListeners: function () {
-      window.addEventListener('keydown', (e) => {
-        // Əgər istifadəçi input sahəsində yazırsa və ya dialoq açıqdırsa keç
-        const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
-        if (tag === 'input' || tag === 'textarea') return;
-
-        if (e.code === 'Digit1' || e.key === '1') {
-          this.switchWeapon(1);
-        } else if (e.code === 'Digit2' || e.key === '2') {
-          this.switchWeapon(2);
-        } else if (e.code === 'Digit3' || e.key === '3') {
-          this.switchWeapon(3);
-        } else if (e.code === 'Digit4' || e.key === '4') {
-          this.switchWeapon(4);
-        }
-      });
     },
 
     /**

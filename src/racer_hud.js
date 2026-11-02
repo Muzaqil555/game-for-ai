@@ -27,6 +27,17 @@
     gridLine: 'rgba(148, 163, 184, 0.16)'
   };
 
+  const HEAT_NAMES = {
+    1: 'LOCAL PATROL',
+    2: 'STATE PURSUIT',
+    3: 'ROADBLOCK TACTICS',
+    4: 'AIR MOBILIZATION',
+    5: 'MAXIMUM ESCALATION'
+  };
+
+  const ALERT_MIN_SHOW_MS = 600;
+  const ALERT_QUEUE_MAX = 3;
+
   const REDLINE_RPM = 7500;
   const MAX_RPM = 9000;
 
@@ -92,11 +103,14 @@
       this._cacheDOMElements();
       this._initCanvases();
       this._bindTouchControls();
+      this._buildOverlays();
 
       this.initialized = true;
 
-      // Start internal 60-120 FPS render loop for gauges & mirrors
-      requestAnimationFrame(this._renderTick.bind(this));
+      // Start internal 60-120 FPS render loop for gauges & mirrors.
+      // The tick is bound exactly once (not per frame).
+      this._tick = this._renderTick.bind(this);
+      requestAnimationFrame(this._tick);
       console.log('⚡ [NeonHUD] Performance Digital Cockpit initialized.');
     },
 
@@ -224,7 +238,14 @@
       if (data.rpm !== undefined) s.rpm = data.rpm;
       if (data.gear !== undefined) s.gear = data.gear;
       if (data.nitro !== undefined) s.nitro = Math.max(0, Math.min(1, data.nitro));
-      if (data.heatLevel !== undefined) s.heatLevel = data.heatLevel;
+      if (data.heatLevel !== undefined) {
+        if (this._lastHeatSeen !== undefined && data.heatLevel !== this._lastHeatSeen) {
+          this._announceHeat(data.heatLevel, this._lastHeatSeen, data.heatName);
+        }
+        this._lastHeatSeen = data.heatLevel;
+        s.heatLevel = data.heatLevel;
+      }
+      if (data.heatName !== undefined) s.heatName = data.heatName;
       if (data.heatPercent !== undefined) s.heatPercent = data.heatPercent;
       if (data.isDrifting !== undefined) s.isDrifting = data.isDrifting;
       if (data.driftAngle !== undefined) s.driftAngle = data.driftAngle;
@@ -243,6 +264,12 @@
     /**
      * Əsas 60-120 FPS Render Dövrü
      */
+    _setText: function (key, node, value, color) {
+      const c = this._c || (this._c = {});
+      if (c[key] !== value) { c[key] = value; node.textContent = value; }
+      if (color && c[key + 'C'] !== color) { c[key + 'C'] = color; node.style.color = color; }
+    },
+
     _renderTick: function (now) {
       const dt = Math.min((now - this.lastFrameTime) / 1000, 0.05);
       this.lastFrameTime = now;
@@ -257,7 +284,7 @@
       if (this.mirrorCtx) this._drawRearviewMirror(dt);
       if (this.radarCtx) this._drawRadar(dt);
 
-      requestAnimationFrame(this._renderTick.bind(this));
+      requestAnimationFrame(this._tick);
     },
 
     /**
@@ -266,99 +293,88 @@
     _updateDOMTelemetry: function () {
       const el = this.elements;
       const s = this.state;
+      const c = this._c || (this._c = {});
+      // Write to the DOM only when a value actually changed.
+      const text = (key, node, value) => {
+        if (node && c[key] !== value) { c[key] = value; node.textContent = value; }
+      };
+      const fmt = (n) => Math.round(n || 0).toLocaleString('en-US');
 
-      // 1. Digital Speedometer
-      if (el.digitalSpeedVal) {
-        el.digitalSpeedVal.textContent = Math.round(s.speed).toString();
-      }
-
-      // 2. RPM Text
-      if (el.digitalRpmVal) {
-        el.digitalRpmVal.textContent = Math.round(s.rpm).toLocaleString() + ' RPM';
-      }
-
-      // 3. Gear Indicator
+      text('speed', el.digitalSpeedVal, Math.round(s.speed).toString());
+      text('rpm', el.digitalRpmVal, fmt(s.rpm) + ' RPM');
       if (el.gearIndicator && s.gear !== this.lastGear) {
         el.gearIndicator.textContent = s.gear;
         this.lastGear = s.gear;
       }
 
-      // 4. Redline Warning Flasher
       if (el.redlineFlasher) {
-        if (s.rpm >= REDLINE_RPM) {
-          el.redlineFlasher.classList.add('active');
-        } else {
-          el.redlineFlasher.classList.remove('active');
-        }
+        const on = s.rpm >= REDLINE_RPM;
+        if (c.redline !== on) { c.redline = on; el.redlineFlasher.classList.toggle('active', on); }
       }
 
-      // 5. Nitro Bar
       if (el.nitroBarFill) {
-        el.nitroBarFill.style.width = (s.nitro * 100).toFixed(1) + '%';
+        const w = (s.nitro * 100).toFixed(0) + '%';
+        if (c.nitro !== w) { c.nitro = w; el.nitroBarFill.style.width = w; }
       }
 
-      // 6. Heat Level & Stars
-      if (el.heatValTag) {
-        el.heatValTag.textContent = 'HEAT ' + s.heatLevel;
+      // Heat: tier tag + continuous meter (heatPercent = progress inside the level)
+      const pct = Math.max(0, Math.min(100, Number(s.heatPercent) || 0));
+      const tier = s.heatName || HEAT_NAMES[s.heatLevel] || '';
+      text('heatTag', el.heatValTag, 'HEAT ' + s.heatLevel + ' \u00b7 ' + Math.round(pct) + '%');
+      if (el.heatPanel && c.heatTier !== tier) {
+        c.heatTier = tier;
+        el.heatPanel.title = tier;
       }
       if (el.heatMeterFill) {
-        el.heatMeterFill.style.width = (s.heatPercent || (s.heatLevel * 20)).toFixed(1) + '%';
+        const w = pct.toFixed(0) + '%';
+        if (c.heatW !== w) { c.heatW = w; el.heatMeterFill.style.width = w; }
       }
-      if (el.heatStars && el.heatStars.length > 0) {
+      if (el.heatPanel && c.heatLvl !== s.heatLevel) {
+        c.heatLvl = s.heatLevel;
+        el.heatPanel.dataset.heat = String(s.heatLevel);
+        if (el.heatStars && el.heatStars.length > 0) {
+          el.heatStars.forEach((star, idx) => {
+            star.classList.toggle('active', idx < s.heatLevel);
+            star.classList.toggle('danger', idx < s.heatLevel && s.heatLevel >= 4);
+          });
+        }
+      } else if (!el.heatPanel && el.heatStars && c.heatLvl !== s.heatLevel) {
+        c.heatLvl = s.heatLevel;
         el.heatStars.forEach((star, idx) => {
-          if (idx < s.heatLevel) {
-            star.classList.add('active');
-            if (s.heatLevel >= 4) {
-              star.classList.add('danger');
-            } else {
-              star.classList.remove('danger');
-            }
-          } else {
-            star.classList.remove('active', 'danger');
-          }
+          star.classList.toggle('active', idx < s.heatLevel);
+          star.classList.toggle('danger', idx < s.heatLevel && s.heatLevel >= 4);
         });
       }
 
-      // 7. Police Dispatch Text
       if (el.policeDispatch) {
         const textNode = el.policeDispatch.querySelector('.dispatch-text') || el.policeDispatch.children[1];
-        if (textNode) {
-          textNode.textContent = s.statusMessage;
-        }
+        text('dispatch', textNode, s.statusMessage);
       }
 
-      // 8. Drift Dynamics & Score & Live Newtonian G-Forces
       if (el.driftContainer) {
-        if (s.isDrifting || s.driftScore > 0 || Math.abs(parseFloat(s.lateralG || 0)) > 0.1) {
-          el.driftContainer.style.opacity = '1';
-        } else {
-          el.driftContainer.style.opacity = '0.75';
+        const lit = s.isDrifting || s.driftScore > 0 || Math.abs(parseFloat(s.lateralG || 0)) > 0.1;
+        if (c.driftLit !== lit) { c.driftLit = lit; el.driftContainer.style.opacity = lit ? '1' : '0.75'; }
+        if (c.driftActive !== !!s.isDrifting) {
+          c.driftActive = !!s.isDrifting;
+          el.driftContainer.classList.toggle('drifting', c.driftActive);
         }
-        if (el.driftMultTag) el.driftMultTag.textContent = s.driftMult.toFixed(1) + 'x';
-        if (el.driftScoreVal) el.driftScoreVal.textContent = Math.round(s.driftScore).toLocaleString();
-        if (el.driftAngleTag) el.driftAngleTag.textContent = Math.abs(Math.round(s.driftAngle)) + '° SLIP';
+        text('driftMult', el.driftMultTag, s.driftMult.toFixed(1) + 'x');
+        text('driftScore', el.driftScoreVal, fmt(s.driftScore));
+        text('driftAngle', el.driftAngleTag, Math.abs(Math.round(s.driftAngle)) + '\u00b0 SLIP');
 
         if (el.gForceTag) {
           const lat = parseFloat(s.lateralG || 0);
           const lon = parseFloat(s.longitudinalG || 0);
-          const latSign = lat >= 0 ? '+' : '';
-          const lonSign = lon >= 0 ? '+' : '';
-          el.gForceTag.textContent = `${latSign}${lat.toFixed(2)}G LAT • ${lonSign}${lon.toFixed(2)}G LONG`;
+          text('g', el.gForceTag, `${lat >= 0 ? '+' : ''}${lat.toFixed(2)}G LAT \u2022 ${lon >= 0 ? '+' : ''}${lon.toFixed(2)}G LONG`);
         }
-
         if (el.chassisAttitudeTag) {
           const roll = parseFloat(s.rollDeg || 0);
           const pitch = parseFloat(s.pitchDeg || 0);
-          const rSign = roll >= 0 ? '+' : '';
-          const pSign = pitch >= 0 ? '+' : '';
-          el.chassisAttitudeTag.textContent = `ROLL: ${rSign}${roll.toFixed(1)}° • PITCH: ${pSign}${pitch.toFixed(1)}°`;
+          text('att', el.chassisAttitudeTag, `ROLL: ${roll >= 0 ? '+' : ''}${roll.toFixed(1)}\u00b0 \u2022 PITCH: ${pitch >= 0 ? '+' : ''}${pitch.toFixed(1)}\u00b0`);
         }
       }
 
-      // 9. Career Credits
-      if (el.statCreditsVal) {
-        el.statCreditsVal.textContent = '$' + (s.credits || 0).toLocaleString();
-      }
+      text('credits', el.statCreditsVal, '$' + fmt(s.credits));
     },
 
     /**
@@ -610,11 +626,9 @@
       if (this.elements.mirrorStatus) {
         if (cops.length > 0) {
           const nearest = Math.round(cops[0].dist);
-          this.elements.mirrorStatus.textContent = `ALERT // PATROL PURSUIT CLOSING [${nearest}m]`;
-          this.elements.mirrorStatus.style.color = isRedCycle ? PALETTE.red : PALETTE.blue;
+          this._setText('mirror', this.elements.mirrorStatus, `PATROL CLOSING \u00b7 ${nearest} m`, isRedCycle ? PALETTE.red : PALETTE.blue);
         } else {
-          this.elements.mirrorStatus.textContent = 'AUTO-DIM ACTIVE // REAR SECTOR CLEAR';
-          this.elements.mirrorStatus.style.color = PALETTE.slate;
+          this._setText('mirror', this.elements.mirrorStatus, 'REAR CLEAR', PALETTE.slate);
         }
       }
     },
@@ -713,129 +727,469 @@
       // Radar Warning Ticker
       if (this.elements.radarWarningTicker) {
         if (radarData.roadblocks && radarData.roadblocks.length > 0 && radarData.roadblocks[0].dist < 100) {
-          this.elements.radarWarningTicker.textContent = 'ROADBLOCK AHEAD';
-          this.elements.radarWarningTicker.style.color = PALETTE.red;
+          this._setText('radar', this.elements.radarWarningTicker, 'ROADBLOCK AHEAD', PALETTE.red);
         } else {
-          this.elements.radarWarningTicker.textContent = 'TACTICAL GPS // SCANNING';
-          this.elements.radarWarningTicker.style.color = PALETTE.slate;
+          this._setText('radar', this.elements.radarWarningTicker, 'GPS SCANNING', PALETTE.slate);
         }
       }
     },
 
     /**
-     * 4. NOTIFICATION BANNERS & TAKEDOWNS
+     * 4. NOTIFICATIONS: one banner lane (major) + one toast lane (minor).
+     *    Each lane shows one alert at a time, never overlaps, newest wins
+     *    (subject to priority) and keeps a queue of at most 3.
      */
-    triggerTakedownBanner: function (title, subtitle) {
-      const banner = this.elements.takedownBanner;
-      if (!banner) return;
+    _buildOverlays: function () {
+      const el = this.elements;
+      const root = el.hudRoot || document.body;
+      const mk = (tag, cls, parent, txt) => {
+        const n = document.createElement(tag);
+        if (cls) n.className = cls;
+        if (txt !== undefined) n.textContent = txt;
+        if (parent) parent.appendChild(n);
+        return n;
+      };
 
-      if (this.elements.takedownTitle) this.elements.takedownTitle.textContent = title || 'CRUISER ELIMINATED';
-      if (this.elements.takedownSubtitle) this.elements.takedownSubtitle.textContent = subtitle || '+$1,500 BOUNTY';
+      // Alert stack: banner on top, toast underneath (flow layout = no overlap)
+      const stack = mk('div', 'hud-alert-stack', root);
+      stack.id = 'hud-alert-stack';
+      let banner = el.takedownBanner;
+      if (!banner) {
+        banner = mk('div', '', null);
+        banner.id = 'hud-takedown-banner';
+        el.takedownTitle = mk('div', 'takedown-title', banner, '');
+        el.takedownSubtitle = mk('div', 'takedown-subtitle', banner, '');
+        el.takedownBanner = banner;
+      }
+      stack.appendChild(banner);
+      banner.setAttribute('role', 'status');
+      banner.setAttribute('aria-live', 'polite');
+      banner.setAttribute('aria-atomic', 'true');
+      const toast = mk('div', 'hud-toast', stack);
+      toast.setAttribute('role', 'status');
+      toast.setAttribute('aria-live', 'polite');
+      this.toastEl = toast;
+      this.toastTextEl = mk('span', 'hud-toast-text', toast);
+      this.toastAmtEl = mk('span', 'hud-toast-amt', toast);
 
-      banner.classList.add('active');
+      this.lanes = {
+        major: { cur: null, queue: [], shownAt: 0, timer: 0, minTimer: 0 },
+        minor: { cur: null, queue: [], shownAt: 0, timer: 0, minTimer: 0 }
+      };
 
-      if (this.bannerTimer) clearTimeout(this.bannerTimer);
-      this.bannerTimer = setTimeout(() => {
-        banner.classList.remove('active');
-      }, 2600);
+      // Pause button (touch layer only; the layer is display:none on desktop)
+      const host = el.mobileLayer || document.body;
+      const pauseBtn = mk('button', 'hud-pause-btn', host, 'Ⅱ');
+      pauseBtn.type = 'button';
+      pauseBtn.setAttribute('aria-label', 'Pause');
+      pauseBtn.setAttribute('aria-pressed', 'false');
+      pauseBtn.addEventListener('click', () => {
+        this._callback('onPause', !this.paused);
+      });
+      this.pauseBtn = pauseBtn;
+
+      // Paused overlay
+      const pov = mk('div', 'hud-overlay hud-paused', document.body);
+      pov.id = 'hud-paused';
+      pov.hidden = true;
+      const pcard = mk('div', 'hud-card', pov);
+      pcard.setAttribute('role', 'dialog');
+      pcard.setAttribute('aria-modal', 'true');
+      pcard.setAttribute('aria-labelledby', 'hud-paused-title');
+      const pt = mk('h2', 'hud-card-title', pcard, 'PAUSED');
+      pt.id = 'hud-paused-title';
+      mk('p', 'hud-card-sub', pcard, 'Esc or P also resumes');
+      const pbtns = mk('div', 'hud-card-actions', pcard);
+      const bResume = mk('button', 'hud-btn hud-btn-primary', pbtns, 'Resume');
+      const bRestart = mk('button', 'hud-btn', pbtns, 'Restart');
+      const bGarage = mk('button', 'hud-btn', pbtns, 'Garage');
+      [bResume, bRestart, bGarage].forEach((b) => { b.type = 'button'; });
+      bResume.addEventListener('click', () => this._callback('onPause', false));
+      bRestart.addEventListener('click', () => { this.setPaused(false); this._callback('onRunAgain'); });
+      bGarage.addEventListener('click', () => { this.setPaused(false); this._callback('onGarage'); });
+      this.pausedEl = pov;
+      this.pausedResumeBtn = bResume;
+
+      // Run summary
+      const sov = mk('div', 'hud-overlay hud-summary', document.body);
+      sov.id = 'hud-summary';
+      sov.hidden = true;
+      const scard = mk('div', 'hud-card hud-summary-card', sov);
+      scard.setAttribute('role', 'dialog');
+      scard.setAttribute('aria-modal', 'true');
+      scard.setAttribute('aria-labelledby', 'hud-summary-title');
+      this.summaryTitle = mk('h2', 'hud-card-title', scard, 'RUN OVER');
+      this.summaryTitle.id = 'hud-summary-title';
+      this.summarySub = mk('p', 'hud-card-sub', scard, '');
+      const grid = mk('dl', 'hud-summary-grid', scard);
+      this.summaryVals = {};
+      [['duration', 'TIME'], ['takedowns', 'TAKEDOWNS'], ['peakHeat', 'PEAK HEAT'],
+        ['driftScore', 'SCORE'], ['creditsEarned', 'CREDITS EARNED'], ['bestScore', 'BEST SCORE']
+      ].forEach(([key, label]) => {
+        const row = mk('div', 'hud-summary-row', grid);
+        mk('dt', '', row, label);
+        this.summaryVals[key] = mk('dd', '', row, '-');
+      });
+      this.summaryNewBest = mk('p', 'hud-summary-newbest', scard, 'NEW BEST SCORE');
+      this.summaryNewBest.hidden = true;
+      const sbtns = mk('div', 'hud-card-actions', scard);
+      this.summaryAgainBtn = mk('button', 'hud-btn hud-btn-primary', sbtns, 'Run again');
+      this.summaryGarageBtn = mk('button', 'hud-btn', sbtns, 'Garage');
+      this.summaryAgainBtn.type = 'button';
+      this.summaryGarageBtn.type = 'button';
+      this.summaryAgainBtn.addEventListener('click', () => this._summaryAction('onRunAgain'));
+      this.summaryGarageBtn.addEventListener('click', () => this._summaryAction('onGarage'));
+      this.summaryEl = sov;
+      this.summaryOpen = false;
+
+      // While the summary is open the game must not see keystrokes (keyup still passes).
+      document.addEventListener('keydown', (e) => {
+        if (!this.summaryOpen) return;
+        e.stopPropagation();
+        const k = e.key;
+        if (k === 'Escape') { e.preventDefault(); this._summaryAction('onGarage'); }
+        else if (k === 'r' || k === 'R') { e.preventDefault(); this._summaryAction('onRunAgain'); }
+        else if (k === 'Tab' || k === 'ArrowLeft' || k === 'ArrowRight') {
+          e.preventDefault();
+          const a = this.summaryAgainBtn, g = this.summaryGarageBtn;
+          (document.activeElement === a ? g : a).focus();
+        } else if (k === ' ' || k === 'Enter') {
+          if (!(document.activeElement instanceof HTMLButtonElement)) {
+            e.preventDefault();
+            this._summaryAction('onRunAgain');
+          }
+        }
+      }, true);
+    },
+
+    ALERT_KINDS: {
+      busted:      { lane: 'major', pri: 100, dur: 3200 },
+      evaded:      { lane: 'major', pri: 75,  dur: 2800 },
+      takedown:    { lane: 'major', pri: 80,  dur: 2600 },
+      'heat-up':   { lane: 'major', pri: 70,  dur: 2400 },
+      chopper:     { lane: 'major', pri: 65,  dur: 2200 },
+      'heat-down': { lane: 'major', pri: 40,  dur: 2200 },
+      spike:       { lane: 'minor', pri: 50,  dur: 1800 },
+      'near-miss': { lane: 'minor', pri: 20,  dur: 1300 },
+      info:        { lane: 'minor', pri: 10,  dur: 1500 }
     },
 
     /**
-     * 5. ROBUST POINTER & MULTI-TOUCH CONTROLS (Zero Lag, Pointer Capture)
+     * Queue an alert. {text, kind, amount, sub, duration}
+     * kind: busted | evaded | takedown | heat-up | heat-down | chopper | spike | near-miss | info
+     * amount: credits (number) shown as "+$1,500".
+     */
+    pushAlert: function (a) {
+      if (!a || !this.lanes) return;
+      const kind = this.ALERT_KINDS[a.kind] ? a.kind : 'info';
+      const def = this.ALERT_KINDS[kind];
+      const amt = Number(a.amount);
+      const item = {
+        kind: kind,
+        text: String(a.text || '').toUpperCase(),
+        sub: a.sub ? String(a.sub) : '',
+        amount: isFinite(amt) ? amt : 0,
+        pri: def.pri,
+        dur: Number(a.duration) > 0 ? Number(a.duration) : def.dur,
+        count: 1,
+        t: performance.now()
+      };
+      const L = this.lanes[def.lane];
+      const now = performance.now();
+      const cur = L.cur;
+      if (cur && cur.kind === item.kind && cur.text === item.text && cur.sub === item.sub) {
+        cur.count++;
+        cur.amount += item.amount;
+        this._laneShow(def.lane, cur, true);
+        return;
+      }
+      if (!cur) { this._laneShow(def.lane, item); return; }
+      if (now - L.shownAt >= ALERT_MIN_SHOW_MS && item.pri >= cur.pri) {
+        this._laneShow(def.lane, item);
+        return;
+      }
+      L.queue.push(item);
+      while (L.queue.length > ALERT_QUEUE_MAX) {
+        let w = 0; // drop the weakest, oldest entry
+        for (let i = 1; i < L.queue.length; i++) {
+          if (L.queue[i].pri < L.queue[w].pri) w = i;
+        }
+        L.queue.splice(w, 1);
+      }
+      clearTimeout(L.minTimer);
+      L.minTimer = setTimeout(() => this._laneCheck(def.lane),
+        Math.max(0, ALERT_MIN_SHOW_MS - (now - L.shownAt)) + 5);
+    },
+
+    _laneBest: function (L) {
+      const now = performance.now();
+      L.queue = L.queue.filter((q) => now - q.t < 5000);
+      let b = -1;
+      for (let i = 0; i < L.queue.length; i++) {
+        const q = L.queue[i];
+        if (b < 0 || q.pri > L.queue[b].pri || (q.pri === L.queue[b].pri && q.t >= L.queue[b].t)) b = i;
+      }
+      return b;
+    },
+
+    _laneCheck: function (lane) {
+      const L = this.lanes[lane];
+      const b = this._laneBest(L);
+      if (b >= 0 && (!L.cur || L.queue[b].pri >= L.cur.pri)) {
+        this._laneShow(lane, L.queue.splice(b, 1)[0]);
+      }
+    },
+
+    _laneAdvance: function (lane) {
+      const L = this.lanes[lane];
+      L.cur = null;
+      const b = this._laneBest(L);
+      if (b >= 0) { this._laneShow(lane, L.queue.splice(b, 1)[0]); return; }
+      this._laneRender(lane, null);
+    },
+
+    _laneShow: function (lane, item, refreshOnly) {
+      const L = this.lanes[lane];
+      L.cur = item;
+      if (!refreshOnly) L.shownAt = performance.now();
+      clearTimeout(L.timer);
+      L.timer = setTimeout(() => this._laneAdvance(lane), item.dur);
+      this._laneRender(lane, item, refreshOnly);
+    },
+
+    _laneRender: function (lane, item, refreshOnly) {
+      const el = this.elements;
+      const money = item && item.amount ? '+$' + Math.round(item.amount).toLocaleString('en-US') : '';
+      if (lane === 'major') {
+        const b = el.takedownBanner;
+        if (!b) return;
+        if (!item) { b.classList.remove('active'); return; }
+        const title = item.text + (item.count > 1 ? ' x' + item.count : '');
+        const sub = item.sub && money ? item.sub + '  ' + money : (item.sub || money);
+        if (el.takedownTitle) el.takedownTitle.textContent = title;
+        if (el.takedownSubtitle) {
+          el.takedownSubtitle.textContent = sub;
+          el.takedownSubtitle.hidden = !sub;
+        }
+        b.dataset.kind = item.kind;
+        if (!refreshOnly) {
+          b.classList.remove('active');
+          void b.offsetWidth; // restart the pop-in transition
+        }
+        b.classList.add('active');
+      } else {
+        const t = this.toastEl;
+        if (!t) return;
+        if (!item) { t.classList.remove('active'); return; }
+        this.toastTextEl.textContent = item.text + (item.count > 1 ? ' x' + item.count : '') + (item.sub ? ' · ' + item.sub : '');
+        this.toastAmtEl.textContent = money;
+        t.dataset.kind = item.kind;
+        t.classList.add('active');
+      }
+    },
+
+    /** Legacy API: big banner with a title and a subtitle. */
+    triggerTakedownBanner: function (title, subtitle) {
+      const t = String(title || 'CRUISER ELIMINATED');
+      this.pushAlert({
+        kind: /BUSTED/i.test(t) ? 'busted' : 'takedown',
+        text: t,
+        sub: subtitle || ''
+      });
+    },
+
+    _announceHeat: function (level, prev, name) {
+      const tier = name || HEAT_NAMES[level] || '';
+      if (level > prev) {
+        this.pushAlert({ kind: 'heat-up', text: 'HEAT ' + level + ' · ' + tier, sub: 'PURSUIT ESCALATING' });
+      } else if (level < prev) {
+        this.pushAlert({ kind: 'heat-down', text: 'HEAT ' + level + ' · ' + tier, sub: 'COOLING DOWN' });
+      }
+    },
+
+    /** Clear alerts, summary and pause state. Call when a run (re)starts. */
+    reset: function () {
+      if (this.lanes) {
+        ['major', 'minor'].forEach((n) => {
+          const L = this.lanes[n];
+          clearTimeout(L.timer); clearTimeout(L.minTimer);
+          L.cur = null; L.queue = [];
+          this._laneRender(n, null);
+        });
+      }
+      this._lastHeatSeen = undefined;
+      this.hideSummary();
+      this.setPaused(false);
+      this._releaseAll();
+    },
+
+    /**
+     * setCallbacks({ onRunAgain(), onGarage(), onPause(wantPaused:boolean) })
+     */
+    setCallbacks: function (cbs) {
+      this.callbacks = Object.assign(this.callbacks || {}, cbs || {});
+    },
+
+    _callback: function (name, arg, override) {
+      const fn = (override && override[name]) || (this.callbacks && this.callbacks[name]);
+      if (typeof fn !== 'function') return;
+      try { fn(arg); } catch (err) { console.warn('[NeonHUD] callback ' + name + ' failed:', err); }
+    },
+
+    /** PAUSE INDICATOR */
+    setPaused: function (paused) {
+      paused = !!paused;
+      if (!!this.paused === paused || !this.pausedEl) return;
+      this.paused = paused;
+      this.pausedEl.hidden = !paused;
+      if (this.pauseBtn) {
+        this.pauseBtn.setAttribute('aria-pressed', String(paused));
+        this.pauseBtn.setAttribute('aria-label', paused ? 'Resume' : 'Pause');
+        this.pauseBtn.textContent = paused ? '▶' : 'Ⅱ';
+      }
+      if (paused) {
+        this._releaseAll();
+        this._prevFocus = document.activeElement;
+        if (this.pausedResumeBtn) this.pausedResumeBtn.focus();
+      } else {
+        const p = this._prevFocus;
+        this._prevFocus = null;
+        if (p && p !== document.body && document.contains(p) && typeof p.focus === 'function') p.focus();
+        else if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      }
+    },
+
+    /** RUN SUMMARY */
+    showSummary: function (d) {
+      if (!this.summaryEl) return;
+      d = d || {};
+      const busted = d.reason === 'busted';
+      this.summaryTitle.textContent = busted ? 'BUSTED' : 'RUN OVER';
+      this.summarySub.textContent = busted ? 'The pursuit caught you.' : 'You made it out.';
+      this.summaryEl.dataset.reason = busted ? 'busted' : 'ended';
+      const n = (v) => Math.round(Number(v) || 0).toLocaleString('en-US');
+      const secs = Math.max(0, Math.round(Number(d.duration) || 0));
+      const v = this.summaryVals;
+      v.duration.textContent = Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0');
+      v.takedowns.textContent = n(d.takedowns);
+      v.peakHeat.textContent = 'HEAT ' + n(d.peakHeat);
+      v.driftScore.textContent = n(d.driftScore);
+      v.creditsEarned.textContent = '+$' + n(d.creditsEarned);
+      v.bestScore.textContent = n(d.bestScore);
+      this.summaryNewBest.hidden = !d.newBest;
+      this._summaryOverrides = { onRunAgain: d.onRunAgain, onGarage: d.onGarage };
+      this.setPaused(false);
+      this._releaseAll();
+      if (!this.summaryOpen) this._summaryPrevFocus = document.activeElement;
+      this.summaryOpen = true;
+      this.summaryEl.hidden = false;
+      this.summaryAgainBtn.focus();
+    },
+
+    hideSummary: function () {
+      if (!this.summaryEl || !this.summaryOpen) return;
+      this.summaryOpen = false;
+      this.summaryEl.hidden = true;
+      const p = this._summaryPrevFocus;
+      this._summaryPrevFocus = null;
+      if (p && p !== document.body && document.contains(p) && p.focus) p.focus();
+      else if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    },
+
+    _summaryAction: function (name) {
+      const ov = this._summaryOverrides;
+      this.hideSummary();
+      this._callback(name, undefined, ov);
+    },
+
+    /**
+     * ROBUST POINTER & MULTI-TOUCH CONTROLS (Zero Lag, Pointer Capture)
      */
     _bindTouchControls: function () {
       const el = this.elements;
       const inputs = this.mobileInputs;
+      this._releasers = [];
+      const held = { left: false, right: false };
+      const syncSteer = () => { inputs.steer = (held.right ? 1 : 0) - (held.left ? 1 : 0); };
 
-      const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.innerWidth <= 900;
-      if (hasTouch && el.mobileLayer) {
-        el.mobileLayer.classList.add('active');
-      }
+      const warnOnce = (err) => {
+        if (this._warnedCapture) return;
+        this._warnedCapture = true;
+        console.warn('[NeonHUD] pointer capture unavailable:', err);
+      };
 
       const attachPointerEvents = (domElement, onDown, onUp) => {
         if (!domElement) return;
-
         let active = false;
 
-        const start = (e) => {
-          if (e.cancelable) e.preventDefault();
-          if (domElement.setPointerCapture && e.pointerId) {
-            try { domElement.setPointerCapture(e.pointerId); } catch (_) {}
-          }
+        const press = () => {
           active = true;
           domElement.classList.add('pressed');
           onDown();
         };
-
-        const stop = (e) => {
+        const release = () => {
           if (!active) return;
           active = false;
-          if (domElement.releasePointerCapture && e && e.pointerId) {
-            try { domElement.releasePointerCapture(e.pointerId); } catch (_) {}
-          }
           domElement.classList.remove('pressed');
           onUp();
         };
+        this._releasers.push(release);
 
-        domElement.addEventListener('pointerdown', start);
+        domElement.addEventListener('pointerdown', (e) => {
+          if (e.cancelable) e.preventDefault();
+          if (domElement.setPointerCapture && e.pointerId !== undefined) {
+            try { domElement.setPointerCapture(e.pointerId); } catch (err) { warnOnce(err); }
+          }
+          press();
+        });
+        const stop = (e) => {
+          if (e && e.type !== 'lostpointercapture' && domElement.releasePointerCapture && e.pointerId !== undefined) {
+            try { domElement.releasePointerCapture(e.pointerId); } catch (err) { warnOnce(err); }
+          }
+          release();
+        };
         domElement.addEventListener('pointerup', stop);
         domElement.addEventListener('pointercancel', stop);
-        domElement.addEventListener('pointerleave', stop);
         domElement.addEventListener('lostpointercapture', stop);
+        domElement.addEventListener('contextmenu', (e) => e.preventDefault());
 
-        // Fallbacks
-        domElement.addEventListener('touchstart', (e) => {
-          if (e.cancelable) e.preventDefault();
-          domElement.classList.add('pressed');
-          onDown();
-        }, { passive: false });
-
-        domElement.addEventListener('touchend', (e) => {
-          if (e.cancelable) e.preventDefault();
-          domElement.classList.remove('pressed');
-          onUp();
-        }, { passive: false });
-
-        domElement.addEventListener('touchcancel', () => {
-          domElement.classList.remove('pressed');
-          onUp();
-        }, { passive: false });
+        // Fallbacks for browsers without pointer events
+        domElement.addEventListener('touchstart', (e) => { if (e.cancelable) e.preventDefault(); press(); }, { passive: false });
+        domElement.addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); release(); }, { passive: false });
+        domElement.addEventListener('touchcancel', release, { passive: false });
       };
 
-      // 1. Gas Pedal
-      attachPointerEvents(el.pedalGas,
-        () => { inputs.throttle = 1.0; },
-        () => { inputs.throttle = 0; }
-      );
+      attachPointerEvents(el.pedalGas, () => { inputs.throttle = 1.0; }, () => { inputs.throttle = 0; });
+      attachPointerEvents(el.pedalBrake, () => { inputs.brake = 1.0; }, () => { inputs.brake = 0; });
+      attachPointerEvents(el.btnHandbrake, () => { inputs.handbrake = true; }, () => { inputs.handbrake = false; });
+      attachPointerEvents(el.btnNitro, () => { inputs.nitro = true; }, () => { inputs.nitro = false; });
+      attachPointerEvents(el.steerLeftBtn, () => { held.left = true; syncSteer(); }, () => { held.left = false; syncSteer(); });
+      attachPointerEvents(el.steerRightBtn, () => { held.right = true; syncSteer(); }, () => { held.right = false; syncSteer(); });
 
-      // 2. Brake Pedal
-      attachPointerEvents(el.pedalBrake,
-        () => { inputs.brake = 1.0; },
-        () => { inputs.brake = 0; }
-      );
+      // Never leave a control latched when the page loses focus
+      window.addEventListener('blur', () => this._releaseAll());
+      document.addEventListener('visibilitychange', () => { if (document.hidden) this._releaseAll(); });
 
-      // 3. Handbrake
-      attachPointerEvents(el.btnHandbrake,
-        () => { inputs.handbrake = true; },
-        () => { inputs.handbrake = false; }
-      );
+      // Touch layer follows the device/viewport instead of being decided once
+      const sync = () => {
+        if (!el.mobileLayer) return;
+        const touch = this._sawTouch || ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || window.innerWidth <= 900;
+        el.mobileLayer.classList.toggle('active', !!touch);
+      };
+      sync();
+      let pending = false;
+      window.addEventListener('resize', () => {
+        if (pending) return;
+        pending = true;
+        requestAnimationFrame(() => { pending = false; sync(); });
+      });
+      window.addEventListener('touchstart', () => {
+        if (!this._sawTouch) { this._sawTouch = true; sync(); }
+      }, { passive: true });
+    },
 
-      // 4. Nitro Boost
-      attachPointerEvents(el.btnNitro,
-        () => { inputs.nitro = true; },
-        () => { inputs.nitro = false; }
-      );
-
-      // 5. Steering Left & Right
-      attachPointerEvents(el.steerLeftBtn,
-        () => { inputs.steer = -1.0; },
-        () => { if (inputs.steer === -1.0) inputs.steer = 0; }
-      );
-
-      attachPointerEvents(el.steerRightBtn,
-        () => { inputs.steer = 1.0; },
-        () => { if (inputs.steer === 1.0) inputs.steer = 0; }
-      );
+    _releaseAll: function () {
+      if (this._releasers) this._releasers.forEach((r) => r());
     },
 
     /**

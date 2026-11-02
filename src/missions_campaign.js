@@ -298,25 +298,7 @@
       // 1. Ovçu Rütbəsi XP-ni localStorage-dən oxu
       this._loadPrestigeXP();
 
-      // 2. Klaviatura hadisələri dinləyicisi ([M] Bounty, [F] Shrine təhlükəsiz dinləyicisi)
-      if (typeof window !== 'undefined') {
-        window.addEventListener('keydown', (e) => {
-          // Input və ya textarea içində deyilsə
-          if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
-
-          // [M] düyməsi — Ovçu Müqaviləsini dərhal dəyiş və ya yenisini götür!
-          if (e.code === 'KeyM') {
-            this.cycleOrStartBounty(this._worldStateRef);
-          }
-
-          // [F] düyməsi — Ehtiyat olaraq yaxınlıqda Qurbangah varsa qarşılıqlı əlaqə qur
-          if (e.code === 'KeyF') {
-            if (this._worldStateRef && this._worldStateRef.player) {
-              this.tryInteract(this._worldStateRef.player, this._worldStateRef, null);
-            }
-          }
-        });
-      }
+      // 2. [M] Bounty və [F] Qurbangah düymələri GameEngine tərəfindən idarə olunur (tək giriş yolu)
 
       // 3. İlkin Ovçu Müqaviləsini işə sal
       this._startRandomBounty();

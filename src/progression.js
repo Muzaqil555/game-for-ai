@@ -349,9 +349,32 @@
     },
 
     /**
-     * Yaddaşı tam sıfırlama
+     * Yeni qaçış (run) üçün yalnız qaçışa aid vəziyyəti sıfırlayır.
+     * Qızıl, kristal, təkmilləşdirmələr, skinlər, nailiyyətlər, statistika və gündəlik mükafat saxlanılır.
+     */
+    resetRun() {
+      const defaults = createInitialState();
+      this.state.level = defaults.level;
+      this.state.xp = defaults.xp;
+      this.state.xpToNext = defaults.xpToNext;
+      this.state.currentRegion = defaults.currentRegion;
+      this.save();
+      return this.state;
+    },
+
+    /**
+     * Köhnə ad: indi yalnız qaçışı sıfırlayır, daimi irəliləyişə toxunmur.
+     * Tam silmə üçün resetAllProgress() istifadə edin.
      */
     resetSave() {
+      return this.resetRun();
+    },
+
+    /**
+     * Bütün daimi irəliləyişi silir (qızıl, təkmilləşdirmələr, skinlər, nailiyyətlər, gündəlik).
+     * Yalnız istifadəçi təsdiqindən sonra çağırılmalıdır; oyun özü heç vaxt çağırmır.
+     */
+    resetAllProgress() {
       try {
         localStorage.removeItem(SAVE_KEY);
       } catch (err) {
@@ -376,6 +399,26 @@
       this.checkAchievements('gold', this.state.stats.totalGoldEarned);
       this.save();
       return this.state.gold;
+    },
+
+    /**
+     * Ölümdən sonra qaçışda qazanılmış qızılın bir hissəsini çıx (balansı 0-dan aşağı salmır)
+     */
+    loseGold(amount) {
+      const rawNum = Number(amount);
+      if (!Number.isFinite(rawNum) || rawNum <= 0) return 0;
+      const lost = Math.min(Math.floor(rawNum), Math.max(0, this.state.gold || 0));
+      this.state.gold = (this.state.gold || 0) - lost;
+      this.save();
+      return lost;
+    },
+
+    /**
+     * Davam ediləcək qaçış varmı? (təzə quraşdırmada "Davam Et" gizlənir)
+     */
+    hasContinuableRun() {
+      const st = this.state || {};
+      return (st.level || 1) > 1 || (st.xp || 0) > 0 || (st.currentRegion || 0) > 0;
     },
 
     /**
@@ -767,7 +810,6 @@
       const rawClaim = this.state.lastDailyClaim || 0;
       const lastClaim = (typeof rawClaim === 'number' && Number.isFinite(rawClaim) && rawClaim <= now) ? Math.max(0, rawClaim) : 0;
       const cooldownMs = 24 * 60 * 60 * 1000;
-      const streakBreakMs = 48 * 60 * 60 * 1000; // 48 saatdan çox fasilə olarsa streak qırılır
 
       if (lastClaim > 0 && (now - lastClaim) < cooldownMs) {
         const remainingMs = cooldownMs - (now - lastClaim);
@@ -782,13 +824,9 @@
         };
       }
 
-      // Streak hesabla (1-dən 7-yə qədər artan dövr)
+      // Streak hesabla (1-dən 7-yə qədər artan dövr). Buraxılmış gün nərdivanı dayandırır, heç vaxt sıfırlamır.
       let currentStreak = toSafeInt(this.state.stats.dailyStreak, 0, 0, 365);
-      if (lastClaim === 0 || (now - lastClaim) <= streakBreakMs) {
-        currentStreak = (currentStreak % 7) + 1;
-      } else {
-        currentStreak = 1; // Fasilə çox olub, sıfırlanır
-      }
+      currentStreak = (currentStreak % 7) + 1;
 
       this.state.stats.dailyStreak = currentStreak;
 

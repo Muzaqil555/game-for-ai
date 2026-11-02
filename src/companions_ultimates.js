@@ -194,42 +194,25 @@
      * Modulu ilkinləşdirir və hadisə dinləyicilərini qoşur.
      */
     init: function () {
-      if (this.initialized) return;
-
-      this.rage = 50; // Başlanğıcda 50
-      this.activeType = 'phoenix';
-      this.ultimate.isActive = false;
-      this.ultimate.activeMeteors = [];
-      this.ultimate.meteorSchedule = [];
-      this.ultimate.craters = [];
-      this.particles = [];
-
-      // [R] və [C] düymələri üçün qlobal klaviatura dinləyicisi
-      if (typeof window !== 'undefined') {
-        window.addEventListener('keydown', this._handleKeyDown.bind(this));
-      }
-
+      // Klaviatura ([C], [R]) GameEngine tərəfindən idarə olunur: burada dinləyici yoxdur
+      this.resetRun();
       this.initialized = true;
     },
 
     /**
-     * Klaviatura hadisəsi ([R] -> Ultimate, [C] -> Yoldaşı dəyiş)
+     * Hər yeni qaçış üçün qəzəb, yoldaş və ultimate vəziyyətini sıfırlayır.
      */
-    _handleKeyDown: function (e) {
-      if (!e) return;
-      var key = e.key ? e.key.toLowerCase() : '';
-
-      // [R] düyməsi — Ultimate "Aether Qiyaməti"
-      if (key === 'r' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        if (this.canCastUltimate()) {
-          this.triggerUltimate(this._lastPlayer, this._lastEnemies, this._lastCallbacks);
-        }
-      }
-
-      // [C] düyməsi — Sürətli Yoldaş dəyişmə (Cycle)
-      if (key === 'c' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-        this.cycleCompanion();
-      }
+    resetRun: function () {
+      this.rage = 50; // Başlanğıcda 50
+      this.activeType = 'phoenix';
+      this.ultimate.isActive = false;
+      this.ultimate.timer = 0;
+      this.ultimate.meteorsSpawned = 0;
+      this.ultimate.screenFlashTimer = 0;
+      this.ultimate.activeMeteors = [];
+      this.ultimate.meteorSchedule = [];
+      this.ultimate.craters = [];
+      this.particles = [];
     },
 
     /**

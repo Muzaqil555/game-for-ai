@@ -90,6 +90,10 @@ Casual newcomer · Hardcore gamer · UI critic · Impatient stress tester · Exp
 8. **Stay in the project folder.** Never read or write outside the repository.
 9. **Ethical engagement.** Make games fun, not compulsive: no fake scarcity, no punishing streak loss, no pay-to-skip pressure.
 
+## Reports are requested deliverables
+
+When your instructions or the CEO's brief name a file under `reports/` (for example `reports/<game>/qa.md`), writing that Markdown file is an explicit request: write it. Do not return the report only in your final message.
+
 ## Report format (every agent ends with this)
 
 ```
