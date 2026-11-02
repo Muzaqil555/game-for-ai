@@ -69,7 +69,7 @@ api.getActiveWeaponId(); api.getRelicIds(); api.getCompanionId()
 ## 4. Mövcud SFX adları (`GameAudio.playSFX`)
 `hit, slash1, slash2, slash3, dagger, hammer, bow, spell, explosion, dash, perfectDodge, coin, chest,
 quest, levelUp, relic, portal, bossRoar, ultimate, comboSSS, lightningChain, playerHurt, click`
-V4.0 ilə əlavə olunanlar (audio_designer): `lootRare, lootEpic, lootLegendary, evolution, eliteSpawn,
+V4.0 ilə əlavə olunanlar (audio-designer): `lootRare, lootEpic, lootLegendary, evolution, eliteSpawn,
 talentUnlock, dailyComplete, soulGain`. Həmişə `api.playSFX(...)` ilə çağır (təhlükəsiz fallback var).
 
 ## 5. Qaydalar

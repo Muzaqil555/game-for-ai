@@ -5,7 +5,7 @@ description: Universal autonomous game creation pipeline for any genre (2D Platf
 
 # 🕹️ Universal AI Game Engine & Genre Pipeline
 
-Bu bacarıq (**Skill**) 36 agentli studiyaya **istənilən janrda və istənilən üslubda** brauzer oyunlarını sıfırdan, xarici fayl asılılığı olmadan (Zero-Asset) və 60–120 FPS sabitliklə yaratmaq üçün universal memarlıq və riyazi qaydaları təmin edir.
+Bu bacarıq (**Skill**) studiyaya **istənilən janrda və istənilən üslubda** brauzer oyunlarını sıfırdan, xarici fayl asılılığı olmadan (Zero-Asset) və 60–120 FPS sabitliklə yaratmaq üçün universal memarlıq və riyazi qaydaları təmin edir.
 
 ---
 
@@ -21,7 +21,7 @@ Bu bacarıq (**Skill**) 36 agentli studiyaya **istənilən janrda və istənilə
 
 ## 🎮 2. 7 Əsas Janr Matrisi (Genre Matrix)
 
-İstifadəçi bir oyun istədikdə, **26-cı Agent (`tech_stack_architect_planner`)** və **4-cü Agent (CEO)** dərhal aşağıdakı 7 şablondan ən uyğun olanını seçir:
+İstifadəçi bir oyun istədikdə, **`game-architect`** və **CEO (əsas sessiya)** dərhal aşağıdakı 7 şablondan ən uyğun olanını seçir:
 
 ### A. 2D Platformer (Mario, Celeste, Hollow Knight üslubu)
 * **İdarəetmə:** `A/D` və ya Oxlar (Hərəkət), `Space / W` (Tullanma), `Shift` (Dash / Sürətlənmə).
@@ -183,16 +183,16 @@ const AudioForge = {
 İstifadəçi hər hansı bir oyun istədikdə, CEO aşağıdakı paralel axını başladır:
 
 1. **Mərhələ 1 (Plan & Arxitektura):**
-   * **Agent 26 (`tech_stack_architect_planner`)**: Janrı müəyyən edir, oyun mexanikalarını və qələbə şərtini yazır.
+   * **`game-architect`**: Janrı müəyyən edir, oyun mexanikalarını və qələbə şərtini yazır.
 2. **Mərhələ 2 (Paralel Kodlaşdırma):**
-   * **Agent 6 (`game_developer`)**: Əsas Game Loop və Oyunçu idarəetməsini qurur.
-   * **Agent 20 (`physics_juice_specialist`)**: Janra uyğun qravitasiya, toqquşma və ekran sarsıntısını yazır.
-   * **Agent 13 (`art_director`)**: Canvas procedural qrafikalarını və rəng palitrasını çəkir.
-   * **Agent 12 (`audio_designer`)**: Janra uyğun Web Audio SFX və fon ritmini qurur.
-   * **Agent 3 (`frontend_specialist`)**: Xal sayğacı, Can barı və Menyu pəncərələrini hazırlayır.
+   * **`game-engine-developer`**: Əsas Game Loop və Oyunçu idarəetməsini qurur.
+   * **`physics-game-feel-engineer`**: Janra uyğun qravitasiya, toqquşma və ekran sarsıntısını yazır.
+   * **`art-director`**: Canvas procedural qrafikalarını və rəng palitrasını çəkir.
+   * **`audio-designer`**: Janra uyğun Web Audio SFX və fon ritmini qurur.
+   * **`ui-hud-engineer`**: Xal sayğacı, Can barı və Menyu pəncərələrini hazırlayır.
 3. **Mərhələ 3 (Təhlükəsizlik və 120 FPS):**
-   * **Agent 5 (`security_specialist`)** və **Agent 15 (`performance_optimizer`)**: Kodu analiz edir, xətaları aradan qaldırır.
+   * **`security-auditor`** və **`performance-optimizer`**: Kodu analiz edir, xətaları aradan qaldırır.
 4. **Mərhələ 4 (9-Persona İstifadəçi Testi):**
-   * 9 istifadəçi agenti oyunu sınaqdan keçirir, rəy bildirir, **Agent 17 (`bug_fixer`)** düzəlişləri edir.
+   * `playtest-council` (9 persona) oyunu sınaqdan keçirir, rəy bildirir, **`bug-fixer`** düzəlişləri edir.
 5. **Mərhələ 5 (Təhvil):**
    * CEO tam hazır, brauzerdə dərhal açılan oyunu təqdim edir!

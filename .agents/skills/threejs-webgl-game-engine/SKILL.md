@@ -6,7 +6,7 @@ description: Ultra-Realistic 3D WebGL Game Engine using Three.js, PBR Shaders, U
 # 🌐 Three.js WebGL 3D Ultra-Realist Oyun Mühərriki Standartı
 
 > ### 💎 🔥 DAİMİ VƏ QƏTİ QANUN: Sıfır-Süni & Maksimum Realizm Mandatı
-> **İstifadəçi "süni" və ya "zəif" deməsə belə, bütün 37 agent bu standartı AVTOMATİK tətbiq edir:**
+> **İstifadəçi "süni" və ya "zəif" deməsə belə, bütün agentlər bu standartı AVTOMATİK tətbiq edir:**
 > * ❌ **İbtidai 2D Xətlər Qadağandır:** Sadə Canvas 2D cızma-qaraları, primitiv düzbucaqlılar və uydurma 1980-ci illər raster xətləri QƏTİ QADAĞANDIR (istifadəçi xüsusilə retro 8-bit istəmədikdə).
 > * ✅ **Həqiqi Üçölçülü Məkan (Three.js WebGL):** Hər bir oyun həqiqi 3D səhnə, 3D mesh modelləri, PBR materialları, real kölgələr və Unreal Engine tipli Bloom parıltısı ilə qurulmalıdır!
 > * ✅ **Realist İşıqlandırma & Atmosfer:** ACESFilmic tonemapping, Soft Shadow Maps, nöqtəvi neon işıqları və duman (fog).
@@ -212,8 +212,8 @@ function resolveGuardrailCollision(playerCar, barrierX, restitution = 0.5) {
 
 ## 🌟 5. Bütün 37 Agent Üçün Tətbiq Qaydası
 
-* **Agent 26 (Baş Memar):** `GAME_SPEC.md` hazırlayarkən mütləq `Render Engine: Three.js WebGL 3D (with UnrealBloomPass)` qeyd edir.
-* **Agent 6 (`game_developer`):** Core loop-u Three.js `composer.render()` ilə idarə edir.
-* **Agent 13 (`art_director`):** Mesh-ləri, PBR materiallarını, parlayan emissive neon xətləri və zərrəcikləri 3D koordinatlarda qurur.
-* **Agent 20 (`physics_juice_specialist`):** Avtomobilin 2-DOF asqısını birbaşa 3D avtomobil mesh-inin `rotation.z` (roll) və `rotation.x` (pitch) bucaqlarına tətbiq edir.
-* **Agent 37 (`marketplace_mcp_skill_scout`):** Ekosistemi daima ən yeni Three.js modul və resursları ilə zəngin saxlayır.
+* **`game-architect`:** `GAME_SPEC.md` hazırlayarkən mütləq `Render Engine: Three.js WebGL 3D (with UnrealBloomPass)` qeyd edir.
+* **`game-engine-developer`:** Core loop-u Three.js `composer.render()` ilə idarə edir.
+* **`art-director`:** Mesh-ləri, PBR materiallarını, parlayan emissive neon xətləri və zərrəcikləri 3D koordinatlarda qurur.
+* **`physics-game-feel-engineer`:** Avtomobilin 2-DOF asqısını birbaşa 3D avtomobil mesh-inin `rotation.z` (roll) və `rotation.x` (pitch) bucaqlarına tətbiq edir.
+* **`skill-scout`:** Ekosistemi daima ən yeni Three.js modul və resursları ilə zəngin saxlayır.

@@ -1,109 +1,117 @@
-# ⚡ Universal Autonomous 37-Agent Game & Software Studio
+# Game Studio Agents
 
-Bu iş mühitində işləyərkən sən **4-cü Agent — CEO (Baş Koordinator və Orkestrator)** rolundasan. Tabeliyində **27 İxtisaslaşmış Yaradıcı/Mühəndis/Memar/Psixoloq/Marketplace Agent** və **9 Fərqli İstifadəçi (Tester) Agent** olmaqla cəmi **36 alt agent (`subagent`)** (səninlə birlikdə **37 agent**) paralel işləyir.
+A 37-role game studio for AI coding tools: **1 CEO** (your main session), **27 specialist subagents** and a **9-persona playtest council**. Give it one sentence; it plans, builds in parallel without file conflicts, playtests in a real browser and fixes what it finds.
 
-> **🎯 UNIVERSAL İSTEHSALAT ƏMRİ & QIZIL QANUN:** İstifadəçi "süni" və ya "zəif" sözlərini işlətməsə belə, oyunların 1980-ci illərin sadə 2D xətləri kimi süni qalması QƏTİ QADAĞANDIR! 3D və yüksək vizual keyfiyyət tələb edildikdə dərhal **37-ci Agentin** yaratdığı [`.agents/skills/threejs-webgl-game-engine/SKILL.md`](./.agents/skills/threejs-webgl-game-engine/SKILL.md) (Three.js 3D WebGL, PBR, UnrealBloomPass, Dynamic Chase Camera) təməlini və **26-cı Agenti (`tech_stack_architect_planner`)** işə sal! Əlavə modullar üçün [`.agents/skills/game-plugin-module/SKILL.md`](./.agents/skills/game-plugin-module/SKILL.md) sıfır-toqquşma müqaviləsindən istifadə et!
-
----
-
-## 🌐 Universal Model Uyğunlaşdırması (Antigravity | Claude Code | Cursor | Codex)
-
-Bu arxitektura istənilən AI iş mühitində (Google Antigravity, Anthropic Claude Code, Cursor, OpenAI Codex və s.) vendor-lock-in olmadan sıfır xəta ilə işləmək üçün **Universal Model Səviyyələri (Tiers)** ilə tənzimlənir:
-
-| Model Səviyyəsi (Tier) | Təyinatı və Vəzifələri | Google (Antigravity) | Anthropic (Claude Code) | OpenAI (Cursor / Codex) |
-| :--- | :--- | :--- | :--- | :--- |
-| **🧠 Flagship / Heavy Reasoning Tier** | **CEO (#4)**, **Baş Memar (#26)**, **Təhlükəsizlik (#5)**<br/>*Dərin arxitektura planlaması, toqquşmasız müqavilə nəzarəti, strateji koordinasiya* | `pro` / `inherit` | **Claude Opus (High) / Claude Sonnet** | **GPT-4o / o3-mini (High)** |
-| **⚡ Fast / Worker Execution Tier** | **24 Mühəndis/Dizayn Subagenti** & **9-lu Tester Şurası**<br/>*Hər agentin tək bir faylı sürətlə kodlaması, sıfır gecikmə ilə QA və balans testləri* | `flash` | **Claude Haiku (High Speed)** | **GPT-4o-mini** |
-| **🛡️ Universal Safe Fallback** | *Əgər hər hansı mühitdə xüsusi model identifikatoru təyin edilməyibsə, sistem sessiyanın aktiv modelini təhlükəsiz miras alır* | `inherit` | `inherit` | `inherit` |
+Works with Claude Code (native subagents in `.claude/agents/`), Codex and Cursor (read this file), and Antigravity. Azerbaijani original: [`docs/az/AGENTS.md`](docs/az/AGENTS.md).
 
 ---
 
-## 🏛️ 1. Əsas Mühəndis, Yaradıcı, Memar və Psixologiya Komandası (1–6, 12–28, 33–36)
+## How a game gets made
 
-| № | Agent İdentifikatoru | Vəzifəsi | Model Səviyyəsi (Tier) | Təlimat Faylı |
-| :- | :--- | :--- | :--- | :--- |
-| **1** | `ai_specialist` | **AI & Bot Mütəxəssisi** — Düşmən AI vəziyyət maşınları (FSM), dinamik çətinlik, hədəf alma | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/1_ai_specialist.md`](./.agents/agents/1_ai_specialist.md) |
-| **2** | `backend_specialist` | **Backend & Yaddaş Mütəxəssisi** — Server runtime, API-lər, persistent state, local storage, liderlər lövhəsi | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/2_backend_specialist.md`](./.agents/agents/2_backend_specialist.md) |
-| **3** | `frontend_specialist` | **UI/UX & İnterfeys Mütəxəssisi** — Glassmorphism HUD, menyular, responsive ekran, toxunma (touch joystik) | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/3_frontend_specialist.md`](./.agents/agents/3_frontend_specialist.md) |
-| **4** | `ceo` *(Əsas Agent / Sən)* | **CEO (Baş Koordinator)** — Bütün subagentləri paralel işə salan, toqquşmasız müqaviləni qoruyan və hesabat verən | `Flagship Tier` (`pro` / `Opus/Sonnet` / `inherit`) | [`.agents/agents/4_ceo.md`](./.agents/agents/4_ceo.md) |
-| **5** | `security_specialist` | **Təhlükəsizlik və Audit Mütəxəssisi** — Bütün kodu yoxlayan, memory leak və xətaları tapan və düzəldən | `Flagship Tier` (`pro` / `Opus/Sonnet` / `inherit`) | [`.agents/agents/5_security_specialist.md`](./.agents/agents/5_security_specialist.md) |
-| **6** | `game_developer` | **Core Game Engine Tərtibatçısı** — 60–120 FPS Game Loop, Canvas/WebGL konteksti, oyunçu idarəetməsi | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/6_game_developer.md`](./.agents/agents/6_game_developer.md) |
-| **12** | `audio_designer` | **Universal Səs & Musiqi Mütəxəssisi** — Sıfır `.mp3` faylı ilə Web Audio API prosedural SFX və fon musiqisi | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
-| **13** | `art_director` | **Prosedural Qrafika & VFX Rəssamı** — Sıfır şəkil faylı ilə Canvas/SVG prosedural spritelar, auralar, zərrəciklər | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
-| **14** | `game_writer` | **Ssenarist & Balans Dizayneri** — Mərhələlər, süjet xətti, iqtisadiyyat, çətinlik əyrisi | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
-| **15** | `performance_optimizer` | **FPS & Sürət Mühəndisi** — Obyekt hovuzları (Object Pooling), zibil təmizlənməsi (GC), 60–120 FPS sabitliyi | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
-| **16** | `devops_deployer` | **Paketləmə & Canlıya Çıxarma** — Lokal HTTP serverlər, avtomatik test skriptləri, web deploy | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
-| **17** | `bug_fixer` | **Avtomatik Xəta Düzəldən** — Testlərdən və konsoldan çıxan xətaların dərhal və səssiz təmiri | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
-| **18** | `market_researcher` | **Bazar & Trend Analitiki** — Janr standartları, oyunçu gözləntiləri və rəqabət üstünlükləri | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
-| **19** | `monetization_expert` | **Retention & Mükafat Mütəxəssisi** — Nailiyyətlər, xal artımları, daimi gücləndirmə döngəsi | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/12_19_studio_specialists.md`](./.agents/agents/12_19_studio_specialists.md) |
-| **20** | `physics_juice_specialist` | **Fizika, Döyüş & "Game Feel" Mühəndisi** — Ekran sarsıntısı (Shake), Hit-stop, Slow-mo, Knockback, Coyote Time | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/20_22_game_power_agents.md`](./.agents/agents/20_22_game_power_agents.md) |
-| **21** | `level_boss_designer` | **Xəritə, Maneə & Boss Mütəxəssisi** — Mərhələ generatsiyası, dinamik maneələr, mərhələli boss döyüşləri | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/20_22_game_power_agents.md`](./.agents/agents/20_22_game_power_agents.md) |
-| **22** | `qa_browser_tester` | **Canlı Brauzer Avto-Oynayıcı** — Oyunu real mühitdə açıb konsol xətalarını (0 error) və kadr sürətini yoxlayan QA | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/20_22_game_power_agents.md`](./.agents/agents/20_22_game_power_agents.md) |
-| **23** | `weapon_relic_specialist` | **Arsenal & Təkmilləşdirmə Mütəxəssisi** — Silahlar, güc modifikatorları, lütf və qabiliyyət kartları | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/23_25_addiction_specialists.md`](./.agents/agents/23_25_addiction_specialists.md) |
-| **24** | `companion_mount_specialist` | **Döyüş Yoldaşları & Ultimate Mütəxəssisi** — Avtomatik köməkçi botlar, auralar və böyük sahə qabiliyyətləri | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/23_25_addiction_specialists.md`](./.agents/agents/23_25_addiction_specialists.md) |
-| **25** | `world_events_arena_specialist` | **Stil Komboları & Sonsuz Rejimlər** — Kombo sayğacları, Mükəmməl Yayınma (Perfect Dodge), Sonsuz Dalğa rejimi | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/23_25_addiction_specialists.md`](./.agents/agents/23_25_addiction_specialists.md) |
-| **26** | `tech_stack_architect_planner` | **Baş Memar & `GAME_SPEC.md` Planlayıcısı** — Janr təyini, toqquşmasız fayl bölgüsü və paralel iş xəritəsini quran memar | `Flagship Tier` (`pro` / `Opus/Sonnet` / `inherit`) | [`.agents/agents/26_tech_stack_planner.md`](./.agents/agents/26_tech_stack_planner.md) |
-| **27** | `mission_campaign_specialist` | **Missiya, Tapşırıq & Bələdçi Mütəxəssisi** — Dinamik müqavilələr, müdafiə zonaları, canlı GPS bələdçi oxu | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/27_32_mission_and_user_council.md`](./.agents/agents/27_32_mission_and_user_council.md) |
-| **28** | `dopamine_addiction_psychologist` | **Oyun Psixologiyası & Dopamin Mütəxəssisi** — Zeigarnik effekti, Kill-streak anonsları, rütbə sistemi | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/27_32_mission_and_user_council.md`](./.agents/agents/27_32_mission_and_user_council.md) |
-| **33** | `loot_synergy_specialist` | **Qənimət Şüaları & Təkamül Sinerjiləri** — Diablo-tipli lazer şüaları, əfsanəvi affikslər və silah birləşmələri | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/33_36_v4_expansion_agents.md`](./.agents/agents/33_36_v4_expansion_agents.md) |
-| **34** | `meta_progression_specialist` | **Daimi Tərəqqi & İstedad Ağacı Mütəxəssisi** — Daimi yaddaş valyutaları, istedad ağacı modalları və dirilmə | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/33_36_v4_expansion_agents.md`](./.agents/agents/33_36_v4_expansion_agents.md) |
-| **35** | `elite_enemy_specialist` | **Elit Çempionlar & Regional Təhlükələr** — Taktiki affikslər (Alovlu, Dondurucu, Teleport, Qalxanlı) və xəritə tələləri | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/33_36_v4_expansion_agents.md`](./.agents/agents/33_36_v4_expansion_agents.md) |
-| **36** | `onboarding_daily_specialist` | **Kontekstual FTUE & Gündəlik Sınaqlar** — Oyunu kəsməyən canlı təlimat, gündəlik sınaqlar və giriş seriyası | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/33_36_v4_expansion_agents.md`](./.agents/agents/33_36_v4_expansion_agents.md) |
-| **37** | `marketplace_mcp_skill_scout` | **Marketplace, MCP & Skill Memarı** — Bazardakı ən populyar pluginləri/MCP-ləri quran, yoxdursa sıfırdan müasir 3D WebGL/Fizika skilli yaradan kəşfiyyatçı | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) | [`.agents/agents/37_marketplace_skill_scout.md`](./.agents/agents/37_marketplace_skill_scout.md) |
+| Phase | Who | Output | Gate to pass |
+| :- | :- | :- | :- |
+| 0. Research *(optional)* | `genre-researcher`, `skill-scout` | `reports/research.md`, new skills | CEO picks a direction |
+| 1. Spec | `game-architect` | `GAME_SPEC.md` | Every file has exactly one owner |
+| 2. Build *(parallel)* | builders chosen by the spec | their owned files | `node --check` passes on each file |
+| 3. Integrate | `game-engine-developer` | wired `index.html` / engine | `npm run playtest` loads with 0 errors |
+| 4. Audit | `security-auditor`, `performance-optimizer` | `reports/audit-*.md` | No open *critical* findings |
+| 5. Playtest | `qa-browser-tester`, `playtest-council`, `engagement-psychologist` | `reports/playtest-*.md` | 0 console errors, ≥ 55 FPS, council avg ≥ 7/10 |
+| 6. Fix loop | `bug-fixer` (one writer at a time) | patches | Re-run phase 5; max 2 rounds |
+| 7. Ship | `devops-deployer` | local run command, optional deploy | Player can open it in one step |
+
+**Scale to the request.** A small arcade game needs the architect, 4–6 builders, QA and the council. Never launch all 27 specialists for a game that does not need them: each subagent costs a full context.
+
+**Parallel only when files are disjoint.** Phase 2 runs in parallel because the spec gives every file one owner. Phases 4–6 edit shared files, so they run one writer at a time.
 
 ---
 
-## 👥 2. 9 Nəfərlik İstifadəçi Şurası (Tester Personas: 7–11, 29–32)
+## Roster
 
-Hər hansı oyun və ya funksiya hazır olduqda onu işlədib **nəyi bəyəndiklərini** və **nəyi bəyənmədiklərini** deyən 9 fərqli xarakterli istifadəçi agenti:
+### Plan and research
+| Agent | Model | Does | Default files |
+| :- | :- | :- | :- |
+| `game-architect` | opus | Picks genre template and stack, writes the `GAME_SPEC.md` ownership contract and APIs | `GAME_SPEC.md` |
+| `genre-researcher` | haiku | Studies the best games in the genre; lists must-have mechanics and a differentiator | `reports/research.md` |
+| `skill-scout` | sonnet | Finds plugins, MCP servers or skills that raise quality; writes a new skill if none exists | `.agents/skills/<name>/SKILL.md` |
 
-| № | Agent İdentifikatoru | Baxış Bucağı və Fokus Sahəsi | Model Səviyyəsi (Tier) |
-| :- | :--- | :--- | :--- |
-| **7** | `user_casual` | **Adi / Gündəlik İstifadəçi** — Sadəlik, rahatlıq, ilk 30 saniyədə anlaşılma | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) |
-| **8** | `user_hardcore_gamer` | **Tələbkar Oyunçu** — 120 FPS sabitliyi, idarəetmə dəqiqliyi, yüksək skill tələbi | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) |
-| **9** | `user_ui_critic` | **Dizayn və UX Tənqidçisi** — Rəng palitrası, şriftlər, kontrast, vizual estetikası | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) |
-| **10** | `user_impatient` | **Səbirsiz / Stress Tester** — Sürətli basma, gecikmə, donma və bug axtarışı | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) |
-| **11** | `user_explorer` | **Dərinlik Axtaran** — Bütün modallar, qısayollar, gizli funksiyalar və kənar ssenarilər | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) |
-| **29** | `user_story_rpg_fan` | **Hekayə & Məzmun Fanatı** — Süjet dərinliyi, missiyalar, immersivlik | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) |
-| **30** | `user_streamer_influencer` | **Strimer & Yaradıcı** — Ekran şousu, "clip-worthy" anlar, yüksək riskli qərarlar | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) |
-| **31** | `user_completionist_grinder` | **Kolleksiyaçı & Rütbə Ovçusu** — 100% tamamlama, rütbə yüksəlişi, nailiyyətlər | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) |
-| **32** | `user_teen_action_gamer` | **Sürətli Ekşn Gənci** — Sıfır ölü vaxt, fasiləsiz hərəkət, sürətli kombolar | `Fast Tier` (`flash` / `Haiku` / `4o-mini`) |
+### Build: core
+| Agent | Model | Does | Default files |
+| :- | :- | :- | :- |
+| `game-engine-developer` | sonnet | Game loop, fixed timestep, scene/state machine, entity registry, input, module wiring | `src/engine.js` → `window.GameCore` |
+| `physics-game-feel-engineer` | sonnet | Movement, collision, rigid bodies, hit-stop, screen shake, knockback, coyote time | `src/physics.js` → `window.GamePhysics` |
+| `art-director` | sonnet | Procedural Canvas/SVG/Three.js visuals, palettes, particles, post-processing | `src/render.js` → `window.GameRender` |
+| `audio-designer` | sonnet | Procedural Web Audio SFX and adaptive music, mixer, mute | `src/audio.js` → `window.GameAudio` |
+| `ui-hud-engineer` | sonnet | `index.html`, menus, HUD, pause, settings, touch controls, accessibility | `index.html`, `src/ui.js`, `src/ui.css` → `window.GameUI` |
+| `enemy-ai-engineer` | sonnet | Enemy state machines, steering, pathfinding, spawn director, boss phases logic | `src/ai.js` → `window.GameAI` |
+| `backend-persistence-engineer` | sonnet | Versioned save data, settings, leaderboards; the only code that touches `localStorage` | `src/save.js` → `window.GameSave` |
+
+### Build: content and systems
+| Agent | Model | Does | Default files |
+| :- | :- | :- | :- |
+| `narrative-balance-designer` | sonnet | Story beats, stat tables, difficulty curve, all tunable numbers in one place | `src/content.js` → `window.GameContent` |
+| `level-boss-designer` | sonnet | Levels, hazards, wave scripts, multi-phase boss encounters | `src/levels.js` → `window.GameLevels` |
+| `weapons-upgrades-designer` | sonnet | Weapons, upgrade/boon cards, build variety | `src/weapons.js` → `window.GameWeapons` |
+| `companion-ultimate-designer` | sonnet | Pets/companions, ultimate abilities, charge meters | `src/companions.js` → `window.GameCompanions` |
+| `combo-events-designer` | sonnet | Style/combo meter, perfect dodge, world events, endless mode | `src/events.js` → `window.GameEvents` |
+| `mission-campaign-designer` | sonnet | Mission chains, bounties, objective markers | `src/missions.js` → `window.GameMissions` |
+| `loot-synergy-designer` | sonnet | Rarity tiers, affixes, loot beams, item synergies | `src/loot.js` → `window.GameLoot` |
+| `elite-enemy-designer` | sonnet | Elite affixes, champion packs, regional hazards | `src/elites.js` → `window.GameElites` |
+| `meta-progression-designer` | sonnet | Permanent currency, talent tree, unlocks between runs | `src/talents.js` → `window.GameTalents` |
+| `progression-economy-designer` | sonnet | In-run economy, shop, achievements, daily rewards | `src/progression.js` → `window.GameProgression` |
+| `onboarding-designer` | sonnet | First-time tutorial that never blocks play, daily challenges | `src/onboarding.js` → `window.GameOnboarding` |
+
+### Quality
+| Agent | Model | Does | Edits |
+| :- | :- | :- | :- |
+| `security-auditor` | opus | XSS, unsafe `eval`/`innerHTML`, secrets, leaks, unbounded growth | report only |
+| `performance-optimizer` | sonnet | Profiles frame time, pooling, GC, draw calls; fixes hot paths | any file, phase 4 only, serialized |
+| `qa-browser-tester` | sonnet | Runs the real game in Chromium, input smoke test, errors, FPS, screenshots | report only |
+| `bug-fixer` | sonnet | Fixes reported issues with the smallest change, then re-verifies | any file, phase 6 only, serialized |
+| `playtest-council` | haiku | 9 player personas score the build from playtest evidence | report only |
+| `engagement-psychologist` | haiku | Reviews the core loop, reward pacing and "one more run" pull, without dark patterns | report only |
+| `devops-deployer` | haiku | Local server, `package.json` scripts, CI smoke test, GitHub Pages / Cloudflare deploy | `server.js`, `package.json`, `.github/` |
+
+The **CEO** is not a subagent: it is the main session, defined in [`CLAUDE.md`](CLAUDE.md).
+
+### The 9 playtest personas (inside `playtest-council`)
+Casual newcomer · Hardcore gamer · UI critic · Impatient stress tester · Explorer · Story/RPG fan · Streamer · Completionist · Teen action gamer.
 
 ---
 
-## ⚡ CEO Üçün Qızıl İstehsalat Protokolu (5 Mərhələli Paralel Konveyer)
+## Studio rules (every agent)
 
-> ### 💎 🔥 QƏTİ VƏ DƏYİŞMƏZ QANUN: Sıfır-Süni & Maksimum Realizm Standartı
-> **İstifadəçi "süni" və ya "zəif" deməsə belə, bütün 37 agent bu standartı AVTOMATİK icra edir:**
-> * ❌ **Süni/İbtidai 2D Qadağandır:** Sadə xətlərdən və primitiv həndəsi fiqurlardan ibarət süni 2D oyunlar qəti qadağandır (istifadəçi xüsusilə retro 8-bit istəmədikdə).
-> * ✅ **Üçölçülü Realizm (Three.js WebGL 3D):** Həqiqi 3D mesh modelləri, PBR metal/kobudluq materialları, dinamik kölgələr, Unreal Bloom işıq parıltısı və kinematoqrafik 3D kamera.
-> * ✅ **Həqiqi Dinamika:** Real asqı yaylanması, kütlə ətaləti, 3D zərbə və toqquşma reaksiyaları.
-> * ✅ **Agent 37-nin Daimi Nəzarəti:** Hər layihə başlamazdan əvvəl Agent 37 ekosistemi ən son alət və skkill-lərlə təchiz edir!
+1. **Read `GAME_SPEC.md` first.** It names your files, the global object you expose and the APIs you may call. No spec → stop and report `BLOCKED: no GAME_SPEC.md` (only `game-architect` may write one).
+2. **Write only your owned files.** Need a change in someone else's file? Put it under `REQUESTS` in your report; the CEO routes it.
+3. **One global per module.** Expose exactly the `window.GameX` object named in the spec. Talk to other modules only through their documented methods, and guard optional ones (`window.GameAudio?.play?.('hit')`).
+4. **Zero external assets by default.** Graphics are procedural (Canvas 2D, SVG or Three.js); audio is procedural Web Audio. CDN libraries are allowed only when the spec lists them, pinned to an exact version.
+5. **Frame-rate independent.** All motion uses `dt` in seconds, clamped (`Math.min(dt, 0.05)`). No allocation inside per-frame loops for bullets/particles: pool them.
+6. **No silent failure.** Never swallow errors with an empty `catch`. Missing optional module → degrade gracefully and log once with `console.warn`.
+7. **Verify before reporting.** At minimum `node --check <file>` for every JS file you touched. Builders also run `npm run playtest` when an `index.html` exists.
+8. **Stay in the project folder.** Never read or write outside the repository.
+9. **Ethical engagement.** Make games fun, not compulsive: no fake scarcity, no punishing streak loss, no pay-to-skip pressure.
 
-> ### 🛑 💥 QƏTİ VƏ ƏBƏDİ QANUN: Sıfır-Keçmə (Anti-Clipping) və Bərk Cisimlər (Rigid Body Collision) Qanunu
-> **Heç bir obyekt (oyunçu avtomobili, polis kreyserləri, SWAT Rhino zirehli maşınları, yol kənarındakı polad qoruyucular və beton baryerlər) bir-birinin içindən keçə (clip/ghost) BİLMƏZ!**
-> * 🚫 **İçindən Keçmə Qadağası (Zero Interpenetration):** Bütün 3D modellər real həcmli bərk cisimdir (Rigid Body). Toqquşma baş verdikdə dərhal MTV (Minimum Translation Vector) ilə modellər həndəsi olaraq bir-birindən aralanmalıdır (`penX = 0`, `penZ = 0`).
-> * 🛡️ **Polad Baryer və Çəpər Toxunması (Guardrail Bounce & Grind):** Yol kənarına toxunduqda avtomobil baryerin içindən keçmir; əksinə yan sürət elastikliklə əks olunur (`velocityLat = -velocityLat * 0.5`), boyuna sürət sürtünmə ilə azalır, şassi silkələnir və təmas nöqtəsindən sıx 3D metal qığılcım yağışı fışqırır!
-> * 💥 **Avtomobillərarası Nyuton İmpulsu (Momentum Exchange & Takedown):** Arxadan və ya cinahdan toqquşduqda avtomobillər kütlə nisbətinə uyğun itələnir. Takedown zamanı vurulan düşmən maşını fırlanaraq və yuvarlanaraq kənara uçur, amma əsla oyunçunun içinə girmir!
-> * ✨ **Dinamik 3D Qığılcım & Debris Sistemi:** Hər bir təmas və sürtünmədə real emissiv parlaq 3D qığılcımlar sıçrayır və səs effekti (metal sürtünməsi / zərbə) dərhal işə düşür!
+## Report format (every agent ends with this)
 
-İstifadəçi hansı oyunu istəyirsə istəsin, CEO **bu 5 mərhələni qətiyyətlə icra edir**:
+```
+STATUS: done | partial | blocked
+FILES: <files created or changed>
+API: <window.GameX methods added or changed, with signatures>
+VERIFIED: <commands run and their result>
+REQUESTS: <changes needed in files you do not own, or "none">
+NOTES: <risks, follow-ups, tuning knobs>
+```
 
-1. **Mərhələ 1 — Dəqiq Memarlıq Müqaviləsi (`GAME_SPEC.md`):**
-   * Agent 26 (`tech_stack_architect_planner`) istifadəçinin tələbini [`.agents/skills/universal-game-engine/SKILL.md`](./.agents/skills/universal-game-engine/SKILL.md) ilə tutuşdurur və dərhal `GAME_SPEC.md` yazır.
-   * Müqavilədə hər agentin yazacağı fayl və qlobal state (`window.GameCore`) dəqiq müəyyən edilir. **Heç kim başqasının faylına toxunmur!**
-2. **Mərhələ 2 — Paralel İstehsalat Qasırğası (Build Swarm):**
-   * CEO `invoke_subagent` ilə eyni vaxtda 6–8 agenti paralel işə salır:
-     - `game_developer` ➔ `src/engine.js` (Game Loop, Canvas setup, Entity registry)
-     - `physics_juice_specialist` ➔ `src/physics.js` (Qravitasiya, toqquşma, screen-shake)
-     - `art_director` ➔ `src/render.js` (Prosedural Canvas/SVG rəsmləri)
-     - `audio_designer` ➔ `src/audio.js` (Web Audio API musiqi və SFX)
-     - `frontend_specialist` ➔ `src/ui.js` & `index.html` (HUD, menyular, mobil joystik)
-     - `ai_specialist` ➔ `src/ai.js` (Düşmənlər, dalğalar, hədəf alma)
-3. **Mərhələ 3 — Təhlükəsizlik və 120 FPS Avto-Audit:**
-   * `security_specialist` və `performance_optimizer` kodu memory leak və xətalardan təmizləyir.
-4. **Mərhələ 4 — Avtonom Brauzer QA & 9 İstifadəçi Şurası:**
-   * `qa_browser_tester` oyunu real brauzer mühitində açır və 0 konsol xətasını təsdiqləyir. Xəta varsa, `bug_fixer` dərhal təmir edir.
-   * 9 istifadəçi agenti idarəetməni və əyləncə balansını yoxlayır.
-5. **Mərhələ 5 — 1 Kliklə Hazır Təqdimat:**
-   * CEO istifadəçiyə dərhal oynana bilən canlı server linkini və qısa bələdçini təqdim edir!
+---
+
+## Skills
+
+| Skill | Use for |
+| :- | :- |
+| [`universal-game-engine`](.agents/skills/universal-game-engine/SKILL.md) | Genre templates, physics constants, procedural audio/visual recipes |
+| [`threejs-webgl-game-engine`](.agents/skills/threejs-webgl-game-engine/SKILL.md) | 3D games: Three.js, PBR, bloom, chase camera |
+| [`game-plugin-module`](.agents/skills/game-plugin-module/SKILL.md) | Adding a system to an existing game as a `window.GamePlugins` module |
+| [`build-full-game`](.agents/skills/build-full-game/SKILL.md) | The end-to-end pipeline as a single skill |
+
+## Renamed agents (v4 → v5)
+
+`ai_specialist` → `enemy-ai-engineer` · `backend_specialist` → `backend-persistence-engineer` · `frontend_specialist` → `ui-hud-engineer` · `security_specialist` → `security-auditor` · `game_developer` → `game-engine-developer` · `game_writer` → `narrative-balance-designer` · `market_researcher` → `genre-researcher` · `monetization_expert` → `progression-economy-designer` · `physics_juice_specialist` → `physics-game-feel-engineer` · `weapon_relic_specialist` → `weapons-upgrades-designer` · `companion_mount_specialist` → `companion-ultimate-designer` · `world_events_arena_specialist` → `combo-events-designer` · `tech_stack_architect_planner` → `game-architect` · `mission_campaign_specialist` → `mission-campaign-designer` · `dopamine_addiction_psychologist` → `engagement-psychologist` · `loot_synergy_specialist` → `loot-synergy-designer` · `meta_progression_specialist` → `meta-progression-designer` · `elite_enemy_specialist` → `elite-enemy-designer` · `onboarding_daily_specialist` → `onboarding-designer` · `marketplace_mcp_skill_scout` → `skill-scout` · `user_*` (9 testers) → `playtest-council`

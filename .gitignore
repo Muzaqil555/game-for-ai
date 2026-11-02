@@ -28,3 +28,15 @@ yarn-error.log*
 # Temporary files
 tmp/
 temp/
+
+# Claude Code local settings (machine-specific paths)
+.claude/settings.local.json
+
+# Playtest output and dependencies
+playtest-results/
+node_modules/
+
+# Personal Claude Code files (machine-specific)
+CLAUDE.local.md
+.claude/memory/
+.claude/skills

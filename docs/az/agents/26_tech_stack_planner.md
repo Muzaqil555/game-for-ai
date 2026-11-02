@@ -18,7 +18,7 @@
 4. 🧩 **Puzzle / Məntiq:** Matris, bloklar, kombolar, xal.
 5. 🏎️ **Retro Yarış:** Yol perspektivi, akselerasiya, drift.
 6. ⚔️ **Dungeon RPG / Roguelike:** Zindan, qənimət, reliktlər, bosslar.
-7. 🌐 **3D WebGL:** Three.js minimalist səhnə.
+7. 🌐 **Ultra-Realist Three.js 3D WebGL:** [.agents/skills/threejs-webgl-game-engine/SKILL.md](../skills/threejs-webgl-game-engine/SKILL.md) standartı (PBR materiallar, UnrealBloomPass, dinamik 3D kamera, neon underglow, real fizika).
 
 ---
 
