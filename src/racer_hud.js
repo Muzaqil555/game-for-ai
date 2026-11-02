@@ -139,11 +139,13 @@
         radarCanvas: document.getElementById('radar-canvas'),
         radarWarningTicker: document.getElementById('radar-warning-ticker'),
 
-        // Drift Dynamics & Scoring
+        // Drift Dynamics & Scoring & Live Physics Telemetry
         driftContainer: document.getElementById('hud-drift-dynamics'),
         driftMultTag: document.getElementById('drift-mult-tag'),
         driftScoreVal: document.getElementById('drift-score-val'),
         driftAngleTag: document.getElementById('drift-angle-tag'),
+        gForceTag: document.getElementById('g-force-tag'),
+        chassisAttitudeTag: document.getElementById('chassis-attitude-tag'),
 
         // Top Right Stats
         statCreditsVal: document.getElementById('stat-credits-val'),
@@ -229,6 +231,10 @@
       if (data.driftScore !== undefined) s.driftScore = data.driftScore;
       if (data.driftMult !== undefined) s.driftMult = data.driftMult;
       if (data.credits !== undefined) s.credits = data.credits;
+      if (data.lateralG !== undefined) s.lateralG = data.lateralG;
+      if (data.longitudinalG !== undefined) s.longitudinalG = data.longitudinalG;
+      if (data.rollDeg !== undefined) s.rollDeg = data.rollDeg;
+      if (data.pitchDeg !== undefined) s.pitchDeg = data.pitchDeg;
       if (data.statusMessage !== undefined) s.statusMessage = data.statusMessage;
       if (data.rearview !== undefined) s.rearviewData = data.rearview;
       if (data.radar !== undefined) s.radarData = data.radar;
@@ -321,15 +327,31 @@
         }
       }
 
-      // 8. Drift Dynamics & Score
+      // 8. Drift Dynamics & Score & Live Newtonian G-Forces
       if (el.driftContainer) {
-        if (s.isDrifting || s.driftScore > 0) {
+        if (s.isDrifting || s.driftScore > 0 || Math.abs(parseFloat(s.lateralG || 0)) > 0.1) {
           el.driftContainer.style.opacity = '1';
-          if (el.driftMultTag) el.driftMultTag.textContent = s.driftMult.toFixed(1) + 'x';
-          if (el.driftScoreVal) el.driftScoreVal.textContent = Math.round(s.driftScore).toLocaleString();
-          if (el.driftAngleTag) el.driftAngleTag.textContent = Math.abs(Math.round(s.driftAngle)) + '° SLIP';
         } else {
-          el.driftContainer.style.opacity = '0.35';
+          el.driftContainer.style.opacity = '0.75';
+        }
+        if (el.driftMultTag) el.driftMultTag.textContent = s.driftMult.toFixed(1) + 'x';
+        if (el.driftScoreVal) el.driftScoreVal.textContent = Math.round(s.driftScore).toLocaleString();
+        if (el.driftAngleTag) el.driftAngleTag.textContent = Math.abs(Math.round(s.driftAngle)) + '° SLIP';
+
+        if (el.gForceTag) {
+          const lat = parseFloat(s.lateralG || 0);
+          const lon = parseFloat(s.longitudinalG || 0);
+          const latSign = lat >= 0 ? '+' : '';
+          const lonSign = lon >= 0 ? '+' : '';
+          el.gForceTag.textContent = `${latSign}${lat.toFixed(2)}G LAT • ${lonSign}${lon.toFixed(2)}G LONG`;
+        }
+
+        if (el.chassisAttitudeTag) {
+          const roll = parseFloat(s.rollDeg || 0);
+          const pitch = parseFloat(s.pitchDeg || 0);
+          const rSign = roll >= 0 ? '+' : '';
+          const pSign = pitch >= 0 ? '+' : '';
+          el.chassisAttitudeTag.textContent = `ROLL: ${rSign}${roll.toFixed(1)}° • PITCH: ${pSign}${pitch.toFixed(1)}°`;
         }
       }
 

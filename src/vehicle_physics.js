@@ -421,9 +421,13 @@
       // Ümumi avtomobil sürüşmə bucağı (Body Drift Angle)
       this.overallSlipAngle = Math.atan2(this.velocityLat, absVLong);
 
-      // 5. Pacejka Yan Qüvvələrinin (Lateral Grip Forces) Tətbiqi
-      const normalLoadFront = cfg.mass * 9.81 * cfg.weightDistrFront;
-      const normalLoadRear = cfg.mass * 9.81 * (1 - cfg.weightDistrFront);
+      // 5. Həqiqi Dinamik Çəki Keçidi və Aerodinamik Təzyiq Qüvvəsi (Normal Loads Fz)
+      const hCom = 0.48; // Ağırlıq mərkəzinin hündürlüyü (m)
+      const deltaFzLong = (cfg.mass * this.accelerationLong * hCom) / cfg.wheelbase;
+      const downforce = 0.5 * 1.225 * (this.velocityLong * this.velocityLong) * 0.42 * 2.2;
+
+      const normalLoadFront = Math.max(600, (cfg.mass * 9.81 * cfg.weightDistrFront) - deltaFzLong + downforce * 0.45);
+      const normalLoadRear = Math.max(600, (cfg.mass * 9.81 * (1 - cfg.weightDistrFront)) + deltaFzLong + downforce * 0.55);
 
       let frontMu = cfg.tireGripBase * roadFriction;
       let rearMu = cfg.tireGripBase * roadFriction;
@@ -605,6 +609,142 @@
           this.miniTurboActive = false;
         }
       }
+    }
+
+    /**
+     * SƏRT GUARDRAIL BARYER TOQQUŞMASI (Anti-Clipping & Solid Rebound)
+     * Avtomobil polad qoruyucu baryerlərə (X = ±14.45m) dəydikdə işə düşür.
+     * Sadə clamp əvəzinə: elastik sıçrayış, sürtünmə yavaşlaması, şassi əyilməsi və kamera zərbəsi.
+     * @param {number} currentLaneX - Avtomobilin cari X mövqeyi (metr)
+     * @param {number} limitX - Baryer sərhədi (default: 14.45m)
+     * @param {number} dt - Addım zamanı
+     * @returns {{ collided: boolean, resolvedLaneX: number, side: number, impactSpeed: number }}
+     */
+    resolveGuardrailCollision(currentLaneX, limitX = 14.45, dt = 0.016) {
+      if (currentLaneX >= limitX) {
+        const resolvedX = limitX;
+        if (this.velocityLat > 0) {
+          // Sərt elastik sıçrayış (Solid restitution)
+          this.velocityLat = -this.velocityLat * 0.55 - 2.5;
+        }
+        // Sürtünmə qanunu ilə boyuna sürət itkisi
+        this.velocityLong = Math.max(5.0, this.velocityLong - 26.0 * dt);
+        this.suspension.rollVelocity -= 0.18; // Şassi daxilə doğru yellənir
+
+        if (typeof window !== 'undefined' && window.GameJuice && typeof window.GameJuice.shake === 'function') {
+          window.GameJuice.shake(14.0, 0.22);
+        }
+
+        return { collided: true, resolvedLaneX: resolvedX, side: 1, impactSpeed: this.speedKmh };
+      } else if (currentLaneX <= -limitX) {
+        const resolvedX = -limitX;
+        if (this.velocityLat < 0) {
+          this.velocityLat = -this.velocityLat * 0.55 + 2.5;
+        }
+        this.velocityLong = Math.max(5.0, this.velocityLong - 26.0 * dt);
+        this.suspension.rollVelocity += 0.18;
+
+        if (typeof window !== 'undefined' && window.GameJuice && typeof window.GameJuice.shake === 'function') {
+          window.GameJuice.shake(14.0, 0.22);
+        }
+
+        return { collided: true, resolvedLaneX: resolvedX, side: -1, impactSpeed: this.speedKmh };
+      }
+
+      return { collided: false, resolvedLaneX: currentLaneX, side: 0, impactSpeed: 0 };
+    }
+
+    /**
+     * AVTOMOBİLLƏRARASI 3D BƏRK CİSİM AYRILMASI (MTV Anti-Clipping Solver)
+     * Heç bir maşın bir-birinin içinə girmir. Minimum Translation Vector ilə dərhal həndəsi aralanır.
+     * @param {object} playerBox - { x, z, halfW, halfL, mass }
+     * @param {object} otherBox - { x, z, halfW, halfL, mass, vz }
+     * @returns {object|null} Toqquşma baş veribsə həll olunmuş itələmə və impuls parametrləri
+     */
+    resolve3DMTVCollision(playerBox, otherBox) {
+      const dx = playerBox.x - otherBox.x;
+      const dz = playerBox.z - otherBox.z;
+
+      const penX = (playerBox.halfW + otherBox.halfW) - Math.abs(dx);
+      const penZ = (playerBox.halfL + otherBox.halfL) - Math.abs(dz);
+
+      if (penX > 0 && penZ > 0) {
+        const totalMass = (playerBox.mass || 1500) + (otherBox.mass || 1600);
+        const pRatio = (otherBox.mass || 1600) / totalMass;
+        const cRatio = (playerBox.mass || 1500) / totalMass;
+
+        if (penX < penZ) {
+          // Yan toqquşma (Door-to-door sideswipe)
+          const signX = dx >= 0 ? 1 : -1;
+          const shiftPlayerX = signX * penX * pRatio;
+          const shiftOtherX = -signX * penX * cRatio;
+
+          // Lateral impuls mübadiləsi
+          this.velocityLat += signX * 4.8;
+          this.velocityLong = Math.max(5.0, this.velocityLong * 0.95);
+
+          return {
+            collided: true,
+            axis: 'lateral',
+            penX: penX,
+            shiftPlayerX: shiftPlayerX,
+            shiftOtherX: shiftOtherX,
+            signX: signX,
+            sparkX: (playerBox.x + otherBox.x) * 0.5,
+            sparkZ: (playerBox.z + otherBox.z) * 0.5
+          };
+        } else {
+          // Boyuna toqquşma (Front/Rear bumper impact)
+          const signZ = dz >= 0 ? 1 : -1;
+          const shiftPlayerZ = signZ * penZ * pRatio;
+          const shiftOtherZ = -signZ * penZ * cRatio;
+
+          return {
+            collided: true,
+            axis: 'longitudinal',
+            penZ: penZ,
+            shiftPlayerZ: shiftPlayerZ,
+            shiftOtherZ: shiftOtherZ,
+            signZ: signZ,
+            sparkX: (playerBox.x + otherBox.x) * 0.5,
+            sparkZ: (playerBox.z + otherBox.z) * 0.5
+          };
+        }
+      }
+
+      return null;
+    }
+
+    /**
+     * HƏQİQİ NYUTON TOXUNMA İMPULSU VƏ DÖNMƏ MOMENTİ (Rotational Torque Solver)
+     * Toqquşma təmas nöqtəsi ağırlıq mərkəzindən aralı olduqda fırlanma momenti (tau = r x J) yaradır!
+     * @param {number} rx - Ağırlıq mərkəzindən təmas nöqtəsinə qədər olan X qolu (m)
+     * @param {number} rz - Ağırlıq mərkəzindən təmas nöqtəsinə qədər olan Z qolu (m)
+     * @param {number} jx - Toqquşma impulsu X komponenti (N*s)
+     * @param {number} jz - Toqquşma impulsu Z komponenti (N*s)
+     * @returns {number} Dissipasiya olunan kinetik enerji (Joule)
+     */
+    applyContactImpulse(rx, rz, jx, jz) {
+      const m = this.config.mass;
+      // 1. Xətti sürət dəyişməsi: Delta v = J / m
+      this.velocityLat += jx / m;
+      this.velocityLong += jz / m;
+
+      // 2. Təmas ofsetindən fırlanma momenti: tau = rx * jz - rz * jx
+      const torque = (rx * jz) - (rz * jx);
+      // Ətalət momenti: Iz = (1/12) * m * (w^2 + l^2)
+      const yawInertia = (1 / 12) * m * (this.config.trackWidth * this.config.trackWidth + this.config.wheelbase * this.config.wheelbase);
+      const deltaYawRate = torque / yawInertia;
+      this.yawRate += deltaYawRate * 0.45;
+
+      // 3. Şassi asqı reaksiyası (Roll və Pitch təkantəkəri)
+      if (this.suspension) {
+        this.suspension.rollVelocity += (jx / m) * 0.22;
+        this.suspension.pitchVelocity -= (jz / m) * 0.20;
+      }
+
+      // Dissipasiya olunan kinetik enerji (Joule)
+      return 0.5 * (jx * jx + jz * jz) / m;
     }
 
     /**
